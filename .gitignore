@@ -1,0 +1,44 @@
+# Fichiers Python compilés
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Dossiers virtuels
+venv/
+env/
+.venv/
+.env/
+
+# Fichiers de config/env
+.env
+*.env
+
+# Fichiers temporaires
+*.log
+*.tmp
+*.bak
+*.swp
+*~
+
+# Sortie de tests
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+pytest_cache/
+
+# IDE
+.vscode/
+.idea/
+
+# macOS et Linux
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+
+# Distribution
+dist/
+build/
+*.egg-info/
