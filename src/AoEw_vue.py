@@ -271,7 +271,9 @@ class Vue():
 
         self.canevas.bind("<MouseWheel>", self.OnMouseWheel)
         self.canevas.bind("<Control-MouseWheel>", self.OnCtrlMouseWheel)
-
+        self.canevas.bind("<ButtonPress-1>", self.start_drag)
+        self.canevas.bind("<B1-Motion>", self.do_drag)
+        
         # soit aux dessins, en vertu de leur tag (propriétés des objets dessinés)
         # ALL va réagir à n'importe quel dessin
         # sinon on spécifie un tag particulier, exemple avec divers tag, attaché par divers événements
@@ -301,6 +303,12 @@ class Vue():
         else:
             rep = rep - 0.02
         self.canevas.xview_moveto(rep)
+
+    def start_drag(self, event):
+        self.canevas.scan_mark(event.x, event.y)
+
+    def do_drag(self, event):
+        self.canevas.scan_dragto(event.x, event.y, gain=1)
 
         # cette méthode sert à changer le cadre (Frame) actif de la fenêtre, on n'a qu'à fournir le cadre requis
 
@@ -633,6 +641,8 @@ class Vue():
         x = evt.x
         y = evt.y
 
+
+
         pctx = x / self.tailleminicarte
         pcty = y / self.tailleminicarte
 
@@ -643,6 +653,7 @@ class Vue():
         self.canevas.yview_moveto(pcty - yl)
         xl = self.canevas.winfo_width()
         yl = self.canevas.winfo_height()
+
 
     def batir_artefact(self, evt):
         obj = evt.widget
