@@ -17,6 +17,7 @@ class Vue():
         self.root.attributes('-fullscreen', False)
         self.nom_joueur_local = StringVar()
         self.nom_joueur_local.set(nom_joueur_local)
+        self.user = None
 
         # Centrer la fenêtre sur l'écran
         self.root.update_idletasks()
@@ -248,6 +249,7 @@ class Vue():
     def enregistrer_et_changer(self):
         if self.enregistrer(self.entree_nom.get(), self.entree_mdp.get()):
             self.nom_joueur_local.set(self.entree_nom.get())
+            self.user = self.parent.user
             self.changer_cadre("mainlobby")
             self.root.attributes('-fullscreen', True)
         else:
@@ -261,6 +263,7 @@ class Vue():
     def login_et_changer(self):
         if self.login(self.entree_nom.get(), self.entree_mdp.get()):
             self.nom_joueur_local.set(self.entree_nom.get())
+            self.user = self.parent.user
             self.changer_cadre("mainlobby")
             self.root.attributes('-fullscreen', True)
         else:

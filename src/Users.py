@@ -1,14 +1,16 @@
 import sqlite3
-import src.SQLConnection as sqCon
-
+import SQLConnection as sqCon
+import UserAOEW
 
 class UserManager:
     _instance = None
+
 
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(UserManager, cls).__new__(cls)
             cls._instance.db_connection = sqCon.DatabaseConnection()
+            cls.user_data = None
         return cls._instance
 
     def add_user(self, username, password):
@@ -33,6 +35,15 @@ class UserManager:
         else:
             print(f"Utilisateur '{username}' n'existe pas.")
             return False
+
+    def get_user_data(self, username):
+        user_data = self.db_connection.fetch_one(
+            "SELECT * FROM users WHERE username = ?", (username,)
+        )
+        if user_data:
+            print(f"Utilisateur trouvé: ID={user_data[0]}, Username='{user_data[1]}'")
+            return UserAOEW.UserAOEW(user_data[0],user_data[1],user_data[2])
+
 
     def delete_user(self, username):
         self.db_connection.execute_query(

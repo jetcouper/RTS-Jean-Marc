@@ -4,16 +4,22 @@
 from AoEw_vue import *
 from AoEw_modele import *
 import Users as us
+import pickle
+from pathlib import Path
+
 
 class Controleur():
     def __init__(self):
         #MORT self.ego_serveur = 0 # 1 si le joueur a creer la partie (seul lui peut 'lancer' la partie)
         self.user_manager = us.UserManager()
+        self.objets = []  # Liste de vos objets
+        self.fichier_sauvegarde = 'data/sauvegarde.pkl'
 
         self.iteration_boucle_jeu = 0
         self.actions_requises = []
-        self.nom_joueur_local = ""
+        self.user = None
         self.partie = None
+        self.nom_joueur_local = ""
         # liste des noms de joueurs
         self.joueurs = self.user_manager.list_all_users()
         #MORT self.prochain_splash = None # requis pour sortir du splash et passer au lobby
@@ -219,6 +225,7 @@ class Controleur():
         message = self.user_manager.add_user(username, password)
         if message == "Réussi":
             self.nom_joueur_local = username
+            self.user = self.user_manager.get_user_data(username)
             return True
         else:
             self.nom_joueur_local = ""
@@ -227,12 +234,29 @@ class Controleur():
         message = self.user_manager.get_user(username, password)
         if message:
             self.nom_joueur_local = username
+            self.user = self.user_manager.get_user_data(username)
             return True
         else:
             self.nom_joueur_local = ""
             return False
 
-    #def message_erreur(self):
+    def sauvegarde(self,fichier=None):
+        """Sauvegarde tous les objets dans un fichier pickle"""
+        if fichier is None:
+            fichier = self.fichier_sauvegarde
+
+        # Créer le dossier si nécessaire
+        Path(fichier).parent.mkdir(parents=True, exist_ok=True)
+
+        try:
+            with open(fichier, 'wb') as f:
+                pickle.dump(self.partie, f)
+            print(f"✓ Sauvegarde réussie : {len(self.objets)} objet(s) sauvegardé(s)")
+            return True
+        except Exception as e:
+            print(f"✗ Erreur lors de la sauvegarde : {e}")
+            return False
+
 
 
 if __name__ == '__main__':
