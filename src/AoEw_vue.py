@@ -30,6 +30,16 @@ class Vue():
         x = (self.root.winfo_screenwidth() // 2) - (self.largeur // 2)
         y = (self.root.winfo_screenheight() // 2) - (self.hauteur // 2)
         self.root.geometry(f"{self.largeur}x{self.hauteur}+{x}+{y}")
+        self.root.minsize(1200, 600)
+
+        self.root.bind("<Double-Escape>", lambda e: self.root.destroy())
+        self.root.bind("<F11>", lambda e: switch_fullscreen())
+
+        # Interrupteur pour le mode plein écran avec les touches Échap et F11
+        self.fullscreen = False
+        def switch_fullscreen(event=None):
+            self.fullscreen = not self.fullscreen
+            self.root.attributes('-fullscreen', self.fullscreen)
 
         # attributs
         self.cadrechaton = 0
