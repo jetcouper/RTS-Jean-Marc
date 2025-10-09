@@ -1,5 +1,5 @@
 import sqlite3
-import src.SQLConnection as sqCon
+import SQLConnection as sqCon
 
 
 class UserManager:
