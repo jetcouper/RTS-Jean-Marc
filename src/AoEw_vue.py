@@ -4,15 +4,30 @@ from tkinter import ttk
 from tkinter.simpledialog import *
 import os
 from chargeurdimages import *
+import AoEw_client_main as m # a enlever test only
+
+from PIL import Image, ImageTk  # Pour redimensionner l’image
 
 
 class Vue():
     def __init__(self, parent, nom_joueur_local): #, testdispo):
         self.parent = parent
         self.root = Tk()
-        self.root.title("Je suis " + nom_joueur_local)
-        self.root.attributes('-fullscreen', True)
+        self.root.title("Age of Empire")
+        self.root.attributes('-fullscreen', False)
         self.nom_joueur_local = nom_joueur_local
+
+        # Centrer la fenêtre sur l'écran
+        self.root.update_idletasks()
+        self.screen_width = self.root.winfo_screenwidth()
+        self.screen_height = self.root.winfo_screenheight()
+        print(f"Ecran: {self.screen_width}x{self.screen_height}")
+        self.largeur = 1600
+        self.hauteur = 900
+        x = (self.root.winfo_screenwidth() // 2) - (self.largeur // 2)
+        y = (self.root.winfo_screenheight() // 2) - (self.hauteur // 2)
+        self.root.geometry(f"{self.largeur}x{self.hauteur}+{x}+{y}")
+
         # attributs
         self.cadrechaton = 0
         self.textchat = ""
@@ -23,14 +38,14 @@ class Vue():
         # # objet pour cumuler les manipulations du joueur pour generer une action de jeu
         self.action = Action(self)
         # cadre principal de l'application
-        self.cadreapp = Frame(self.root, width=500, height=400, bg="red")
+        self.cadreapp = Frame(self.root, width=1000, height=800, bg="red")
 
         self.cadreapp.pack(expand=1, fill=BOTH)
 
         # # un dictionnaire pour conserver les divers cadres du jeu, creer plus bas
         self.cadres = {}
-        self.creer_cadres(nom_joueur_local)
-        self.changer_cadre("splash")
+        self.creer_cadres()
+        self.changer_cadre("login")
 
         # self.root.protocol("WM_DELETE_WINDOW", self.demanderabandon)
         # # sera charge apres l'initialisation de la partie, contient les donnees pour mettre l'interface a jour
@@ -53,46 +68,82 @@ class Vue():
 
     ###### LES CADRES ############################################################################################
     # Appel de la création des divers cadre
-    def creer_cadres(self, nom_joueur_local: str):
-        self.cadres["splash"] = self.creer_cadre_splash(nom_joueur_local)
-        self.cadres["lobby"] = self.creer_cadre_lobby()
+    def creer_cadres(self):
+        self.cadres["mainlobby"] = self.creer_cadre_mainlobby()
+        self.cadres["login"] = self.creer_cadre_login()
         self.cadres["jeu"] = self.creer_cadre_jeu()
 
-    # le splash (ce qui 'splash' à l'écran lors du démarrage)
-    # sera le cadre visuel initial lors du lancement de l'application
-    def creer_cadre_splash(self, nom_joueur_local: str) -> Frame:
-        self.cadresplash = Frame(self.cadreapp)
-        # un canvas est utilisé pour 'dessiner' les widgets de cette fenêtre voir 'create_window' plus bas
-        self.canevassplash = Canvas(self.cadresplash, width=600, height=480, bg="wheat1")
-        self.canevassplash.pack()
+    def creer_cadre_mainlobby(self) -> Frame:
+        # === Cadre principal ===
+        # Utiliser la largeur et hauteur de l'écran pour le cadre principal
 
-        # creation ds divers widgets (champ de texte 'Entry' et boutons cliquables (Button)
-        # les champs et
-        # MORT self.etatdujeu = Label(text=testdispo, font=("Arial", 18), borderwidth=2, relief=RIDGE)
-        self.nomsplash = Entry(font=("Arial", 14))
-        # MORT self.url_initial = Entry(font=("Arial", 14))
-        # MORT self.btnurlconnect = Button(text="Connecter", font=("Arial", 12), command=self.initialiser_splash_post_connection)
-        # on insère les infos par défaut (nom url) et reçu au démarrage (dispo)
-        self.nomsplash.insert(0, nom_joueur_local)
-        # MORT self.url_initial.insert(0, url_serveur)
-        # on les place sur le canevassplash
-        # MORT self.canevassplash.create_window(320, 100, window=self.etatdujeu, width=400, height=30)
-        self.canevassplash.create_window(320, 200, window=self.nomsplash, width=400, height=30)
-        # MORT self.canevassplash.create_window(240, 250, window=self.url_initial, width=200, height=30)
-        # MORT self.canevassplash.create_window(420, 250, window=self.btnurlconnect, width=100, height=30)
+        self.cadremain = Frame(self.cadreapp, bg="black", width=self.screen_width, height=self.screen_height)
+        # NE PAS pack ici ! On pack seulement lors de changer_cadre
+        self.cadremain.pack_propagate(False)
 
-        # les boutons d'actions
-        self.btncreerpartie = Button(text="Creer partie", font=("Arial", 12), command=self.creer_partie)
-        # MORT self.btninscrirejoueur = Button(text="Inscrire joueur", font=("Arial", 12), state=DISABLED,
-        # MORT                                 command=self.inscrire_joueur)
-        # MORT self.btnreset = Button(text="Reinitialiser partie", font=("Arial", 9), state=DISABLED,
-        # MORT                        command=self.reset_partie)
-        # on place les boutons
-        self.canevassplash.create_window(420, 350, window=self.btncreerpartie, width=200, height=30)
-        # MORT self.canevassplash.create_window(420, 400, window=self.btninscrirejoueur, width=200, height=30)
-        # MORT self.canevassplash.create_window(420, 450, window=self.btnreset, width=200, height=30)
+        # === Arrière-plan fixe ===
+        bg_path = os.path.join(os.path.dirname(__file__), "images/main_lobby_background.png")
+        self.tk_bg = ImageTk.PhotoImage(Image.open(bg_path).resize((self.screen_width, self.screen_height), Image.Resampling.LANCZOS))
+        self.label_bg = Label(self.cadremain, image=self.tk_bg)
+        self.label_bg.place(x=0, y=0, relwidth=1, relheight=1)
 
-        return self.cadresplash
+        # === Colonne gauche (menu principal) ===
+        menu_frame = Frame(self.cadremain, bg="#3c2f2f")
+        menu_frame.place(relx=0.05, rely=0.5, anchor="w")
+
+        def make_button(parent, text, image_path, font=("Times New Roman", 16, "bold")):
+            frame = Frame(parent, bg="#4a1d1d", width=self.screen_width // 16, height=self.screen_width // 16)
+            
+            frame.pack_propagate(False)
+            img_path_full = os.path.join(os.path.dirname(__file__), image_path)
+            img = Image.open(img_path_full).resize((self.screen_width // 32, self.screen_width // 32), Image.Resampling.LANCZOS)
+            tk_img = ImageTk.PhotoImage(img)
+            label_img = Label(frame, image=tk_img, bg="#4a1d1d")
+            label_img.image = tk_img  # prevent garbage collection
+            label_img.pack(side=TOP, pady=5)
+            label_text = Label(frame, text=text, font=font, bg="#4a1d1d", fg="white")
+            label_text.pack(side=BOTTOM, pady=5)
+            btn = Button(frame, relief="ridge", activebackground="#7a3c3c", borderwidth=3, bg="#4a1d1d")
+            btn.pack(fill=BOTH, expand=True)
+            return frame
+
+        Label(menu_frame, text="AGE OF EMPIRES CVM", font=("Times New Roman", 20, "bold"),
+              fg="gold", bg="#3c2f2f").pack(pady=15)
+
+        self.btn_jouer = make_button(menu_frame, "Jouer", image_path="images/login.jpg")
+        self.btn_tutoriel = make_button(menu_frame, "Tutoriel", image_path="images/login.jpg", font=("Times New Roman", 15, "italic"))
+        self.btn_histoire = make_button(menu_frame, "Histoire", image_path="images/login.jpg")
+        self.btn_news = make_button(menu_frame, "News", image_path="images/login.jpg")
+        self.btn_exit = make_button(menu_frame, "Quitter", image_path="images/login.jpg")
+
+        # tout afficher
+        for b in [self.btn_jouer, self.btn_tutoriel, self.btn_histoire, self.btn_news, self.btn_exit]:
+            b.pack(pady=self.screen_width // 64)
+
+        # === Barre du haut (options et utilisateur) ===
+        top_bar = Frame(self.cadremain, bg="#3c2f2f", height=50)
+        top_bar.pack(fill=X, side=TOP)
+
+        btn_options = Button(top_bar, text="⚙", bg="#3c2f2f", fg="white", relief="flat", font=("Arial", 14))
+        btn_options.pack(side=LEFT, padx=10)
+
+        user_img_path = os.path.join(os.path.dirname(__file__), "images/user.png")
+        if os.path.exists(user_img_path):
+            user_img = Image.open(user_img_path).resize((40, 40))
+            self.tk_user = ImageTk.PhotoImage(user_img)
+            Label(top_bar, image=self.tk_user, bg="#3c2f2f").pack(side=RIGHT, padx=10)
+
+        Label(top_bar, text="Username", bg="#3c2f2f", fg="white", font=("Arial", 12)).pack(side=RIGHT)
+
+        # === Version info (bas) ===
+        Label(self.cadremain, text="Version 1.0.0", bg="#3c2f2f", fg="white", font=("Arial", 10, "italic")) \
+            .pack(side=BOTTOM, pady=5)
+
+        # === Bind des boutons ===
+        self.btn_jouer.bind("<Button-1>", lambda e: print("Jouer"))
+        self.btn_exit.bind("<Button-1>", lambda e: self.root.destroy())
+
+        return self.cadremain
 
     def initialiser_splash_post_connection(self):
         url_serveur = self.url_initial.get()
@@ -104,20 +155,75 @@ class Vue():
         else:
             self.etatdujeu.config(text="Aucune adresse de serveur")
 
-    def creer_cadre_lobby(self):
-        # le cadre lobby, pour isncription des autres joueurs, remplace le splash
-        self.cadrelobby = Frame(self.cadreapp)
-        self.canevaslobby = Canvas(self.cadrelobby, width=640, height=480, bg="lightblue")
-        self.canevaslobby.pack()
-        # widgets du lobby
-        # un listbox pour afficher les joueurs inscrit pour la partie à lancer
-        self.listelobby = Listbox(borderwidth=2, relief=GROOVE)
 
-        # bouton pour lancer la partie, uniquement accessible à celui qui a creer la partie dans le splash
-        self.btnlancerpartie = Button(text="Lancer partie", command=self.lancer_partie)
-        # affichage des widgets dans le canevaslobby (similaire au splash)
-        self.canevaslobby.create_window(440, 240, window=self.listelobby, width=200, height=400)
-        self.canevaslobby.create_window(200, 400, window=self.btnlancerpartie, width=100, height=30)
+    # le login (ce qui 'login' à l'écran lors du démarrage)
+    # sera le cadre visuel initial lors du lancement de l'application
+    def creer_cadre_login(self):
+        # === Cadre principal ===
+        self.cadrelobby = Frame(self.cadreapp, bg="white", width=self.largeur, height=self.hauteur)
+        self.cadrelobby.pack(fill=BOTH, expand=True)
+
+        # === Deux sous-cadres (gauche = image / droite = login) ===
+        self.frame_gauche = Frame(self.cadrelobby, bg="#cce6ff", width=500, height=800)
+        self.frame_droite = Frame(self.cadrelobby, bg="white", width=500, height=800)
+
+        self.frame_gauche.pack(side=LEFT, fill=BOTH, expand=True)
+        self.frame_droite.pack(side=RIGHT, fill=BOTH, expand=True)
+
+        # Fixe la taille minimale pour éviter le rétrécissement
+        self.frame_gauche.pack_propagate(False)
+        self.frame_droite.pack_propagate(False)
+        self.cadrelobby.pack_propagate(False)
+
+        # === Image (section gauche) ===
+        # trouver le chemin de l'image
+        img_path = os.path.join(os.path.dirname(__file__), "images/login.jpg")
+        img = Image.open(img_path)
+        self.original_img = img  # Conserver l'image originale pour le redimensionnement
+
+        self.tk_image = ImageTk.PhotoImage(img)
+        self.label_image = Label(self.frame_gauche, bg="#cce6ff", image=self.tk_image)
+        self.label_image.place(relx=0, rely=0, relwidth=1, relheight=1)
+
+        # changement adaptatif de la taille de l'image
+        def resize_image(event):
+            new_width = event.width
+            new_height = event.height
+            resized_img = self.original_img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+            self.tk_image = ImageTk.PhotoImage(resized_img)
+            self.label_image.config(image=self.tk_image)
+            self.label_image.image = self.tk_image  # enlever du garbage collector
+
+        self.frame_gauche.bind("<Configure>", resize_image) # appelée à chaque redimensionnement
+
+        # === Formulaire de connexion (section droite) ===
+        self.cadre_login = Frame(self.frame_droite, bg="white")
+        self.cadre_login.place(relx=0.5, rely=0.5, anchor=CENTER)
+
+        # Widgets
+        self.label_nom = Label(self.cadre_login, text="Nom d'utilisateur:", bg="white", font=("Arial", 12))
+        self.entree_nom = Entry(self.cadre_login, font=("Arial", 12))
+        self.label_mdp = Label(self.cadre_login, text="Mot de passe:", bg="white", font=("Arial", 12))
+        self.entree_mdp = Entry(self.cadre_login, show="*", font=("Arial", 12))
+        self.btn_enregistrer = Button(self.cadre_login, text="Enregistrer", font=("Arial", 12))
+        self.btn_connexion = Button(self.cadre_login, text="Connexion", font=("Arial", 12))
+        self.label_invite = Label(self.cadre_login, text="connectez-vous en tant qu'invité", bg="white", font=("Arial", 10, "italic"))
+
+        # Placement dans une grille propre
+        self.label_nom.grid(row=0, column=0, pady=(10, 0))
+        self.entree_nom.grid(row=1, column=0, pady=5)
+        self.label_mdp.grid(row=2, column=0)
+        self.entree_mdp.grid(row=3, column=0, pady=5)
+        self.btn_enregistrer.grid(row=4, column=0, pady=5)
+        self.btn_connexion.grid(row=5, column=0, pady=5)
+        self.label_invite.grid(row=6, column=0, pady=(10, 10))
+
+        # === Bind des boutons (sans logique pour l’instant) ===
+        self.btn_enregistrer.bind("<Button-1>", lambda e: print("Enregistrer cliqué"))
+        self.btn_connexion.bind("<Button-1>", lambda e: print("Connexion cliqué"))
+        self.label_invite.bind("<Button-1>", lambda e: (print("guest"), self.changer_cadre("mainlobby") , self.root.attributes('-fullscreen', True)))
+
+
         # on retourne ce cadre pour l'insérer dans le dictionnaires des cadres
         return self.cadrelobby
 
@@ -806,3 +912,9 @@ class Champ(Label):
         Label.__init__(self, master, *args, **kwargs)
         self.config(font=("arial", 13, "bold"))
         self.config(bg="goldenrod3")
+
+# a enlever test only
+if __name__ == '__main__':
+    print("Bienvenue au RTS")
+    c = m.Controleur()
+    # print("FIN DE PROGRAMME")
