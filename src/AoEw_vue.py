@@ -11,6 +11,7 @@ class Vue():
         self.parent = parent
         self.root = Tk()
         self.root.title("Je suis " + nom_joueur_local)
+        self.root.attributes('-fullscreen', True)
         self.nom_joueur_local = nom_joueur_local
         # attributs
         self.cadrechaton = 0
@@ -23,6 +24,7 @@ class Vue():
         self.action = Action(self)
         # cadre principal de l'application
         self.cadreapp = Frame(self.root, width=500, height=400, bg="red")
+
         self.cadreapp.pack(expand=1, fill=BOTH)
 
         # # un dictionnaire pour conserver les divers cadres du jeu, creer plus bas
