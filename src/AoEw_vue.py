@@ -5,6 +5,7 @@ from tkinter.simpledialog import *
 import os
 from chargeurdimages import *
 import AoEw_client_main as m # a enlever test only
+import ctypes
 
 from PIL import Image, ImageTk  # Pour redimensionner l’image
 
@@ -84,10 +85,49 @@ class Vue():
         self.cadremain.pack_propagate(False)
 
         # === Arrière-plan fixe ===
-        bg_path = os.path.join(os.path.dirname(__file__), "images/main_lobby_background.png")
+        bg_path = os.path.join(os.path.dirname(__file__), "images/lobby2.png")
         self.tk_bg = ImageTk.PhotoImage(Image.open(bg_path).resize((self.screen_width, self.screen_height), Image.Resampling.LANCZOS))
         self.label_bg = Label(self.cadremain, image=self.tk_bg)
         self.label_bg.place(x=0, y=0, relwidth=1, relheight=1)
+
+        
+        # === Paramètres du parallax === Comme dans tower defense
+        self.vitesse_background = 15  # plus grand = mouvement plus lent
+        self.background_zoom = 1.15   # image légèrement plus grande que l'écran pour que le mouvement ne révèle pas de bord noir
+        self.pos_background_x = self.screen_width // 2
+        self.pos_background_y = self.screen_height // 2
+
+        # === Chargement des images ===
+        bg_path = os.path.join(os.path.dirname(__file__), "images/lobby2.png")
+        bg_img = Image.open(bg_path)
+        splash_screen_size_x = int(self.screen_width * self.background_zoom)
+        splash_screen_size_y = int(self.screen_height * self.background_zoom)
+        self.original_bg = bg_img.resize((splash_screen_size_x, splash_screen_size_y), Image.Resampling.LANCZOS)
+
+        # Création du Canvas principal
+        self.background = Canvas(self.cadremain, width=self.screen_width, height=self.screen_height,
+                     bd=0, highlightthickness=0, bg="black")
+        self.background.pack(fill="both", expand=True)
+
+        # Placement initial centré
+        diffx = (splash_screen_size_x - self.screen_width) // 2
+        diffy = (splash_screen_size_y - self.screen_height) // 2
+        self.tk_bg = ImageTk.PhotoImage(self.original_bg)
+        self.splash_screen = self.background.create_image(-diffx, -diffy, anchor="nw", image=self.tk_bg)
+        self.background.image = self.tk_bg  # éviter le garbage collector
+
+        # === Fonction de parallax (mouvement du fond selon la souris) ===
+        def animate_background(event):
+            # Décalage doux selon la position du curseur
+            move_x = (event.x - self.screen_width // 2) / self.vitesse_background
+            move_y = (event.y - self.screen_height // 2) / self.vitesse_background
+            self.background.coords(self.splash_screen, -diffx + move_x, -diffy + move_y)
+
+        self.background.bind("<Motion>", animate_background)
+
+        # === MENU GAUCHE ===
+        menu_frame = Frame(self.cadremain, bg="#3c2f2f")
+        menu_frame.place(relx=0.05, rely=0.5, anchor="w")
 
         # === Colonne gauche (menu principal) ===
         menu_frame_size = int(self.screen_width // 4)
@@ -132,7 +172,7 @@ class Vue():
 
                 # Switch des actions selon le texte du bouton
                 actions = {
-                    "Jouer": lambda: self.changer_cadre("login"),
+                    "Jouer": lambda: self.lancer_partie(),
                     "Tutoriel": lambda: print("Tutoriel cliqué"),
                     "Histoire": lambda: print("Histoire cliqué"),
                     "News": lambda: print("News cliqué"),
