@@ -3,8 +3,8 @@ from AoEw_joueurs import *
 # CORRECTION REQUISE : cette classe doit etre comlpetemnent revue 
 # La classe IA herite des attributs et methodes mais redefinit les methodes... 
 class IA(Joueur):
-    def __init__(self,parent,nom,id, x,y):
-        Joueur.__init__(self,parent,nom,id,x,y)
+    def __init__(self, parent, id, nom, couleur, x, y):
+        Joueur.__init__(self, parent, id, nom, couleur, x, y)
 
         self.delaiaction=20
         self.actions={"creerouvrier":self.creerouvrier,
@@ -35,14 +35,18 @@ class IA(Joueur):
         sorteperso="ouvrier"
         batimentsource="maison"
         idmaison = maison.id
-        idouvrier=get_prochain_id()
         
         #maison=self.maisons[idmaison]
         x=maison.x+40+(random.randrange(30)-15)
         y=maison.y +(random.randrange(30)-15)
-        self.ouvriers[idouvrier]=Ouvrier(self,idouvrier,maison,x,y)
+        pos = [x, y]
+        #self.persos["ouvrier"][idouvrier]=Ouvrier(self,idouvrier,maison,x,y)
 
-        
+        action = [self.nom, "creerperso", [sorteperso, batimentsource, idmaison, pos]]
+        self.parent.action_AI_vers_controleur(action)
+        print(f"IA {self.nom}: Action créer ouvrier envoyée")
+
+
         
     #Comment fonctionne sa prise de décision: il cible la plus proche? n'importe quelle? a-t-il besoin de la fonction ciblerununit?
     #On va sûrement faire une attaque de tous les units plutôt que ciblée (version naive), plus tard on ajoute qu'il cible les units selon leurs forces
@@ -84,7 +88,9 @@ class IA(Joueur):
     #    for i in self.ouvriers.keys():
     #        self.ouvriers[i].deplacer()
     
-    def jouerprochaincoup(self):
+
+    #RENDU ICI : FAIRE SPAWN LE BONHOMME, ÇA NE FONCTIONNE PAS TOUT A FAIT*******************************************
+    def jouerprochaincoup(self): #nom à changer
         #Ordre de prioritée d'attaque soldats > ouvriers > bâtiments
         #Quand un ouvrier est idle, il l'envoie chercher de nouvelles ressources (ce qu'il a besoin > le plus proche)
         #Quand il veut construire un bâtiment ou créer une unité, il va cher
@@ -100,5 +106,4 @@ class IA(Joueur):
             
     def decideraction(self):
         #TEST première action : Doit spawn un dude en début de game
-
-        pass
+        self.creerouvrier()

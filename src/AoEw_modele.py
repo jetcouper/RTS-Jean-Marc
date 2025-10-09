@@ -9,6 +9,7 @@ from AoEw_biomes import *
 from AoEw_batiments import *
 from AoEw_persos import *
 from AoEw_joueurs import *
+from RTS_IA import *
 
 
 class Region():
@@ -230,6 +231,7 @@ class Partie():
                      [[int(self.aireX / 2), int(self.aireY / 2)], [self.aireX, self.aireY]]]
         nquad = 5
         bord = 50
+        z = 0
         for i in noms_joueurs:
             id = get_prochain_id()
             coul = couleurs.pop()
@@ -239,13 +241,19 @@ class Partie():
             quad = quadrants.pop(choixquad)
 
             n = 1
+            
             while n:
                 x = random.randrange(quad[0][0] + bord, quad[1][0] - bord)
                 y = random.randrange(quad[0][1] + bord, quad[1][1] - bord)
                 case = self.trouver_case(x, y)
                 if case.montype == "plaine":
-                    self.joueurs[i] = Joueur(self, id, i, coul, x, y)
+                    if z == 0:
+                        self.joueurs[i] = Joueur(self, id, i, coul, x, y)
+                    else:
+                        self.joueurs[i] = IA(self, id, i, coul, x, y)
                     n = 0
+            z += 1
+                    
 
     def deplacer(self):
         for i in self.joueurs:
@@ -427,6 +435,11 @@ class Partie():
             self.biotopes[type].pop(ress.id)
         if ress not in self.ressourcemorte:
             self.ressourcemorte.append(ress)
+
+
+    #Transmet les actions du AI vers le contrôleur
+    def action_AI_vers_controleur(self, action):
+        self.parent.actions_requises.append(action)
 
     #############################################################################
     # ATTENTION : NE PAS TOUCHER
