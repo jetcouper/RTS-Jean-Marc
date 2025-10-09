@@ -379,12 +379,17 @@ class Vue():
         champmsg = Label(self.cadrejeuinfo, text="", fg="red")
         champmsg.pack(side=LEFT)
         self.infohud["msggeneral"] = [champmsg]
-        self.btnchat = Button(self.cadrejeuinfo, text="Chat", command=self.action.chatter)
+        self.btnchat = Button(self.cadrejeuinfo, text="Chat", command=self.sauvegarder)
         self.btnaide = Button(self.cadrejeuinfo, text="Aide", command=self.action.aider)
+
 
         self.btnaide.pack(side=RIGHT)
         self.btnchat.pack(side=RIGHT)
         self.cadrejeuinfo.grid(row=0, column=0, sticky=E + W, columnspan=2)
+
+    def sauvegarder(self):
+        self.parent.sauvegarde()
+
 
     def creer_cadre_jeu_action(self):
         # Ajout du cadre d'action a droite pour identifier les objets permettant les commandes du joueur
