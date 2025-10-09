@@ -406,31 +406,31 @@ class Ouvrier(Perso):
 
     def chercher_nouvelle_ressource(self, typ, idreg):
         print("Je cherche nouvelle ressource")
-        if typ != "baie" and typ != "daim":
-            reg = self.parent.parent.regions[typ]
-            if idreg in reg:
-                regspec = self.parent.parent.regions[typ][idreg]
-                n = len(regspec.dicocases)
-                while n > 0:
-                    clecase = list(regspec.dicocases.keys())
-                    case = regspec.dicocases[random.choice(clecase)]
-                    n -= 1
-                    if case.ressources:
-                        clecase2 = list(case.ressources.keys())
-                        newress = case.ressources[random.choice(clecase2)]
-                        if newress.montype == typ:
-                            return newress
-                return None
-        else:
-            nb = len(self.parent.parent.biotopes[typ])
-            for i in range(nb):
-                rep = random.choice(list(self.parent.parent.biotopes[typ].keys()))
-                obj = self.parent.parent.biotopes[typ][rep]
-                if obj != self.cible:
-                    distance = Helper.calcDistance(self.x, self.y, obj.x, obj.y)
-                    if distance <= self.champvision:
-                        return obj
+        #if typ != "baie" and typ != "daim":
+        reg = self.parent.parent.regions[typ]
+        if idreg in reg:
+            regspec = self.parent.parent.regions[typ][idreg]
+            n = len(regspec.dicocases)
+            while n > 0:
+                clecase = list(regspec.dicocases.keys())
+                case = regspec.dicocases[random.choice(clecase)]
+                n -= 1
+                if case.ressources:
+                    clecase2 = list(case.ressources.keys())
+                    newress = case.ressources[random.choice(clecase2)]
+                    if newress.montype == typ:
+                        return newress
             return None
+        #else:
+        #    nb = len(self.parent.parent.biotopes[typ])
+        #    for i in range(nb):
+        #        rep = random.choice(list(self.parent.parent.biotopes[typ].keys()))
+        #        obj = self.parent.parent.biotopes[typ][rep]
+        #        if obj != self.cible:
+        #            distance = Helper.calcDistance(self.x, self.y, obj.x, obj.y)
+        #            if distance <= self.champvision:
+        #                return obj
+        #    return None
 
     # def deplacer(self,pos):
     #     self.position_visee = pos
