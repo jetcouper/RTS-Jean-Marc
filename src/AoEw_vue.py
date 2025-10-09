@@ -544,6 +544,7 @@ class Vue():
     def lancer_partie(self):
         self.parent.lancer_partie()
 
+
     # def reset_partie(self):
     #     rep = self.parent.reset_partie()
 
