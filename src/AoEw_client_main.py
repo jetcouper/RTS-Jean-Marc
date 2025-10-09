@@ -3,16 +3,19 @@
 #MORT import requests
 from AoEw_vue import *
 from AoEw_modele import *
+import Users as us
 
 class Controleur():
     def __init__(self):
         #MORT self.ego_serveur = 0 # 1 si le joueur a creer la partie (seul lui peut 'lancer' la partie)
+        self.user_manager = us.UserManager()
+
         self.iteration_boucle_jeu = 0
         self.actions_requises = []
-        self.nom_joueur_local = self.generer_nom()
+        self.nom_joueur_local = ""
         self.partie = None
         # liste des noms de joueurs
-        self.joueurs = []
+        self.joueurs = self.user_manager.list_all_users()
         #MORT self.prochain_splash = None # requis pour sortir du splash et passer au lobby
         self.on_joue = 1 # si 0, indique qu'on saute un tour dans la boucle de jeu
         self.delai_de_boucle_de_jeu = 40
@@ -211,6 +214,26 @@ class Controleur():
     def trouver_valeurs(self):
         vals = self.partie.trouver_valeurs()
         return vals
+
+    def enregistrerUser(self, username, password):
+        message = self.user_manager.add_user(username, password)
+        if message == "Réussi":
+            self.nom_joueur_local = username
+            return True
+        else:
+            self.nom_joueur_local = ""
+            return False
+    def loginUser(self, username, password):
+        message = self.user_manager.get_user(username, password)
+        if message:
+            self.nom_joueur_local = username
+            return True
+        else:
+            self.nom_joueur_local = ""
+            return False
+
+    #def message_erreur(self):
+
 
 if __name__ == '__main__':
     print("Bienvenue au RTS")

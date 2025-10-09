@@ -1,6 +1,6 @@
 ## -*- Encoding: UTF-8 -*-
 
-from tkinter import ttk
+from tkinter import ttk, messagebox
 from tkinter.simpledialog import *
 import os
 from chargeurdimages import *
@@ -15,7 +15,8 @@ class Vue():
         self.root = Tk()
         self.root.title("Age of Empire")
         self.root.attributes('-fullscreen', False)
-        self.nom_joueur_local = nom_joueur_local
+        self.nom_joueur_local = StringVar()
+        self.nom_joueur_local.set(nom_joueur_local)
 
         # Centrer la fenêtre sur l'écran
         self.root.update_idletasks()
@@ -219,13 +220,40 @@ class Vue():
         self.label_invite.grid(row=6, column=0, pady=(10, 10))
 
         # === Bind des boutons (sans logique pour l’instant) ===
-        self.btn_enregistrer.bind("<Button-1>", lambda e: print("Enregistrer cliqué"))
-        self.btn_connexion.bind("<Button-1>", lambda e: print("Connexion cliqué"))
+        self.btn_enregistrer.bind("<Button-1>", lambda e: self.enregistrer_et_changer())
+        self.btn_connexion.bind("<Button-1>", lambda e: self.login_et_changer())
         self.label_invite.bind("<Button-1>", lambda e: (print("guest"), self.changer_cadre("mainlobby") , self.root.attributes('-fullscreen', True)))
 
 
         # on retourne ce cadre pour l'insérer dans le dictionnaires des cadres
         return self.cadrelobby
+
+    def enregistrer(self, username,password):
+        condition = self.parent.enregistrerUser(username, password)
+        return condition
+
+    def enregistrer_et_changer(self):
+        if self.enregistrer(self.entree_nom.get(), self.entree_mdp.get()):
+            self.nom_joueur_local.set(self.entree_nom.get())
+            self.changer_cadre("mainlobby")
+            self.root.attributes('-fullscreen', True)
+        else:
+            # Affiche ton message d'erreur (à adapter selon ton interface)
+            messagebox.showerror("Erreur", "L'utilisateur existe déjà")
+
+    def login(self, username,password):
+        condition = self.parent.loginUser(username, password)
+        return condition
+
+    def login_et_changer(self):
+        if self.login(self.entree_nom.get(), self.entree_mdp.get()):
+            self.nom_joueur_local.set(self.entree_nom.get())
+            self.changer_cadre("mainlobby")
+            self.root.attributes('-fullscreen', True)
+        else:
+            # Affiche ton message d'erreur (à adapter selon ton interface)
+            messagebox.showerror("Erreur", "L'utilisateur n'existe pas ou erreur de saisi du mot de passe.")
+
 
     def creer_cadre_jeu(self):
         # le cadre principal du jeu, remplace le Lobby
