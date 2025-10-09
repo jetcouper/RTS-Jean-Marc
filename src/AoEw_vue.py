@@ -89,73 +89,86 @@ class Vue():
         self.label_bg.place(x=0, y=0, relwidth=1, relheight=1)
 
         # === Colonne gauche (menu principal) ===
-        menu_frame = Frame(self.cadremain, bg="#3c2f2f")
-        menu_frame.place(relx=0.05, rely=0.5, anchor="w")
+        menu_frame_size = int(self.screen_width // 4)
+        menu_frame = Frame(self.cadremain, bg="#3c2f2f", width=menu_frame_size, height=self.screen_height , highlightthickness=2, highlightbackground="goldenrod2")
+        menu_frame.pack_propagate(False)
+        menu_frame.place(relx=0.03, rely=0.0, anchor="nw", relheight=1)
 
-        def make_button(parent, text, image_path, font=("Times New Roman", 16, "bold")):
-            frame = Frame(parent, bg="#4a1d1d", width=self.screen_width // 16, height=self.screen_width // 16)
-            
+        def make_button(parent, text, image_path, font=("Times New Roman", 32, "bold"), command=None):
+            # Cadre du "bouton"
+            frame_width = int(self.screen_width // 5.12) 
+            frame = Frame(parent, bg="#4a1d1d", width=frame_width, height=int(self.screen_height // 9.6) , highlightthickness=2, highlightbackground="goldenrod2")
             frame.pack_propagate(False)
-            img_path_full = os.path.join(os.path.dirname(__file__), image_path)
-            img = Image.open(img_path_full).resize((self.screen_width // 32, self.screen_width // 32), Image.Resampling.LANCZOS)
-            tk_img = ImageTk.PhotoImage(img)
-            label_img = Label(frame, image=tk_img, bg="#4a1d1d")
-            label_img.image = tk_img  # prevent garbage collection
-            label_img.pack(side=TOP, pady=5)
-            label_text = Label(frame, text=text, font=font, bg="#4a1d1d", fg="white")
-            label_text.pack(side=BOTTOM, pady=5)
-            btn = Button(frame, relief="ridge", activebackground="#7a3c3c", borderwidth=3, bg="#4a1d1d")
-            btn.pack(fill=BOTH, expand=True)
-            return frame
 
-        Label(menu_frame, text="AGE OF EMPIRES CVM", font=("Times New Roman", 20, "bold"),
-              fg="gold", bg="#3c2f2f").pack(pady=15)
+            # Charger l'image
+            img_path_full = os.path.join(os.path.dirname(__file__), image_path)
+            img = Image.open(img_path_full).resize((frame_width, int(self.screen_height // 14.4)), Image.Resampling.LANCZOS)
+            tk_img = ImageTk.PhotoImage(img)
+
+            # Créer widgets internes
+            label_img = Label(frame, image=tk_img, bg="#4a1d1d")
+            label_img.image = tk_img
+            label_img.pack(side=TOP, pady=5)
+
+            label_text = Label(frame, text=text, font=font, bg="#4a1d1d", fg="#D4AF37")
+            label_text.pack(side=TOP, fill=BOTH, expand=True)
+
+            # === Interaction (effet clic + hover) ===
+            def on_enter(e):
+                frame.config(bg="#7a3c3c")
+                label_text.config(bg="#7a3c3c")
+            def on_leave(e):
+                frame.config(bg="#4a1d1d")
+                label_text.config(bg="#4a1d1d")
+            def on_click(e):
+                if command:
+                    command()
+
+            # Bind des événements
+            for widget in (frame, label_img, label_text):
+                widget.bind("<Enter>", on_enter)
+                widget.bind("<Leave>", on_leave)
+
+                # Switch des actions selon le texte du bouton
+                actions = {
+                    "Jouer": lambda: self.changer_cadre("login"),
+                    "Tutoriel": lambda: print("Tutoriel cliqué"),
+                    "Histoire": lambda: print("Histoire cliqué"),
+                    "News": lambda: print("News cliqué"),
+                    "Quitter": self.root.destroy,
+                }
+                
+                widget.bind(
+                    "<Button-1>",
+                    lambda e, t=text: actions.get(t, lambda: print(f"{t} cliqué"))()
+                )
+
+            return frame
+        
+
+        logo_path = os.path.join(os.path.dirname(__file__), "images/logo.png")
+        logo_img = Image.open(logo_path).resize((int(self.screen_width // 5.12), int(self.screen_height // 4.8)), Image.Resampling.LANCZOS)
+        self.tk_logo = ImageTk.PhotoImage(logo_img)
+        Label(menu_frame, image=self.tk_logo, bg="#3c2f2f").pack(pady=15)
 
         self.btn_jouer = make_button(menu_frame, "Jouer", image_path="images/login.jpg")
-        self.btn_tutoriel = make_button(menu_frame, "Tutoriel", image_path="images/login.jpg", font=("Times New Roman", 15, "italic"))
+        self.btn_tutoriel = make_button(menu_frame, "Tutoriel", image_path="images/login.jpg")
         self.btn_histoire = make_button(menu_frame, "Histoire", image_path="images/login.jpg")
         self.btn_news = make_button(menu_frame, "News", image_path="images/login.jpg")
         self.btn_exit = make_button(menu_frame, "Quitter", image_path="images/login.jpg")
 
+
         # tout afficher
         for b in [self.btn_jouer, self.btn_tutoriel, self.btn_histoire, self.btn_news, self.btn_exit]:
-            b.pack(pady=self.screen_width // 64)
+            b.pack(pady=self.screen_width // 80)
 
-        # === Barre du haut (options et utilisateur) ===
-        top_bar = Frame(self.cadremain, bg="#3c2f2f", height=50)
-        top_bar.pack(fill=X, side=TOP)
-
-        btn_options = Button(top_bar, text="⚙", bg="#3c2f2f", fg="white", relief="flat", font=("Arial", 14))
-        btn_options.pack(side=LEFT, padx=10)
-
-        user_img_path = os.path.join(os.path.dirname(__file__), "images/user.png")
-        if os.path.exists(user_img_path):
-            user_img = Image.open(user_img_path).resize((40, 40))
-            self.tk_user = ImageTk.PhotoImage(user_img)
-            Label(top_bar, image=self.tk_user, bg="#3c2f2f").pack(side=RIGHT, padx=10)
-
-        Label(top_bar, text="Username", bg="#3c2f2f", fg="white", font=("Arial", 12)).pack(side=RIGHT)
 
         # === Version info (bas) ===
         Label(self.cadremain, text="Version 1.0.0", bg="#3c2f2f", fg="white", font=("Arial", 10, "italic")) \
             .pack(side=BOTTOM, pady=5)
 
-        # === Bind des boutons ===
-        self.btn_jouer.bind("<Button-1>", lambda e: print("Jouer"))
-        self.btn_exit.bind("<Button-1>", lambda e: self.root.destroy())
-
         return self.cadremain
-
-    def initialiser_splash_post_connection(self):
-        url_serveur = self.url_initial.get()
-        if url_serveur:
-            self.btninscrirejoueur.config(state=NORMAL)
-            self.btncreerpartie.config(state=NORMAL)
-            self.btnreset.config(state=NORMAL)
-            self.parent.initialiser_splash_post_connection(url_serveur)
-        else:
-            self.etatdujeu.config(text="Aucune adresse de serveur")
-
+    
 
     # le login (ce qui 'login' à l'écran lors du démarrage)
     # sera le cadre visuel initial lors du lancement de l'application
