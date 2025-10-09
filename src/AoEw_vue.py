@@ -32,6 +32,9 @@ class Vue():
         self.root.geometry(f"{self.largeur}x{self.hauteur}+{x}+{y}")
         self.root.minsize(1200, 600)
 
+        ico_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "src/" "images", "icon.ico")
+        self.root.iconbitmap(ico_path)
+
         self.root.bind("<Double-Escape>", lambda e: self.root.destroy())
         self.root.bind("<F11>", lambda e: switch_fullscreen())
 
