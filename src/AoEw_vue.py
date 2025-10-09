@@ -232,8 +232,8 @@ class Vue():
         self.cadrelobby.pack(fill=BOTH, expand=True)
 
         # === Deux sous-cadres (gauche = image / droite = login) ===
-        self.frame_gauche = Frame(self.cadrelobby, bg="#cce6ff", width=500, height=800)
-        self.frame_droite = Frame(self.cadrelobby, bg="white", width=500, height=800)
+        self.frame_gauche = Frame(self.cadrelobby, bg="#cce6ff", width=800, height=800)
+        self.frame_droite = Frame(self.cadrelobby, bg="white", width=200, height=800)
 
         self.frame_gauche.pack(side=LEFT, fill=BOTH, expand=True)
         self.frame_droite.pack(side=RIGHT, fill=BOTH, expand=True)
