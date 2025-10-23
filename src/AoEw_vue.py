@@ -35,8 +35,33 @@ class Vue():
         ico_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "src/" "images", "icon.ico")
         self.root.iconbitmap(ico_path)
 
-        self.root.bind("<Double-Escape>", lambda e: self.root.destroy())
-        self.root.bind("<F11>", lambda e: switch_fullscreen())
+        self.root.bind_all("<q>", lambda e: self.root.destroy())
+        self.root.bind_all("<Q>", lambda e: self.root.destroy())
+
+        self.root.bind_all("<F11>", lambda e: switch_fullscreen())  
+
+        def toggle_escape(event=None):
+            if self.toplevelactif:
+                self.changer_toplevel(None)
+                self.changer_topblack(None)
+            else:
+                # choix du toplevel en fonction du cadre actif
+                nom_cadre_actif = None
+                for nom, cadre in self.cadres.items():
+                    if cadre is self.cadreactif:
+                        nom_cadre_actif = nom
+                        break
+
+                if nom_cadre_actif == "jeu":
+                    self.changer_topblack("blackgame")
+                    self.changer_toplevel("gameescape")
+                elif nom_cadre_actif in ("mainlobby"):
+                    self.changer_toplevel("useroption")
+
+
+        # bind sur tous les widgets (fonctionne même quand le toplevel a le focus)
+        self.root.bind_all("<Escape>", toggle_escape)
+
 
         # Interrupteur pour le mode plein écran avec les touches Échap et F11
         self.fullscreen = False
@@ -51,6 +76,9 @@ class Vue():
         # # minicarte
         self.tailleminicarte = 220
         self.cadreactif = None
+        self.toplevelactif = None
+        self.topblackactif = None
+
         # # objet pour cumuler les manipulations du joueur pour generer une action de jeu
         self.action = Action(self)
         # cadre principal de l'application
@@ -60,8 +88,15 @@ class Vue():
 
         # # un dictionnaire pour conserver les divers cadres du jeu, creer plus bas
         self.cadres = {}
+        self.toplevel = {}
+        self.topblack = {}
+
+
         self.creer_cadres()
+        self.creer_toplevel()
+
         self.changer_cadre("login")
+
 
         # self.root.protocol("WM_DELETE_WINDOW", self.demanderabandon)
         # # sera charge apres l'initialisation de la partie, contient les donnees pour mettre l'interface a jour
@@ -82,12 +117,74 @@ class Vue():
         self.cadreactif = cadre
         self.cadreactif.pack(expand=1, fill=BOTH)
 
+    def changer_toplevel(self, nomcadre: str):
+        # suprrime le toplevel si 
+        if nomcadre is None:
+            if self.toplevelactif:
+                self.toplevelactif.withdraw()
+                self.toplevelactif = None
+                return
+
+        toplevel = self.toplevel.get(nomcadre)
+        if not toplevel:
+            return
+
+        if self.toplevelactif and self.toplevelactif is not toplevel:
+            self.toplevelactif.withdraw()
+
+        self.toplevelactif = toplevel
+        self.toplevelactif.overrideredirect(True)  # enlever bar du haut
+
+        self.toplevelactif.deiconify()
+        self.toplevelactif.update_idletasks()
+
+        self.toplevelactif.transient(self.root)
+        self.toplevelactif.lift()
+        self.toplevelactif.focus_force()
+
+
+    def changer_topblack(self, nomcadre: str):
+        # suprrime le toplevel si 
+        if nomcadre is None:
+            if self.topblackactif:
+                self.topblackactif.withdraw()
+                self.topblackactif = None
+                return
+
+        toplevel = self.topblack.get(nomcadre)
+        if not toplevel:
+            return
+
+        if self.topblackactif and self.topblackactif is not toplevel:
+            self.topblackactif.withdraw()
+
+        self.topblackactif = toplevel
+        self.topblackactif.overrideredirect(True)  # enlever bar du haut
+
+        self.topblackactif.deiconify()
+        self.topblackactif.update_idletasks()
+
+        self.topblackactif.geometry(f"{self.screen_width}x{self.screen_height}+{0}+{0}")
+        self.topblackactif.transient(self.root)
+        self.topblackactif.lift()
+        self.topblackactif.focus_force()
+
+
+        
+
     ###### LES CADRES ############################################################################################
     # Appel de la création des divers cadre
     def creer_cadres(self):
         self.cadres["mainlobby"] = self.creer_cadre_mainlobby()
+        self.cadres["gamemenu"] = self.creer_cadre_gamemenu()
         self.cadres["login"] = self.creer_cadre_login()
         self.cadres["jeu"] = self.creer_cadre_jeu()
+
+    def creer_toplevel(self,):
+        self.toplevel["gameescape"] = self.creer_top_escape()
+        self.toplevel["useroption"] = self.creer_top_user()
+        self.topblack["blackgame"] = self.creer_topblack()
+
 
     def creer_cadre_mainlobby(self) -> Frame:
         # === Cadre principal ===
@@ -99,9 +196,9 @@ class Vue():
 
         # === Arrière-plan fixe ===
         bg_path = os.path.join(os.path.dirname(__file__), "images/lobby2.png")
+        # create a small ready image (kept as attribute) but do not place a Label that would sit above the Canvas
+        # the parallax background will be rendered directly on the Canvas so it can receive Motion events
         self.tk_bg = ImageTk.PhotoImage(Image.open(bg_path).resize((self.screen_width, self.screen_height), Image.Resampling.LANCZOS))
-        self.label_bg = Label(self.cadremain, image=self.tk_bg)
-        self.label_bg.place(x=0, y=0, relwidth=1, relheight=1)
 
         
         # === Paramètres du parallax === Comme dans tower defense
@@ -131,11 +228,9 @@ class Vue():
 
         # === Fonction de parallax (mouvement du fond selon la souris) ===
         def animate_background(event):
-            # Décalage doux selon la position du curseur
             move_x = (event.x - self.screen_width // 2) / self.vitesse_background
             move_y = (event.y - self.screen_height // 2) / self.vitesse_background
             self.background.coords(self.splash_screen, -diffx + move_x, -diffy + move_y)
-
         self.background.bind("<Motion>", animate_background)
 
         # === MENU GAUCHE ===
@@ -185,11 +280,11 @@ class Vue():
 
                 # Switch des actions selon le texte du bouton
                 actions = {
-                    "Jouer": lambda: self.lancer_partie(),
+                    "Jouer": lambda: self.changer_cadre("gamemenu"),
                     "Tutoriel": lambda: print("Tutoriel cliqué"),
                     "Histoire": lambda: print("Histoire cliqué"),
                     "News": lambda: print("News cliqué"),
-                    "Quitter": self.root.destroy,
+                    "Quitter": self.root.destroy,  
                 }
                 
                 widget.bind(
@@ -222,6 +317,179 @@ class Vue():
             .pack(side=BOTTOM, pady=5)
 
         return self.cadremain
+    
+    def creer_cadre_gamemenu(self) -> Frame:
+        # === Cadre principal ===
+        self.cadre_lobby_partie = Frame(self.cadreapp, bg="black", width=self.screen_width, height=self.screen_height)
+        self.cadre_lobby_partie.pack_propagate(False)
+
+
+        splash_screen_size_x = int(self.screen_width * self.background_zoom)
+        splash_screen_size_y = int(self.screen_height * self.background_zoom)
+
+        self.background2 = Canvas(
+            self.cadre_lobby_partie, width=self.screen_width, height=self.screen_height,
+            bd=0, highlightthickness=0, bg="black"
+        )
+        self.background2.pack(fill="both", expand=True)
+
+        diffx = (splash_screen_size_x - self.screen_width) // 2
+        diffy = (splash_screen_size_y - self.screen_height) // 2
+        self.tk_bg = ImageTk.PhotoImage(self.original_bg)
+        self.splash_screen = self.background2.create_image(-diffx, -diffy, anchor="nw", image=self.tk_bg)
+        self.background2.image = self.tk_bg
+
+        def animate_background(event):
+            move_x = (event.x - self.screen_width // 2) / self.vitesse_background
+            move_y = (event.y - self.screen_height // 2) / self.vitesse_background
+            self.background2.coords(self.splash_screen, -diffx + move_x, -diffy + move_y)
+        self.background2.bind("<Motion>", animate_background)
+
+        # === FONCTION POUR FAIRE DES BOUTONS JOLIS ===
+        def make_button(parent, text, color="#3c2f2f", hover="#7a3c3c", command=None):
+            btn = Label(parent, text=text, font=("Times New Roman", 22, "bold"), bg=color, fg="gold", width=15, height=2, bd=2, relief="raised")
+            def on_enter(e): btn.config(bg=hover)
+            def on_leave(e): btn.config(bg=color)
+            def on_click(e):
+                if command: command()
+            btn.bind("<Enter>", on_enter)
+            btn.bind("<Leave>", on_leave)
+            btn.bind("<Button-1>", on_click)
+            return btn
+
+        # === CADRE GAUCHE (Créer/Commencer/IA...) ===
+        left_frame = Frame(self.background2, bg="#2e1f1f", highlightbackground="goldenrod2", highlightthickness=2)
+        left_frame.place(relx=0.05, rely=0.05, relwidth=0.4, relheight=0.9)
+
+        # Ligne du haut (Créer partie / Commencer)
+        top_bar = Frame(left_frame, bg="#3c2f2f")
+        top_bar.pack(fill=X, pady=10)
+        Label(top_bar, text="Créer partie", font=("Times New Roman", 22, "bold"), bg="#4a1d1d", fg="gold", width=15, height=2, bd=2, relief="raised").pack(side=LEFT, expand=True, padx=10)
+        make_button(top_bar, "Commencer", "#2d6a2d", hover="#3fa63f" , command=lambda: self.lancer_partie()).pack(side=LEFT, expand=True, padx=10)
+
+        # === Liste IA avec Scroll
+        ia_frame = Frame(left_frame, bg="#3c2f2f")
+        ia_frame.pack(fill=BOTH, expand=True, padx=20, pady=10)
+        
+        # Scroll components
+        canvas = Canvas(ia_frame, bg="#3c2f2f", highlightthickness=0)
+        scrollbar = Scrollbar(ia_frame, orient="vertical", command=canvas.yview)
+        scrollable_frame = Frame(canvas, bg="#3c2f2f")
+        
+        # Quand le contenu change, mettre à jour la zone scrollable
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        
+        # Créer la fenêtre dans le canvas 
+        window_id = canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        
+        # Ajuster dynamiquement la largeur du contenu quand le canvas change
+        def resize_scrollable(event):
+            canvas.itemconfig(window_id, width=event.width)
+        canvas.bind("<Configure>", resize_scrollable)
+        
+        canvas.configure(yscrollcommand=scrollbar.set)
+        canvas.pack(side=LEFT, fill=BOTH, expand=True)
+        scrollbar.pack(side=RIGHT, fill=Y)
+        
+        # === Données IA disponibles ===
+        types_ia = ["IA Agressive", "IA Conquête", "IA Défensive"]
+        difficultes = ["Facile", "Moyenne", "Difficile"]
+        ia_lignes = []  # pour garder les références
+        
+        def creer_ligne_ia(type_init="IA Agressive", difficulte_init="Facile"):
+            # ligne principale qui doit prendre toute la largeur du scrollable_frame
+            ligne = Frame(scrollable_frame, bg="#4a1d1d", highlightbackground="goldenrod2", highlightthickness=2, padx=5, pady=5)
+            ligne.pack( pady= 20)   # <-- fill X + expand pour prendre toute la largeur
+
+            # === Bouton X (supprimer) ===
+            def supprimer():
+                ia_lignes.remove(ligne)
+                ligne.destroy()
+
+            btn_del = Label(ligne, text="X", font=("Arial", 16, "bold"), bg="#7a3c3c", fg="white", width=2)
+            btn_del.pack(side=LEFT, padx=5)
+            btn_del.bind("<Button-1>", lambda e: supprimer())
+
+            # === Cadre interne avec Type et Difficulté ===
+            inner = Frame(ligne, bg="#4a1d1d")
+            inner.pack(side=LEFT, fill=BOTH, expand=True)
+
+            # TYPE
+            top_row = Frame(inner, bg="#4a1d1d")
+            top_row.pack(fill=X, pady=2)
+
+            Label(top_row, text="Type       :", bg="#4a1d1d", fg="white", font=("Arial", 14)).pack(side=LEFT, padx=5)
+            label_type = Label(top_row, text=type_init, bg="#3c2f2f", fg="gold", font=("Arial", 14), width=15)
+            label_type.pack(side=LEFT, padx=5)
+
+            def changer_type():
+                current = types_ia.index(label_type.cget("text"))
+                label_type.config(text=types_ia[(current + 1) % len(types_ia)])
+
+            btn_type = Label(top_row, text="▼", bg="#2d2d2d", fg="white", width=2)
+            btn_type.pack(side=LEFT, padx=5)
+            btn_type.bind("<Button-1>", lambda e: changer_type())
+
+            # DIFFICULTÉ
+            bottom_row = Frame(inner, bg="#4a1d1d")
+            bottom_row.pack(fill=X, pady=2)
+
+            Label(bottom_row, text="Difficulté :", bg="#4a1d1d", fg="white", font=("Arial", 14)).pack(side=LEFT, padx=5)
+            label_diff = Label(bottom_row, text=difficulte_init, bg="#3c2f2f", fg="gold", font=("Arial", 14), width=15)
+            label_diff.pack(side=LEFT, padx=5)
+
+            def changer_diff():
+                current = difficultes.index(label_diff.cget("text"))
+                label_diff.config(text=difficultes[(current + 1) % len(difficultes)])
+
+            btn_diff = Label(bottom_row, text="▼", bg="#2d2d2d", fg="white", width=2)
+            btn_diff.pack(side=LEFT, padx=5)
+            btn_diff.bind("<Button-1>", lambda e: changer_diff())
+
+            ia_lignes.append(ligne)
+
+        # === Ajout initial de quelques IA ===
+        for i in range(1):
+            creer_ligne_ia(type_init=types_ia[i % len(types_ia)], difficulte_init=difficultes[i % len(difficultes)])
+
+        # === Bouton Ajouter IA ===
+        def ajouter_ia():
+            creer_ligne_ia()
+
+        make_button(left_frame, "Ajouter IA", "#4a1d1d", command=ajouter_ia).pack(pady=10)
+
+
+        # Mode de jeu
+        Label(left_frame, text="Mode de jeu", font=("Times New Roman", 20, "bold"), fg="white", bg="#2e1f1f").pack(pady=5)
+        Label(left_frame, text="* Paix mondial   * Conquête   * Achèvement", font=("Arial", 14), fg="gold", bg="#2e1f1f").pack(pady=5)
+
+        # === MILIEU (Option partie) ===
+        # Option Partie as a button instead of a frame
+        make_button(
+            self.background2,
+            "Option Partie",
+            color="#4a1d1d",
+            hover="#7a3c3c",
+            command=lambda: print("Option Partie clicker")
+        ).place(relx=0.53, rely=0.5, anchor="center")
+
+        # === DROITE (Charger Partie + Table de jeu) ===
+        right_frame = Frame(self.background2, bg="#2e1f1f", highlightbackground="goldenrod2", highlightthickness=2)
+        right_frame.place(relx=0.62, rely=0.05, relwidth=0.33, relheight=0.9)
+
+        Label(right_frame, text="Charger Partie", font=("Times New Roman", 22, "bold"), bg="#4a1d1d", fg="gold", width=15, height=2, bd=2, relief="raised").pack(pady=10)
+        Label(right_frame, text="Game table list\n(mode de jeu, nbr joueur, ressource...)", font=("Arial", 14), fg="white", bg="#2e1f1f", justify="center").pack(expand=True)
+
+
+
+        make_button(self.cadre_lobby_partie, "<- Retourner", "#4a1d1d", command=lambda: self.changer_cadre("mainlobby")).place(relx=0.95, rely=0.02, anchor="center")
+
+
+        return self.cadre_lobby_partie
+
     
 
     # le login (ce qui 'login' à l'écran lors du démarrage)
@@ -294,6 +562,97 @@ class Vue():
 
         # on retourne ce cadre pour l'insérer dans le dictionnaires des cadres
         return self.cadrelobby
+    
+    def creer_top_escape(self):
+        # le cadre escape, qui apparait en toplevel lorsque le joueur presse echap
+        size_x = 480
+        size_y = 600
+        x = (self.screen_width - size_x) // 2
+        y = (self.screen_height - size_y) // 2
+
+        self.cadreescape = Toplevel(self.root)
+        self.cadreescape.title("Menu Pause")
+        self.cadreescape.geometry(f"{size_x}x{size_y}+{x}+{y}")
+        self.cadreescape.withdraw()  # on le cache initialement
+
+        # === Paramètres du fond ===
+        bg_path = os.path.join(os.path.dirname(__file__), "images/scroll.jpg")
+        self.tk_bg = ImageTk.PhotoImage(Image.open(bg_path).resize((size_x, size_y), Image.Resampling.LANCZOS))
+        self.label_bg = Label(self.cadreescape, image=self.tk_bg)
+        self.label_bg.place(x=0, y=0, relwidth=1, relheight=1)
+
+        # === Création des boutons du menu pause ===
+        def make_button_pause(text, command=None , padding=60):
+            frame_width = 250
+            frame = Frame(self.cadreescape, bg="#4a1d1d", width=frame_width, height=50, highlightthickness=2, highlightbackground="goldenrod2")
+            frame.pack_propagate(False)
+            frame.pack(pady=padding)
+
+            # Texte du bouton
+            label_text = Label(frame, text=text, font=("Times New Roman", 14, "bold"), bg="#4a1d1d", fg="#D4AF37")
+            label_text.pack(side=TOP, fill=BOTH, expand=True)
+
+            # === Interaction (effet clic + hover) ===
+            def on_enter(e):
+                frame.config(bg="#7a3c3c")
+                label_text.config(bg="#7a3c3c")
+            def on_leave(e):
+                frame.config(bg="#4a1d1d")
+                label_text.config(bg="#4a1d1d")
+            def on_click(e):
+                if command:
+                    command()
+
+            # Bind des événements
+            for widget in (frame, label_text):
+                widget.bind("<Enter>", on_enter)
+                widget.bind("<Leave>", on_leave)
+
+                # Bind du clic pour exécuter la commande
+                widget.bind("<Button-1>", on_click)
+
+            return frame
+
+        # === Boutons spécifiques au menu Pause ===
+        btnreprendre = make_button_pause("Reprendre", command=lambda: (self.cadreescape.withdraw(), self.changer_topblack(None), self.changer_toplevel(None)))
+        btnsave = make_button_pause("Sauvegarder")  
+        btnquitter = make_button_pause("Quitter la partie", command=lambda: (self.changer_cadre("mainlobby"), self.cadreescape.withdraw(), self.changer_topblack(None), self.changer_toplevel(None)))
+
+        # === Affichage des boutons ===
+        for btn in [btnreprendre, btnsave, btnquitter]:
+            btn.pack(pady=5)
+
+        return self.cadreescape
+    
+    def creer_top_user(self):
+        # le cadre escape, qui apparait en toplevel lorsque le joueur presse echap
+        self.top = Toplevel(self.root)
+        self.top.title("Menu Pause")
+        self.top.geometry("300x200")
+        self.top.withdraw()  # on le cache initialement
+
+        # boutons du menu pause
+        btnreprendre = Button(self.top, text="Reprendre", command=self.top.withdraw)
+        btnreprendre.pack(pady=10)
+
+        btnaide = Button(self.top, text="Tab user")
+        btnaide.pack(pady=10)
+
+        return self.top
+    
+    def creer_topblack(self):
+
+        # le cadre escape, qui apparait en toplevel lorsque le joueur presse echap
+        self.topblack_win = Toplevel(self.root , background="black")
+        self.topblack_win.title("black")
+        self.topblack_win.overrideredirect(True)  # enlever bar du haut
+
+        self.topblack_win.configure(bg='black')
+        self.topblack_win.withdraw()  # on le cache initialement
+        self.topblack_win.attributes('-alpha', 0.5)  # noir plus pale
+        self.topblack_win.lift()  #  dessus de la page
+
+        return self.topblack_win
 
     def enregistrer(self, username,password):
         condition = self.parent.enregistrerUser(username, password)
