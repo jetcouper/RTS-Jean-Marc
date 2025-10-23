@@ -300,12 +300,16 @@ class Vue():
         return condition
 
     def enregistrer_et_changer(self):
-        if self.enregistrer(self.entree_nom.get(), self.entree_mdp.get()):
+        message = self.enregistrer(self.entree_nom.get(), self.entree_mdp.get())
+        if  message == True:
             self.nom_joueur_local.set(self.entree_nom.get())
+            #self.parent.nom_joueur_local = {self.entree_nom.get()}
             self.user = self.parent.user
             self.changer_cadre("mainlobby")
             self.root.attributes('-fullscreen', True)
-        else:
+        if message == "Vide":
+            messagebox.showerror("Erreur", "Veuillez à ne pas laisser les champs vide.")
+        if message == False:
             # Affiche ton message d'erreur (à adapter selon ton interface)
             messagebox.showerror("Erreur", "L'utilisateur existe déjà")
 
@@ -314,12 +318,17 @@ class Vue():
         return condition
 
     def login_et_changer(self):
-        if self.login(self.entree_nom.get(), self.entree_mdp.get()):
+        message = self.login(self.entree_nom.get(), self.entree_mdp.get())
+        #print(f"Type: {type(self.entree_nom)}, Valeur: {self.entree_nom.get()}")
+        if message == True:
             self.nom_joueur_local.set(self.entree_nom.get())
+            #self.parent.nom_joueur_local = self.entree_nom.get()
             self.user = self.parent.user
             self.changer_cadre("mainlobby")
             self.root.attributes('-fullscreen', True)
-        else:
+        if message == "Vide":
+            messagebox.showerror("Erreur", "Veuillez à ne pas laisser les champs vide.")
+        if message == False:
             # Affiche ton message d'erreur (à adapter selon ton interface)
             messagebox.showerror("Erreur", "L'utilisateur n'existe pas ou erreur de saisi du mot de passe.")
 
@@ -392,17 +401,21 @@ class Vue():
         champmsg = Label(self.cadrejeuinfo, text="", fg="red")
         champmsg.pack(side=LEFT)
         self.infohud["msggeneral"] = [champmsg]
-        self.btnchat = Button(self.cadrejeuinfo, text="Chat", command=self.sauvegarder)
+        self.btnchat = Button(self.cadrejeuinfo, text="Sauvegarde", command=self.sauvegarder)
+        self.btnCharger = Button(self.cadrejeuinfo, text="Charger", command=self.charger)
         self.btnaide = Button(self.cadrejeuinfo, text="Aide", command=self.action.aider)
 
 
         self.btnaide.pack(side=RIGHT)
         self.btnchat.pack(side=RIGHT)
+        self.btnCharger.pack(side=RIGHT)
         self.cadrejeuinfo.grid(row=0, column=0, sticky=E + W, columnspan=2)
 
     def sauvegarder(self):
         self.parent.sauvegarde()
 
+    def charger(self):
+        self.parent.charger("data/sauvegarde.pkl")
 
     def creer_cadre_jeu_action(self):
         # Ajout du cadre d'action a droite pour identifier les objets permettant les commandes du joueur
@@ -566,7 +579,7 @@ class Vue():
     # def reset_partie(self):
     #     rep = self.parent.reset_partie()
 
-    def initialiser_avec_modele(self):
+    def initialiser_avec_modele(self, chargement=False):
         # on reassigne le nom final localement pour eviter
         # de toujours le requerir du parent
         self.nom_joueur_local = self.parent.nom_joueur_local
@@ -583,7 +596,8 @@ class Vue():
         self.creer_cadre_ouvrier(coul[0] + "_", ["maison", "caserne", "abri", "usineballiste"])
         self.creer_chatter()
         # on affiche les maisons, point de depart des divers joueurs
-        self.afficher_depart()
+
+        self.afficher_depart(chargement)
         self.root.update()
         # self.centrer_maison()
 
@@ -595,19 +609,33 @@ class Vue():
             btn.pack()
 
     ##FONCTIONS D'AFFICHAGES##################################
-    def afficher_depart(self):
-        self.modele.listebiotopes.sort(key=lambda c: c.y)
-        for i in self.modele.listebiotopes:
-            if i.montype == "daim":
-                monitem = self.canevas.create_image(i.x, i.y, image=self.images[i.img], anchor=S,
-                                                    tags=("mobile", "", i.id, "biotope", i.montype, ""))
-                # tags=("mobile","",i.id,)
-            else:
-                monitem = self.canevas.create_image(i.x, i.y, image=self.images[i.img], anchor=S,
-                                                    tags=("statique", "", i.id, "biotope", i.montype, ""))
-                # tags=("mobile","",i.id,)
+    def afficher_depart(self, chargement=False):
+        # Afficher les biotopes (arbres, roches, etc.)
+        if chargement:
+            # Lors d'un chargement, on récupère les biotopes depuis self.modele.biotopes
+            for type_bio in self.modele.biotopes:
+                for id_bio, bio in self.modele.biotopes[type_bio].items():
+                    # Les daims sont mobiles, les autres sont statiques
+                    if bio.montype == "daim":
+                        self.canevas.create_image(bio.x, bio.y, image=self.images[bio.img], anchor=S,
+                                                  tags=("mobile", "", bio.id, "biotope", bio.montype, ""))
+                    else:
+                        self.canevas.create_image(bio.x, bio.y, image=self.images[bio.img], anchor=S,
+                                                  tags=("statique", "", bio.id, "biotope", bio.montype, ""))
+        else:
+            # Nouveau jeu : afficher depuis listebiotopes
+            self.modele.listebiotopes.sort(key=lambda c: c.y)
+            for i in self.modele.listebiotopes:
+                if i.montype == "daim":
+                    monitem = self.canevas.create_image(i.x, i.y, image=self.images[i.img], anchor=S,
+                                                        tags=("mobile", "", i.id, "biotope", i.montype, ""))
+                else:
+                    monitem = self.canevas.create_image(i.x, i.y, image=self.images[i.img], anchor=S,
+                                                        tags=("statique", "", i.id, "biotope", i.montype, ""))
 
-        self.modele.listebiotopes = []
+            self.modele.listebiotopes = []  # Réinitialise la liste après affichage
+
+        # Affichage de la minicarte
         minitaillecase = int(self.tailleminicarte / self.modele.taillecarte)
         couleurs = {0: "",
                     "arbre": "light green",
@@ -615,6 +643,7 @@ class Vue():
                     "aureus": "tan",
                     "roche": "gray30",
                     "marais": "orange"}
+
         for i, t in enumerate(self.modele.regions):
             if t != "plaine":
                 for j, c in enumerate(self.modele.regions[t]):
@@ -624,26 +653,32 @@ class Vue():
                         x1 = k.x * minitaillecase
                         x2 = x1 + minitaillecase
                         self.minicarte.create_rectangle(x1, y1, x2, y2, outline="",
-                                                        # fill=couleurs[self.modele.cartecase[k[1]][k[0]].type]),
                                                         fill=couleurs[k.parent.montype])
 
-        # Affichage des batiments intiaux sur l'aire de jeu et sur la minicarte
+        # Affichage des bâtiments sur l'aire de jeu et sur la minicarte
         px = int(self.tailleminicarte / self.modele.aireX)
         py = int(self.tailleminicarte / self.modele.aireY)
 
+        # Afficher tous les bâtiments (pour nouveau jeu ET chargement)
         for j in self.modele.joueurs.keys():
-            for i in self.modele.joueurs[j].batiments["maison"].keys():
-                m = self.modele.joueurs[j].batiments["maison"][i]
-                coul = self.modele.joueurs[j].couleur[0]
-                self.canevas.create_image(m.x, m.y, image=self.images[coul + "_maison"],
-                                          tags=("statique", j, m.id, "batiment", m.montype, ""))
-                # tags=("mobile","",i.id,)
-                # afficher sur minicarte
-                coul = self.modele.joueurs[j].couleur[1]
-                x1 = int((m.x / self.modele.aireX) * self.tailleminicarte)
-                y1 = int((m.y / self.modele.aireY) * self.tailleminicarte)
-                self.minicarte.create_rectangle(x1 - 2, y1 - 2, x1 + 2, y1 + 2, fill=coul,
-                                                tags=(j, m.id, "artefact", "maison"))
+            for type_bat in self.modele.joueurs[j].batiments:
+                for id_bat, bat in self.modele.joueurs[j].batiments[type_bat].items():
+                    coul = self.modele.joueurs[j].couleur[0]
+                    # Utiliser l'image appropriée selon le type de bâtiment
+                    if hasattr(bat, 'image'):
+                        img_key = bat.image
+                    else:
+                        img_key = coul + "_" + bat.montype
+
+                    self.canevas.create_image(bat.x, bat.y, image=self.images[img_key], anchor=S,
+                                              tags=("statique", j, bat.id, "batiment", bat.montype, ""))
+
+                    # Afficher sur minicarte
+                    coul_mini = self.modele.joueurs[j].couleur[1]
+                    x1 = int((bat.x / self.modele.aireX) * self.tailleminicarte)
+                    y1 = int((bat.y / self.modele.aireY) * self.tailleminicarte)
+                    self.minicarte.create_rectangle(x1 - 2, y1 - 2, x1 + 2, y1 + 2, fill=coul_mini,
+                                                    tags=(j, bat.id, "artefact", bat.montype))
 
     def afficher_bio(self, bio):
         self.canevas.create_image(bio.x, bio.y, image=self.images[bio.img],

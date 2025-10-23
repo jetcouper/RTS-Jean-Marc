@@ -14,12 +14,13 @@ class Controleur():
         self.user_manager = us.UserManager()
         self.objets = []  # Liste de vos objets
         self.fichier_sauvegarde = 'data/sauvegarde.pkl'
-
+        self.chargement = False
         self.iteration_boucle_jeu = 0
         self.actions_requises = []
         self.user = None
         self.partie = None
         self.nom_joueur_local = ""
+        self.sauvegardes = []
         # liste des noms de joueurs
         self.joueurs = self.user_manager.list_all_users()
         #MORT self.prochain_splash = None # requis pour sortir du splash et passer au lobby
@@ -99,11 +100,12 @@ class Controleur():
         # for i in self.joueurs:
         #     listejoueurs.append(i[0])
         # on cree le modele (la partie)
-        self.partie = Partie(self, self.nom_joueur_local, nb_IAs)
+        if self.partie == None:
+            self.partie = Partie(self, self.nom_joueur_local, nb_IAs)
         # on passe le modele a la vue puisqu'elle trouvera toutes le sinfos a dessiner
         self.vue.modele = self.partie
         # on met la vue a jour avec les infos de partie
-        self.vue.initialiser_avec_modele()
+        self.vue.initialiser_avec_modele(self.chargement)
         # on change le cadre la fenetre pour passer dans l'interface de jeu
         self.vue.changer_cadre("jeu")
         self.vue.centrer_maison()
@@ -227,15 +229,19 @@ class Controleur():
             self.nom_joueur_local = username
             self.user = self.user_manager.get_user_data(username)
             return True
+        if message == "Vide":
+            return message
         else:
             self.nom_joueur_local = ""
             return False
     def loginUser(self, username, password):
         message = self.user_manager.get_user(username, password)
-        if message:
+        if message == True:
             self.nom_joueur_local = username
             self.user = self.user_manager.get_user_data(username)
             return True
+        if message == "Vide":
+            return message
         else:
             self.nom_joueur_local = ""
             return False
@@ -250,13 +256,38 @@ class Controleur():
 
         try:
             with open(fichier, 'wb') as f:
-                pickle.dump(self.partie, f)
-            print(f"✓ Sauvegarde réussie : {len(self.objets)} objet(s) sauvegardé(s)")
+                self.partie.parent = None
+                data_save = [self.partie,self.iteration_boucle_jeu]
+                self.sauvegardes.append(data_save)
+                pickle.dump(self.sauvegardes, f)
+                self.partie.parent = self
+            print(f"Sauvegarde réussie")
             return True
         except Exception as e:
-            print(f"✗ Erreur lors de la sauvegarde : {e}")
+            print(f"Erreur lors de la sauvegarde : {e}")
             return False
 
+    def charger(self,fichier=None):
+        try:
+            with open(fichier, 'rb') as file:
+                loaded_data = pickle.load(file)
+                self.sauvegardes = loaded_data
+                self.partie = self.sauvegardes[0]
+                self.iteration_boucle_jeu = self.sauvegardes[1]
+                self.partie.parent = self
+
+            # ⚠️ ne pas recréer la partie ici
+            # Il faut juste reconnecter la vue au modèle existant
+            self.chargement = True
+            self.vue.modele = self.partie
+            self.vue.changer_cadre("jeu")
+            self.vue.initialiser_avec_modele(self.chargement)
+            self.vue.centrer_maison()
+            print(f"L'objet {fichier} est bien chargé")
+            return True
+        except Exception as e:
+            print(f"Une érreur est arrivée: {e}")
+            return False
 
 
 if __name__ == '__main__':

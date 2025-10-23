@@ -13,16 +13,19 @@ class UserManager:
         return cls._instance
 
     def add_user(self, username, password):
-        try:
-            self.db_connection.execute_query(
-                "INSERT INTO users (username, password) VALUES (?, ?)",
-                (username, password)
-            )
-            print(f"Utilisateur '{username}' ajouter.")
-            return "Réussi"
-        except sqlite3.IntegrityError:
-            print(f"L'utilisateur '{username}' existe déjà.")
-            return "Échec"
+        if username != "" or password != "":
+            try:
+                self.db_connection.execute_query(
+                    "INSERT INTO users (username, password) VALUES (?, ?)",
+                    (username, password)
+                )
+                print(f"Utilisateur '{username}' ajouter.")
+                return "Réussi"
+            except sqlite3.IntegrityError:
+                print(f"L'utilisateur '{username}' existe déjà.")
+                return "Échec"
+        else:
+            return "Vide"
 
     def get_user(self, username, password):
         user_data = self.db_connection.fetch_one(
@@ -31,6 +34,8 @@ class UserManager:
         if user_data:
             print(f"Utilisateur trouvé: ID={user_data[0]}, Username='{user_data[1]}'")
             return True
+        if username == "" or password == "":
+            return "Vide"
         else:
             print(f"Utilisateur '{username}' n'existe pas.")
             return False
