@@ -678,7 +678,7 @@ class Vue():
 
     def login_et_changer(self):
         message = self.login(self.entree_nom.get(), self.entree_mdp.get())
-        #print(f"Type: {type(self.entree_nom)}, Valeur: {self.entree_nom.get()}")
+        print(f"Type: {type(self.entree_nom)}, Valeur: {self.entree_nom.get()}")
         if message == True:
             self.nom_joueur_local.set(self.entree_nom.get())
             #self.parent.nom_joueur_local = self.entree_nom.get()
