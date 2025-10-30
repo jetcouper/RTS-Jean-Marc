@@ -75,7 +75,7 @@ class Vue():
         self.textchat = ""
         self.infohud = {}
         # # minicarte
-        self.tailleminicarte = 220
+        self.tailleminicarte = 400
         self.cadreactif = None
         self.toplevelactif = None
         self.topblackactif = None
@@ -869,10 +869,11 @@ class Vue():
         self.scrollV = Scrollbar(self.cadrecanevas, orient=VERTICAL)
         self.scrollH = Scrollbar(self.cadrecanevas, orient=HORIZONTAL)
         self.canevas = Canvas(self.cadrecanevas, width=400, height=400, bg="DarkOliveGreen2",
-                              yscrollcommand=self.scrollV.set,
-                              xscrollcommand=self.scrollH.set)
-        self.scrollV.config(command=self.canevas.yview)
-        self.scrollH.config(command=self.canevas.xview)
+                      yscrollcommand=self.scrollV.set,
+                      xscrollcommand=self.scrollH.set, highlightthickness=0)
+        # Keep scrollbars functional but make them invisible (hidden)
+        self.scrollV.config(command=self.canevas.yview, width=0, troughcolor=self.canevas['bg'], bd=0, highlightthickness=0)
+        self.scrollH.config(command=self.canevas.xview, width=0, troughcolor=self.canevas['bg'], bd=0, highlightthickness=0)
         # on visualise utilisant grid (grille)
         # le grid avec 'sticky' indique que l'objet doit s'acroitre pour coller aux 'points cardinaux' (anglais)
 
@@ -886,6 +887,15 @@ class Vue():
         # ici on precise que c'est le canevas et non les scrollbar qui doit s'agrandir
         self.cadrecanevas.rowconfigure(1, weight=1)
         self.cadrecanevas.columnconfigure(0, weight=1)
+
+        # minicarte
+        # minicarte : placer en bas à gauche du cadre de jeu (au-dessus du canevas)
+        self.minicarte = Canvas(self.cadrecanevas, width=self.tailleminicarte, height=self.tailleminicarte,
+                    bg="tan1", highlightthickness=0)
+        # placer ancré en bas-gauche avec une petite marge (anchor 'sw' = south-west)
+        self.minicarte.place(relx=1.0, rely=1.0, x=-10, y=-10, anchor='se')
+        self.minicarte.bind("<Button-1>", self.deplacer_carte)
+
         self.connecter_event()
 
     def creer_HUD(self):
@@ -934,25 +944,37 @@ class Vue():
         self.parent.charger(nom_joueur)
 
     def creer_cadre_jeu_action(self):
-        # Ajout du cadre d'action a droite pour identifier les objets permettant les commandes du joueur
-        self.cadreaction = Frame(self.cadrepartie)
-        self.cadreaction.grid(row=0, column=1, sticky=N + S)
+        # Crée un petit panneau d'action "overlay" placé par-dessus l'aire de jeu
+        # (parent = cadrecanevas pour ne pas modifier la grille globale)
+        overlay_width = 260
+
+        self.cadreaction = Frame(self.cadrecanevas, bg="#2e2e2e", width=overlay_width, bd=2, relief="ridge")
+        # place en overlay sur le bord droit du canvas, sans occuper une colonne entière
+        self.cadreaction.place(relx=1.0, rely=0.02, anchor="ne", relheight=0.4, x=-10)
+
+        # scrollbar + canvas internes pour le panneau d'action
         self.scrollVaction = Scrollbar(self.cadreaction, orient=VERTICAL)
-        self.canevasaction = Canvas(self.cadreaction, width=200, height=300, bg="lightblue",
-                                    yscrollcommand=self.scrollVaction.set)
-
+        self.canevasaction = Canvas(
+            self.cadreaction,
+            width=overlay_width,
+            bg="lightblue",
+            yscrollcommand=self.scrollVaction.set,
+            highlightthickness=0
+        )
         self.scrollVaction.config(command=self.canevasaction.yview)
-        self.canevasaction.grid(row=0, column=0, sticky=N + S)
-        self.scrollVaction.grid(row=0, column=1, sticky=N + S)
-        # les widgets
-        self.canevasaction.create_text(100, 30, text=self.parent.nom_joueur_local, font=("arial", 18, "bold"), anchor=S,
-                                       tags=("nom"))
 
-        # minicarte
-        self.minicarte = Canvas(self.cadreaction, width=self.tailleminicarte, height=self.tailleminicarte, bg="tan1",
-                                highlightthickness=0)
-        self.minicarte.grid(row=2, column=0, columnspan=2)
-        self.minicarte.bind("<Button-1>", self.deplacer_carte)
+        # layout interne du panneau (utilise pack pour remplir l'espace de l'overlay)
+        self.canevasaction.pack(side=LEFT, fill=BOTH, expand=True)
+        self.scrollVaction.pack(side=RIGHT, fill=Y)
+
+        # affichage du nom du joueur en haut du panneau (centre)
+        self.canevasaction.create_text(
+            overlay_width // 2, 30,
+            text=self.parent.nom_joueur_local,
+            font=("arial", 18, "bold"),
+            anchor=S,
+            tags=("nom",)
+        )
 
         # on retourne ce cadre pour l'insérer dans le dictionnaires des cadres
         self.canevasaction.rowconfigure(0, weight=1)
