@@ -482,6 +482,19 @@ class Ouvrier(Perso):
 
     def jouer_prochain_coup(self):
         if self.actioncourante:
+            # VÉRIFIER LA COHÉRENCE DES CONSTRUCTIONS
+            if self.actioncourante in ["construirebatiment", "ciblersiteconstruction"]:
+                if self.cible is None:
+                    print(f"{self.id}: Aucune cible de construction - retour au repos")
+                    self.actioncourante = None
+                    return
+
+                # Vérifier que le site existe toujours
+                if hasattr(self.cible, 'id') and self.cible.id not in self.parent.batiments.get('siteconstruction', {}):
+                    print(f"{self.id}: Site de construction {self.cible.id} introuvable - abandon")
+                    self.cible = None
+                    self.actioncourante = None
+                    return
             reponse = self.etats_et_actions[self.actioncourante]()
 
     def lancer_javelot(self, proie):
