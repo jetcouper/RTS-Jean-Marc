@@ -503,14 +503,15 @@ class Vue():
         tree_frame = Frame(right_frame, bg="#2e1f1f")
         tree_frame.pack(fill=BOTH, expand=True, padx=10, pady=10)
 
-        cols = ("name", "modified", "size_kb")
+        #cols = ("name", "modified", "size_kb")
+        cols = ("name", "date", "iteration")
         self.saves_tree = ttk.Treeview(tree_frame, columns=cols, show="headings", selectmode="browse", height=8)
-        self.saves_tree.heading("name", text="Fichier")
-        self.saves_tree.heading("modified", text="Modifié")
-        self.saves_tree.heading("size_kb", text="Taille (KB)")
-        self.saves_tree.column("name", width=220, anchor="w")
-        self.saves_tree.column("modified", width=140, anchor="center")
-        self.saves_tree.column("size_kb", width=80, anchor="e")
+        self.saves_tree.heading("name", text="Joueur")
+        self.saves_tree.heading("date", text="Date")
+        self.saves_tree.heading("iteration", text="Itération")
+        self.saves_tree.column("name", width=150, anchor="w")
+        self.saves_tree.column("date", width=170, anchor="center")
+        self.saves_tree.column("iteration", width=100, anchor="e")
 
         ysb = Scrollbar(tree_frame, orient="vertical", command=self.saves_tree.yview)
         self.saves_tree.configure(yscroll=ysb.set)
@@ -519,11 +520,10 @@ class Vue():
 
         def populate_saves():
             """
-            Vide l'arbre de sauvegardes, puis ajoute le fichier de sauvegarde
-            principal (data/sauvegarde.pkl) s'il existe.
+            Affiche toutes les sauvegardes du joueur connecté
             """
             saves_dir = "data"
-            os.makedirs(saves_dir, exist_ok=True)  # S'assure que le dossier existe
+            os.makedirs(saves_dir, exist_ok=True)
 
             # Vider la liste actuelle
             for i in self.saves_tree.get_children():
@@ -533,63 +533,96 @@ class Vue():
                 fichier = os.path.join(saves_dir, "sauvegarde.pkl")
 
                 if not os.path.exists(fichier):
-                    # Rien à afficher s'il n'y a pas encore de sauvegarde
                     return
 
-                try:
-                    mtime = datetime.fromtimestamp(
-                        os.path.getmtime(fichier)
-                    ).strftime("%Y-%m-%d %H:%M")
-                    size_bytes = os.path.getsize(fichier)
-                    size_kb = int(size_bytes / 1024) if size_bytes > 0 else 0
-                except OSError:
-                    mtime = "N/A"
-                    size_kb = 0
+                # 🔴 CHARGER TOUTES LES SAUVEGARDES
+                import pickle
+                with open(fichier, 'rb') as f:
+                    sauvegardes_dict = pickle.load(f)
 
-                # Utilise le chemin complet comme iid (pour le recharger facilement)
-                self.saves_tree.insert(
-                    "",
-                    "end",
-                    iid=os.path.abspath(fichier),
-                    values=("sauvegarde.pkl", mtime, size_kb)
-                )
+                # Vérifier que c'est un dictionnaire
+                if not isinstance(sauvegardes_dict, dict):
+                    return
+
+                # 🔴 RÉCUPÉRER LE NOM DU JOUEUR CONNECTÉ
+                nom_joueur_actuel = self.parent.nom_joueur_local
+
+                if not nom_joueur_actuel:
+                    print("⚠️ Aucun joueur connecté")
+                    return
+
+                # 🔴 VÉRIFIER SI CE JOUEUR A UNE SAUVEGARDE
+                if nom_joueur_actuel not in sauvegardes_dict:
+                    print(f"Aucune sauvegarde trouvée pour '{nom_joueur_actuel}'")
+                    return
+
+                # 🔴 AFFICHER LA SAUVEGARDE DU JOUEUR
+                sauvegarde_data = sauvegardes_dict[nom_joueur_actuel]
+
+                try:
+                    if isinstance(sauvegarde_data, dict):
+                        date_save = sauvegarde_data.get('date', 'N/A')
+                        iteration = sauvegarde_data.get('iteration', '?')
+                    else:
+                        date_save = "N/A"
+                        iteration = "?"
+
+                    # Afficher avec le nom du joueur comme identifiant
+                    self.saves_tree.insert(
+                        "",
+                        "end",
+                        iid=nom_joueur_actuel,  # 🔴 Utiliser le nom du joueur comme ID
+                        values=(nom_joueur_actuel, date_save, iteration)
+                    )
+
+                except Exception as e:
+                    print(f"Erreur pour afficher la sauvegarde: {e}")
 
             except Exception as e:
-                messagebox.showerror(
-                    "Erreur",
-                    f"Impossible de lister la sauvegarde :\n{e}"
-                )
-
+                messagebox.showerror("Erreur", f"Impossible de lister les sauvegardes:\n{e}")
 
         def load_selected(event=None):
             sel = self.saves_tree.selection()
             if not sel:
                 return
-            path = sel[0]
+
+            # sel[0] contient maintenant le NOM DU JOUEUR (l'iid du Treeview)
+            nom_joueur = sel[0]
+
             try:
+                # Nettoyer les actions en attente
                 self.parent.actions_requises = []
-                # Appeler le chargeur du parent ; parent.charger attend un chemin dans le code existant
-                self.parent.charger(path)
-                # Basculer vers l'interface de jeu
-                self.lancer_partie()
-                # Si nécessaire, initialiser l'interface avec le modèle chargé
-                try:
-                    self.initialiser_avec_modele(chargement=True)
-                except Exception:
-                    # Ignorer les erreurs mineures d'initialisation
-                    pass
+
+                # CHARGER LA SAUVEGARDE AVEC LE NOM DU JOUEUR
+                success = self.parent.charger(nom_joueur)
+
+                if not success:
+                    messagebox.showerror("Erreur", f"Impossible de charger la sauvegarde de '{nom_joueur}'")
+
             except Exception as e:
                 messagebox.showerror("Erreur", f"Impossible de charger la sauvegarde:\n{e}")
+                import traceback
+                traceback.print_exc()
 
         def delete_selected():
             sel = self.saves_tree.selection()
             if not sel:
                 return
-            path = sel[0]
-            if messagebox.askyesno("Supprimer", f"Supprimer la sauvegarde {os.path.basename(path)} ?"):
+
+            # 🔴 sel[0] contient le nom du joueur
+            nom_joueur = sel[0]
+
+            if messagebox.askyesno("Supprimer", f"Supprimer la sauvegarde de '{nom_joueur}' ?"):
                 try:
-                    os.remove(path)
-                    self.saves_tree.delete(path)
+                    # 🔴 APPELER LA MÉTHODE DE SUPPRESSION DU CONTRÔLEUR
+                    success = self.parent.supprimer_sauvegarde(nom_joueur)
+
+                    if success:
+                        # Supprimer de l'affichage
+                        self.saves_tree.delete(nom_joueur)
+                        messagebox.showinfo("Succès", "Sauvegarde supprimée")
+                    else:
+                        messagebox.showerror("Erreur", "Impossible de supprimer la sauvegarde")
                 except Exception as e:
                     messagebox.showerror("Erreur", f"Impossible de supprimer:\n{e}")
 
