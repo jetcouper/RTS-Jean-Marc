@@ -74,7 +74,7 @@ class Vue():
         self.textchat = ""
         self.infohud = {}
         # # minicarte
-        self.tailleminicarte = 500
+        self.tailleminicarte = 400
         self.cadreactif = None
         self.toplevelactif = None
         self.topblackactif = None
@@ -1608,9 +1608,13 @@ class Action():
         self.parent.parent.actions_requises.append(action)
 
     def afficher_commande_perso(self):
-        self.widgetsactifs = self.parent.canevasaction.create_window(100, 60,
-                                                                     window=self.parent.cadreouvrier,
-                                                                     anchor=N)
+        # center the worker command panel in the action canvas
+        w = max(1, self.parent.canevasaction.winfo_width())
+        h = max(1, self.parent.canevasaction.winfo_height())
+        cx, cy = w // 2, h // 2
+        self.widgetsactifs = self.parent.canevasaction.create_window(cx, cy,
+                                         window=self.parent.cadreouvrier,
+                                         anchor=CENTER)
         self.parent.root.update()
         fh = self.parent.cadreouvrier.winfo_height()
         ch = int(self.parent.canevasaction.cget("height"))
