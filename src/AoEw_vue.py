@@ -56,7 +56,8 @@ class Vue():
                     self.changer_topblack("blackgame")
                     self.changer_toplevel("gameescape")
                 elif nom_cadre_actif in ("mainlobby"):
-                    self.changer_toplevel("useroption")
+                    #self.changer_toplevel("useroption")
+                    pass
 
 
         # bind sur tous les widgets (fonctionne même quand le toplevel a le focus)
