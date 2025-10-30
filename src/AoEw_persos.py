@@ -149,7 +149,7 @@ class Perso():
     ##################################################################################################
 
 
-    
+
     def attaquer(self, ennemi):
         self.cibleennemi = ennemi
         x = self.cibleennemi.x
@@ -424,6 +424,12 @@ class Ouvrier(Perso):
             self.y = self.y + random.randrange(4) - 2
 
     def construire_batiment(self):
+
+        # if batiment.id not in self.parent.batiments['siteconstruction']:
+        #     self.actioncourante = ""
+        #     self.cible = None
+        #     return 0
+        
         self.cible.decremente_delai()
         if self.cible.delai < 1:
             batiment = self.parent.parent.classesbatiments[self.cible.sorte](self, self.cible.id, self.parent.couleur,
@@ -431,14 +437,43 @@ class Ouvrier(Perso):
                                                                              self.cible.sorte)
             self.parent.batiments[self.cible.sorte][self.cible.id] = batiment
 
-            sitecons = self.parent.batiments['siteconstruction'].pop(batiment.id)
+        #Avant de manipuler l’entrée, sécuriser son existence
+            sitecons = self.parent.batiments['siteconstruction'].get(batiment.id)
+
+            if sitecons is None:
+                # Le site a déjà été converti en vrai bâtiment par un autre ouvrier
+                # -> on nettoie l’état et on quitte proprement
+                self.actioncourante = ""
+                self.cible = None
+                return 0  # ou "termine" selon ta convention
+
+            #... progression / validation ...
+            #Au moment de retirer le site (premier ouvrier à terminer)
+            sitecons = self.parent.batiments['siteconstruction'].pop(batiment.id, None)
+            if sitecons is None:
+                # Déjà retiré entre-temps par un autre ouvrier (course)
+                self.actioncourante = ""
+                self.cible = None
+                return 0
+            
             print(sitecons)
 
             self.parent.installer_batiment(batiment)
+
             if self.cible.sorte == "maison":
                 self.batimentmere = batiment
+            
             self.cible = None
             self.actioncourante = None
+
+                #ici: créer/installer le vrai bâtiment, puis:
+            self.actioncourante = ""
+            self.cible = None
+            return 1
+
+    
+
+     
 
     def construire_site_construction(self, site_construction):
         self.cibler(site_construction)
@@ -455,23 +490,56 @@ class Ouvrier(Perso):
             self.javelots.append(Javelot(self, id, proie))
 
     def chercher_nouvelle_ressource(self, typ, idreg):
+
         print("Je cherche nouvelle ressource")
-        #if typ != "baie" and typ != "daim":
-        reg = self.parent.parent.regions[typ]
-        if idreg in reg:
-            regspec = self.parent.parent.regions[typ][idreg]
-            n = len(regspec.dicocases)
-            while n > 0:
-                clecase = list(regspec.dicocases.keys())
-                case = regspec.dicocases[random.choice(clecase)]
-                n -= 1
-                if case.ressources:
-                    clecase2 = list(case.ressources.keys())
-                    newress = case.ressources[random.choice(clecase2)]
-                    if newress.montype == typ:
-                        return newress
+        # Types à régions (arbre/roche/eau/marais/aureus) → même région
+        if typ in self.parent.parent.regions:
+            reg = self.parent.parent.regions[typ]
+            if idreg in reg:
+                regspec = reg[idreg]
+                n = len(regspec.dicocases)
+                while n > 0:
+                    clecase = list(regspec.dicocases.keys())
+                    case = regspec.dicocases[random.choice(clecase)]
+                    n -= 1
+                    if case.ressources:
+                        clecase2 = list(case.ressources.keys())
+                        newress = case.ressources[random.choice(clecase2)]
+                        if newress.montype == typ:
+                            return newress
             return None
-        #else:
+        else:
+            # Pas de régions (ex.: daim, baie) → choisir dans les biotopes de ce type
+            candidats = self.parent.parent.biotopes.get(typ, {})
+            if not candidats:
+                return None
+            meilleur = None
+            best = 10**9
+            for obj in candidats.values():
+                if obj is self.cible:
+                    continue
+                dist = Helper.calcDistance(self.x, self.y, obj.x, obj.y)
+                if dist < best and dist <= self.champvision:
+                    meilleur, best = obj, dist
+            return meilleur
+        
+        # print("Je cherche nouvelle ressource")
+        # #if typ != "baie" and typ != "daim":
+        # reg = self.parent.parent.regions[typ]
+        # if idreg in reg:
+        #     regspec = self.parent.parent.regions[typ][idreg]
+        #     n = len(regspec.dicocases)
+        #     while n > 0:
+        #         clecase = list(regspec.dicocases.keys())
+        #         case = regspec.dicocases[random.choice(clecase)]
+        #         n -= 1
+        #         if case.ressources:
+        #             clecase2 = list(case.ressources.keys())
+        #             newress = case.ressources[random.choice(clecase2)]
+        #             if newress.montype == typ:
+        #                 return newress
+        #     return None
+        # else:
         #    nb = len(self.parent.parent.biotopes[typ])
         #    for i in range(nb):
         #        rep = random.choice(list(self.parent.parent.biotopes[typ].keys()))
