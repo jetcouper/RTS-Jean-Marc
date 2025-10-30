@@ -7,10 +7,10 @@ class IA(Joueur):
         Joueur.__init__(self, parent, id, nom, couleur, x, y)
 
         self.delaiaction=20
-        self.actions={"creerouvrier":self.creerouvrier,
-                      "ouvrierciblermaison":self.ouvrierciblermaison,
-                      "colorierouvrier":self.colorierouvrier,
-                      "ciblerbalise":self.ciblerbalise}
+        #self.actions={"creerouvrier":self.creerouvrier,
+        #              "ouvrierciblermaison":self.ouvrierciblermaison,
+        #              "colorierouvrier":self.colorierouvrier,
+        #              "ciblerbalise":self.ciblerbalise}
 
     #Override la méthode de base
     def creer_point_origine(self, x, y):
@@ -31,10 +31,13 @@ class IA(Joueur):
         
     def creerouvrier(self):
         #idmaison=random.choice(list(self.maisons.keys()))
-        maison = self.batiments["maison"][0]
+        #maison = self.batiments["maison"][0]
+        #chatgpt******************************
+        idmaison = next(iter(self.batiments["maison"].keys()))
+        maison = self.batiments["maison"][idmaison]
+        #*************************************
         sorteperso="ouvrier"
         batimentsource="maison"
-        idmaison = maison.id
         
         #maison=self.maisons[idmaison]
         x=maison.x+40+(random.randrange(30)-15)
@@ -90,7 +93,7 @@ class IA(Joueur):
     
 
     #RENDU ICI : FAIRE SPAWN LE BONHOMME, ÇA NE FONCTIONNE PAS TOUT A FAIT*******************************************
-    def jouerprochaincoup(self): #nom à changer
+    def jouer_prochain_coup(self): #nom à changer
         #Ordre de prioritée d'attaque soldats > ouvriers > bâtiments
         #Quand un ouvrier est idle, il l'envoie chercher de nouvelles ressources (ce qu'il a besoin > le plus proche)
         #Quand il veut construire un bâtiment ou créer une unité, il va cher
