@@ -1044,12 +1044,40 @@ class Vue():
         self.canevas.xview_moveto(rep)
 
     def start_drag(self, event):
+        # start canvas panning
         self.canevas.scan_mark(event.x, event.y)
+        # update minimap viewport immediately (in case nothing moves yet)
+        self.update_minimap_viewport()
+
 
     def do_drag(self, event):
+        # perform canvas panning
         self.canevas.scan_dragto(event.x, event.y, gain=1)
+        # update the rectangle on the minimap that shows the visible area
+        self.update_minimap_viewport()
 
-        # cette méthode sert à changer le cadre (Frame) actif de la fenêtre, on n'a qu'à fournir le cadre requis
+
+    def update_minimap_viewport(self):
+
+
+        x_left_frac, x_right_frac = self.canevas.xview()
+        y_top_frac, y_bottom_frac = self.canevas.yview()
+
+        x_left_frac = max(0.0, min(1.0, x_left_frac))
+        x_right_frac = max(0.0, min(1.0, x_right_frac))
+        y_top_frac = max(0.0, min(1.0, y_top_frac))
+        y_bottom_frac = max(0.0, min(1.0, y_bottom_frac))
+
+        w = self.tailleminicarte
+        h = self.tailleminicarte
+        x1 = int(x_left_frac * w)
+        x2 = int(x_right_frac * w)
+        y1 = int(y_top_frac * h)
+        y2 = int(y_bottom_frac * h)
+
+        self.minicarte.delete("viewport")
+        self.minicarte.create_rectangle(x1, y1, x2, y2, outline="red", width=3, tags=("viewport",))
+
 
     ##### FONCTION DU SPLASH #########################################################################
     def creer_partie(self):
@@ -1333,6 +1361,8 @@ class Vue():
         self.canevas.xview_moveto(pctx)
         self.canevas.yview_moveto(pcty)
 
+        self.update_minimap_viewport()
+
     ##### ACTIONS DU JOUEUR #######################################################################
 
     def annuler_action(self, evt):
@@ -1428,6 +1458,8 @@ class Vue():
         self.canevas.yview_moveto(pcty - yl)
         xl = self.canevas.winfo_width()
         yl = self.canevas.winfo_height()
+
+        self.update_minimap_viewport()
 
 
     def batir_artefact(self, evt):
