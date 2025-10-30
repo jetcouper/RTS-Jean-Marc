@@ -89,7 +89,7 @@ class Controleur():
     #     reptext = self.appeler_serveur(url, params, "POST")
 
     # methode de demarrage local de la boucle de jeu (partie demarre ainsi)
-    def initialiser_partie(self, nb_IAs=0):
+    def initialiser_partie(self, nb_IAs=1):
         # on recoit les divers parametres d'initialisation du serveur
         # MORT initaleatoire = mondict[1][0][0]
         # ment, decommenter un ligne et commenter l'autre

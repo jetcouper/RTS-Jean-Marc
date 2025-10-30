@@ -99,6 +99,56 @@ class Perso():
                                  "attaquerennemi": None,
                                  "retourbatimentmere": None,
                                  }
+        self.vision = {
+            "persos_amis": {},
+            "persos_ennemis": {},
+            "batiments_amis": {},
+            "batiments_ennemis": {},
+            "ressources": {}  # par type: {"daim": {...}, "arbre": {...}, ...} 
+            }
+    
+
+    ################ Zone AI ####################################
+    def mettre_a_jour_vision(self):
+        persos, bats, ressources = self.parent.parent.objets_dans_rayon(self.x, self.y, self.champvision)
+
+        # reset
+        self.vision = {
+            "persos_amis": {},
+            "persos_ennemis": {},
+            "batiments_amis": {},
+            "batiments_ennemis": {},
+            "ressources": {}
+        }
+
+        mon_joueur = self.parent  # le Joueur propriétaire de ce perso
+
+        # Persos
+        for p in persos:
+            cle = getattr(p, "id", id(p))
+            if p.parent is mon_joueur:
+                self.vision["persos_amis"][cle] = p
+            else:
+                self.vision["persos_ennemis"][cle] = p
+
+        # Bâtiments
+        for b in bats:
+            cle = getattr(b, "id", id(b))
+            if b.parent is mon_joueur:
+                self.vision["batiments_amis"][cle] = b
+            else:
+                self.vision["batiments_ennemis"][cle] = b
+
+        # Ressources (groupées par type)
+        for r in ressources:
+            typ = getattr(r, "montype", "inconnu")
+            self.vision["ressources"].setdefault(typ, {})
+            cle = getattr(r, "id", id(r))
+            self.vision["ressources"][typ][cle] = r
+
+    ##################################################################################################
+
+
 
     def attaquer(self, ennemi):
         self.cibleennemi = ennemi
@@ -374,48 +424,56 @@ class Ouvrier(Perso):
             self.y = self.y + random.randrange(4) - 2
 
     def construire_batiment(self):
-        batiment = self.cible
 
-        # VÉRIFIER QUE LE SITE DE CONSTRUCTION EXISTE TOUJOURS
-        if batiment.id not in self.parent.batiments['siteconstruction']:
-            print(f"⚠️ Site de construction '{batiment.id}' introuvable - abandon de la construction")
-            self.actioncourante = None
+        # if batiment.id not in self.parent.batiments['siteconstruction']:
+        #     self.actioncourante = ""
+        #     self.cible = None
+        #     return 0
+        
+        self.cible.decremente_delai()
+        if self.cible.delai < 1:
+            batiment = self.parent.parent.classesbatiments[self.cible.sorte](self, self.cible.id, self.parent.couleur,
+                                                                             self.cible.x, self.cible.y,
+                                                                             self.cible.sorte)
+            self.parent.batiments[self.cible.sorte][self.cible.id] = batiment
+
+        #Avant de manipuler l’entrée, sécuriser son existence
+            sitecons = self.parent.batiments['siteconstruction'].get(batiment.id)
+
+            if sitecons is None:
+                # Le site a déjà été converti en vrai bâtiment par un autre ouvrier
+                # -> on nettoie l’état et on quitte proprement
+                self.actioncourante = ""
+                self.cible = None
+                return 0  # ou "termine" selon ta convention
+
+            #... progression / validation ...
+            #Au moment de retirer le site (premier ouvrier à terminer)
+            sitecons = self.parent.batiments['siteconstruction'].pop(batiment.id, None)
+            if sitecons is None:
+                # Déjà retiré entre-temps par un autre ouvrier (course)
+                self.actioncourante = ""
+                self.cible = None
+                return 0
+            
+            print(sitecons)
+
+            self.parent.installer_batiment(batiment)
+
+            if self.cible.sorte == "maison":
+                self.batimentmere = batiment
+            
             self.cible = None
-            return
-
-        batiment.decremente_delai()
-
-        if batiment.delai < 1:
-            # Créer le vrai bâtiment
-            batiment_final = self.parent.parent.classesbatiments[batiment.sorte](
-                self,
-                batiment.id,
-                self.parent.couleur,
-                batiment.x,
-                batiment.y,
-                batiment.sorte
-            )
-
-            # Ajouter le bâtiment final
-            self.parent.batiments[batiment.sorte][batiment.id] = batiment_final
-
-            # VÉRIFIER À NOUVEAU AVANT DE SUPPRIMER (au cas où)
-            if batiment.id in self.parent.batiments['siteconstruction']:
-                sitecons = self.parent.batiments['siteconstruction'].pop(batiment.id)
-                print(f"✅ Site de construction {sitecons.id} terminé et supprimé")
-            else:
-                print(f"⚠️ Site {batiment.id} déjà supprimé")
-
-            # Installer le bâtiment dans l'interface
-            self.parent.installer_batiment(batiment_final)
-
-            # Si c'est une maison, devenir le bâtiment mère
-            if batiment.sorte == "maison":
-                self.batimentmere = batiment_final
-
-            # Réinitialiser l'ouvrier
-            self.cible = None
             self.actioncourante = None
+
+                #ici: créer/installer le vrai bâtiment, puis:
+            self.actioncourante = ""
+            self.cible = None
+            return 1
+
+    
+
+     
 
     def construire_site_construction(self, site_construction):
         self.cibler(site_construction)
@@ -445,11 +503,13 @@ class Ouvrier(Perso):
             self.javelots.append(Javelot(self, id, proie))
 
     def chercher_nouvelle_ressource(self, typ, idreg):
+
         print("Je cherche nouvelle ressource")
-        if typ != "baie" and typ != "daim":
+        # Types à régions (arbre/roche/eau/marais/aureus) → même région
+        if typ in self.parent.parent.regions:
             reg = self.parent.parent.regions[typ]
             if idreg in reg:
-                regspec = self.parent.parent.regions[typ][idreg]
+                regspec = reg[idreg]
                 n = len(regspec.dicocases)
                 while n > 0:
                     clecase = list(regspec.dicocases.keys())
@@ -460,17 +520,48 @@ class Ouvrier(Perso):
                         newress = case.ressources[random.choice(clecase2)]
                         if newress.montype == typ:
                             return newress
-                return None
-        else:
-            nb = len(self.parent.parent.biotopes[typ])
-            for i in range(nb):
-                rep = random.choice(list(self.parent.parent.biotopes[typ].keys()))
-                obj = self.parent.parent.biotopes[typ][rep]
-                if obj != self.cible:
-                    distance = Helper.calcDistance(self.x, self.y, obj.x, obj.y)
-                    if distance <= self.champvision:
-                        return obj
             return None
+        else:
+            # Pas de régions (ex.: daim, baie) → choisir dans les biotopes de ce type
+            candidats = self.parent.parent.biotopes.get(typ, {})
+            if not candidats:
+                return None
+            meilleur = None
+            best = 10**9
+            for obj in candidats.values():
+                if obj is self.cible:
+                    continue
+                dist = Helper.calcDistance(self.x, self.y, obj.x, obj.y)
+                if dist < best and dist <= self.champvision:
+                    meilleur, best = obj, dist
+            return meilleur
+        
+        # print("Je cherche nouvelle ressource")
+        # #if typ != "baie" and typ != "daim":
+        # reg = self.parent.parent.regions[typ]
+        # if idreg in reg:
+        #     regspec = self.parent.parent.regions[typ][idreg]
+        #     n = len(regspec.dicocases)
+        #     while n > 0:
+        #         clecase = list(regspec.dicocases.keys())
+        #         case = regspec.dicocases[random.choice(clecase)]
+        #         n -= 1
+        #         if case.ressources:
+        #             clecase2 = list(case.ressources.keys())
+        #             newress = case.ressources[random.choice(clecase2)]
+        #             if newress.montype == typ:
+        #                 return newress
+        #     return None
+        # else:
+        #    nb = len(self.parent.parent.biotopes[typ])
+        #    for i in range(nb):
+        #        rep = random.choice(list(self.parent.parent.biotopes[typ].keys()))
+        #        obj = self.parent.parent.biotopes[typ][rep]
+        #        if obj != self.cible:
+        #            distance = Helper.calcDistance(self.x, self.y, obj.x, obj.y)
+        #            if distance <= self.champvision:
+        #                return obj
+        #    return None
 
     # def deplacer(self,pos):
     #     self.position_visee = pos
