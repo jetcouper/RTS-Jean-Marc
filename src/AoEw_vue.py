@@ -557,12 +557,26 @@ class Vue():
         # === Bind des boutons (sans logique pour l’instant) ===
         self.btn_enregistrer.bind("<Button-1>", lambda e: self.enregistrer_et_changer())
         self.btn_connexion.bind("<Button-1>", lambda e: self.login_et_changer())
-        self.label_invite.bind("<Button-1>", lambda e: (print("guest"), self.changer_cadre("mainlobby") , self.root.attributes('-fullscreen', True)))
+        self.label_invite.bind("<Button-1>", lambda e: self.connecter_invite())
 
 
         # on retourne ce cadre pour l'insérer dans le dictionnaires des cadres
         return self.cadrelobby
-    
+
+    def connecter_invite(self):
+        """Connecte un utilisateur en tant qu'invité sans passer par la base de données"""
+        # Définir le nom du joueur comme "invité"
+        self.parent.nom_joueur_local = "invité"
+        self.nom_joueur_local.set("invité")
+
+        # Pas besoin de charger les données utilisateur depuis la base de données
+        self.parent.user = None
+
+        # Changer vers le lobby principal
+        self.changer_cadre("mainlobby")
+        self.root.attributes('-fullscreen', True)
+
+        print("Connecté en tant qu'invité")
     def creer_top_escape(self):
         # le cadre escape, qui apparait en toplevel lorsque le joueur presse echap
         size_x = 480
@@ -774,7 +788,8 @@ class Vue():
         self.parent.sauvegarde()
 
     def charger(self):
-        self.parent.charger("data/sauvegarde.pkl")
+        nom_joueur = self.parent.nom_joueur_local
+        self.parent.charger(nom_joueur)
 
     def creer_cadre_jeu_action(self):
         # Ajout du cadre d'action a droite pour identifier les objets permettant les commandes du joueur
