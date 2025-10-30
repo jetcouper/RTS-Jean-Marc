@@ -754,7 +754,7 @@ class Vue():
 
         # === Boutons spécifiques au menu Pause ===
         btnreprendre = make_button_pause("Reprendre", command=lambda: (self.cadreescape.withdraw(), self.changer_topblack(None), self.changer_toplevel(None)))
-        btnsave = make_button_pause("Sauvegarder")  
+        btnsave = make_button_pause("Sauvegarder", command=lambda : self.sauvegarder())
         btnquitter = make_button_pause("Quitter la partie", command=lambda: (self.changer_cadre("mainlobby"), self.arreter_boucle(), self.cadreescape.withdraw(), self.changer_topblack(None), self.changer_toplevel(None)))
 
         # === Affichage des boutons ===
