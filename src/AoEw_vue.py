@@ -913,6 +913,7 @@ class Vue():
 
     def charger(self):
         nom_joueur = self.parent.nom_joueur_local
+        #Avec le nom du joueur
         self.parent.charger(nom_joueur)
 
     def creer_cadre_jeu_action(self):
