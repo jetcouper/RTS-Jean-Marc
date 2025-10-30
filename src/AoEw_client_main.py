@@ -257,9 +257,11 @@ class Controleur():
         try:
             with open(fichier, 'wb') as f:
                 self.partie.parent = None
-                data_save = [self.partie,self.iteration_boucle_jeu]
-                self.sauvegardes.append(data_save)
-                pickle.dump(self.sauvegardes, f)
+                data_save = {
+                    'partie': self.partie,
+                    'iteration': self.iteration_boucle_jeu
+                }
+                pickle.dump(data_save, f)  # Sauvegarder directement, pas dans une liste
                 self.partie.parent = self
             print(f"Sauvegarde réussie")
             return True
@@ -267,17 +269,30 @@ class Controleur():
             print(f"Erreur lors de la sauvegarde : {e}")
             return False
 
-    def charger(self,fichier=None):
+    def charger(self, fichier=None):
+        if fichier is None:
+            fichier = self.fichier_sauvegarde
+
         try:
             with open(fichier, 'rb') as file:
                 loaded_data = pickle.load(file)
-                self.sauvegardes = loaded_data
-                self.partie = self.sauvegardes[0]
-                self.iteration_boucle_jeu = self.sauvegardes[1]
+
+                # Support pour ancien et nouveau format
+                if isinstance(loaded_data, dict):
+                    self.partie = loaded_data['partie']
+                    self.iteration_boucle_jeu = loaded_data['iteration']
+                elif isinstance(loaded_data, list):
+                    # Ancien format - prendre la dernière sauvegarde
+                    if len(loaded_data) > 0 and isinstance(loaded_data[0], list):
+                        derniere_sauvegarde = loaded_data[-1]
+                        self.partie = derniere_sauvegarde[0]
+                        self.iteration_boucle_jeu = derniere_sauvegarde[1]
+                    else:
+                        self.partie = loaded_data[0]
+                        self.iteration_boucle_jeu = loaded_data[1]
+
                 self.partie.parent = self
 
-            # ⚠️ ne pas recréer la partie ici
-            # Il faut juste reconnecter la vue au modèle existant
             self.chargement = True
             self.vue.modele = self.partie
             self.vue.changer_cadre("jeu")
@@ -286,7 +301,9 @@ class Controleur():
             print(f"L'objet {fichier} est bien chargé")
             return True
         except Exception as e:
-            print(f"Une érreur est arrivée: {e}")
+            print(f"Une erreur est arrivée: {e}")
+            import traceback
+            traceback.print_exc()
             return False
 
 
