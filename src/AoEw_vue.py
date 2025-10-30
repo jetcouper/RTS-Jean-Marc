@@ -925,14 +925,9 @@ class Vue():
         champmsg = Label(self.cadrejeuinfo, text="", fg="red")
         champmsg.pack(side=LEFT)
         self.infohud["msggeneral"] = [champmsg]
-        self.btnchat = Button(self.cadrejeuinfo, text="Sauvegarde", command=self.sauvegarder)
-        self.btnCharger = Button(self.cadrejeuinfo, text="Charger", command=self.charger)
-        self.btnaide = Button(self.cadrejeuinfo, text="Aide", command=self.action.aider)
 
 
-        self.btnaide.pack(side=RIGHT)
-        self.btnchat.pack(side=RIGHT)
-        self.btnCharger.pack(side=RIGHT)
+
         self.cadrejeuinfo.grid(row=0, column=0, sticky=E + W, columnspan=2)
 
     def sauvegarder(self):
