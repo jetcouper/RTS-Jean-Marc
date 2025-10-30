@@ -1,5 +1,3 @@
-## -*- Encoding: UTF-8 -*-
-
 from tkinter import ttk, messagebox
 from tkinter.simpledialog import *
 import os
