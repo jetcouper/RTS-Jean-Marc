@@ -494,7 +494,7 @@ class Vue():
 
         Label(right_frame, text="Charger Partie", font=("Times New Roman", 22, "bold"), bg="#4a1d1d", fg="gold", width=15, height=2, bd=2, relief="raised").pack(pady=10)
         # === Game saves treeview (chargement de parties) ===
-        saves_dir = os.path.join(os.path.dirname(__file__), "saves")
+        saves_dir = os.path.join(os.path.dirname(__file__), "data")
         os.makedirs(saves_dir, exist_ok=True)
 
 
@@ -930,7 +930,7 @@ class Vue():
         self.connecter_event()
 
     def creer_HUD(self):
-        self.cadrejeuinfo = Frame(self.cadrecanevas, bg="blue")
+        self.cadrejeuinfo = Frame(self.cadrecanevas, bg="goldenrod3")
         # des etiquettes d'info
         self.infohud = {"Nourriture": None,
                         "Bois": None,
@@ -945,6 +945,7 @@ class Vue():
             donnee = Champ(self.cadrejeuinfo, bg="red", fg="white", textvariable=varstr)
             titre.pack(side=LEFT)
             donnee.pack(side=LEFT)
+
             self.infohud[i] = [varstr, donnee]
 
         for i in self.infohud.keys():
@@ -952,9 +953,11 @@ class Vue():
 
         varstr = StringVar()
         varstr.set("")
-
-        champmsg = Label(self.cadrejeuinfo, text="", fg="red")
+        fontinfo = ("arial", 25, "bold")
+        champmsg = Label(self.cadrejeuinfo, text="", font = fontinfo , bg="#4a1d1d", fg="#D4AF37" , highlightthickness=2, highlightbackground="goldenrod2")
         champmsg.pack(side=LEFT)
+
+        
         self.infohud["msggeneral"] = [champmsg]
 
 
@@ -1658,6 +1661,7 @@ class Champ(Label):
         Label.__init__(self, master, *args, **kwargs)
         self.config(font=("arial", 25, "bold"))
         self.config(bg="goldenrod3")
+        self.config(highlightthickness=2, highlightbackground="goldenrod2")
 
 # a enlever test only
 if __name__ == '__main__':
