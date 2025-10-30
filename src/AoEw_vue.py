@@ -567,6 +567,7 @@ class Vue():
                 return
             path = sel[0]
             try:
+                self.parent.actions_requises = []
                 # Appeler le chargeur du parent ; parent.charger attend un chemin dans le code existant
                 self.parent.charger(path)
                 # Basculer vers l'interface de jeu
@@ -754,14 +755,30 @@ class Vue():
         # === Boutons spécifiques au menu Pause ===
         btnreprendre = make_button_pause("Reprendre", command=lambda: (self.cadreescape.withdraw(), self.changer_topblack(None), self.changer_toplevel(None)))
         btnsave = make_button_pause("Sauvegarder")  
-        btnquitter = make_button_pause("Quitter la partie", command=lambda: (self.changer_cadre("mainlobby"), self.cadreescape.withdraw(), self.changer_topblack(None), self.changer_toplevel(None)))
+        btnquitter = make_button_pause("Quitter la partie", command=lambda: (self.changer_cadre("mainlobby"), self.arreter_boucle(), self.cadreescape.withdraw(), self.changer_topblack(None), self.changer_toplevel(None)))
 
         # === Affichage des boutons ===
         for btn in [btnreprendre, btnsave, btnquitter]:
             btn.pack(pady=5)
 
         return self.cadreescape
-    
+
+    def arreter_boucle(self):
+        self.parent.arreter_boucle_jeu()
+
+        if hasattr(self, 'canevas'):
+            self.canevas.delete("ALL")
+        # Vider aussi les actions locales
+        if hasattr(self, 'action'):
+            self.action.persochoisi = []
+            self.action.ciblechoisi = None
+            self.action.prochaineaction = None
+            self.action.position = []
+        #Va mettre self.partie = None
+        self.parent.detruire_partie()
+
+
+
     def creer_top_user(self):
         # le cadre escape, qui apparait en toplevel lorsque le joueur presse echap
         self.top = Toplevel(self.root)
@@ -1079,6 +1096,14 @@ class Vue():
     #     rep = self.parent.reset_partie()
 
     def initialiser_avec_modele(self, chargement=False):
+
+        self.canevas.delete("ALL")  # Supprime TOUS les dessins
+        self.minicarte.delete("ALL")
+
+        if hasattr(self, 'action'):
+            self.action.persochoisi = []
+            self.action.ciblechoisi = None
+            self.action.prochaineaction = None
         # on reassigne le nom final localement pour eviter
         # de toujours le requerir du parent
         self.nom_joueur_local = self.parent.nom_joueur_local
@@ -1109,6 +1134,11 @@ class Vue():
 
     ##FONCTIONS D'AFFICHAGES##################################
     def afficher_depart(self, chargement=False):
+        self.canevas.delete("statique")  # Supprime arbres, roches, etc.
+        self.canevas.delete("mobile")  # Supprime daims, persos, etc.
+        self.canevas.delete("biotope")  # Supprime les biotopes
+        self.canevas.delete("batiment")  # Supprime les bâtiments
+
         # Afficher les biotopes (arbres, roches, etc.)
         if chargement:
             # Lors d'un chargement, on récupère les biotopes depuis self.modele.biotopes

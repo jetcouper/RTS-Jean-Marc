@@ -21,6 +21,7 @@ class Controleur():
         self.partie = None
         self.nom_joueur_local = ""
         self.sauvegardes = []
+        self.after_id = None
         # liste des noms de joueurs
         self.joueurs = self.user_manager.list_all_users()
         #MORT self.prochain_splash = None # requis pour sortir du splash et passer au lobby
@@ -174,6 +175,11 @@ class Controleur():
         #     except requests.exceptions.RequestException as e:
         #         print("An error occurred:", e)
         #         self.on_joue = 0
+        # Précaution supplémentaire
+        if not self.partie:
+            print("⚠️ Partie inexistante, arrêt de la boucle")
+            return
+
         if self.actions_requises:
             self.actions_requises.insert(0, self.iteration_boucle_jeu + 1)
             self.partie.ajouter_actions_a_faire(self.iteration_boucle_jeu,[self.actions_requises])
@@ -187,8 +193,24 @@ class Controleur():
             self.iteration_boucle_jeu -= 1
             self.on_joue = 1
         # appel ulterieur de la meme fonction jusqu'a l'arret de la partie
-        self.vue.root.after(self.delai_de_boucle_de_jeu, self.boucler_sur_jeu)
+        if self.vue and self.vue.root:
+            self.after_id = self.vue.root.after(self.delai_de_boucle_de_jeu, self.boucler_sur_jeu)
+    def detruire_partie(self):
+        self.partie = None
 
+    def arreter_boucle_jeu(self):
+        """Arrête la boucle de jeu en cours et nettoie les actions"""
+        if self.after_id:
+            try:
+                self.vue.root.after_cancel(self.after_id)
+                print("Boucle de jeu précédente arrêtée.")
+            except Exception as e:
+                print(f"Erreur lors de l'arrêt de la boucle: {e}")
+            self.after_id = None
+
+        # 🔴 NETTOYER TOUTES LES ACTIONS EN ATTENTE
+        self.actions_requises = []
+        print("Actions en attente vidées.")
     ###################################################################
     # MORT
     # # fonction qui fait les appels au serveur
@@ -330,6 +352,21 @@ class Controleur():
         fichier = self.fichier_sauvegarde
 
         try:
+
+            self.arreter_boucle_jeu()
+            self.iteration_boucle_jeu = 0
+            # 🔴 S'il existe une ancienne partie, la vider proprement
+            if self.partie:
+                try:
+                    # Vider les actions du modèle aussi
+                    if hasattr(self.partie, 'actions_a_faire'):
+                        self.partie.actions_a_faire = {}
+                    if hasattr(self.partie, 'actions_futures'):
+                        self.partie.actions_futures = []
+                except Exception as e:
+                    print(f"Erreur nettoyage partie: {e}")
+                self.partie = None
+
             if not Path(fichier).exists():
                 print(f"Le fichier {fichier} n'existe pas")
                 return False
@@ -349,7 +386,7 @@ class Controleur():
 
                 # Charger la sauvegarde
                 sauvegarde_data = sauvegardes_dict[nom_sauvegarde]
-
+                self.arreter_boucle_jeu()
                 # Support pour ancien format (liste) et nouveau format (dict)
                 if isinstance(sauvegarde_data, dict):
                     self.partie = sauvegarde_data['partie']
@@ -364,6 +401,10 @@ class Controleur():
                     raise ValueError("Format de sauvegarde invalide")
 
                 self.partie.parent = self
+            if hasattr(self.vue, 'canevas'):
+                self.vue.canevas.delete("ALL")
+            if hasattr(self.vue, 'minicarte'):
+                self.vue.minicarte.delete("ALL")
 
             # Reconnecter la vue au modèle existant
             self.chargement = True
@@ -371,7 +412,7 @@ class Controleur():
             self.vue.changer_cadre("jeu")
             self.vue.initialiser_avec_modele(self.chargement)
             self.vue.centrer_maison()
-
+            self.boucler_sur_jeu()
             print(f"Sauvegarde de '{nom_sauvegarde}' chargée avec succès (date: {date_sauvegarde})")
             return True
 
