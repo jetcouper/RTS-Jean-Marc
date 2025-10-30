@@ -253,7 +253,37 @@ class Partie():
                         self.joueurs[i] = IA(self, id, i, coul, x, y)
                     n = 0
             z += 1
-                    
+
+    ################ Zone pour méthodes AI ###############################################
+    def objets_dans_rayon(self, x, y, r):
+    # Retourne des générateurs (ou listes) d’objets candidats, on garde simple au début.
+    # 1) Ressources (biotopes)
+        ressources = []
+        for typ, d in self.biotopes.items():
+            for obj in d.values():
+                # Filtre rapide par distance
+                if Helper.calcDistance(x, y, obj.x, obj.y) <= r:
+                    ressources.append(obj)           
+      # 2) Persos & bâtiments de tous les joueurs
+        persos = []
+        batiments = []
+        for j in self.joueurs.values():
+            for dico_persos in j.persos.values():
+                for p in dico_persos.values():
+                    if Helper.calcDistance(x, y, p.x, p.y) <= r:
+                        persos.append(p)
+            for dico_bats in j.batiments.values():
+                for b in dico_bats.values():
+                    # Pour les bâtiments on prend leur centre; leur emprise est déjà marquée sur la carte au placement
+                    # via installer_batiment, mais pas besoin d'aller jusqu'aux cases ici.
+                    if Helper.calcDistance(x, y, b.x, b.y) <= r:
+                        batiments.append(b)
+
+        return persos, batiments, ressources
+    
+
+    
+    #############################################################################
 
     def deplacer(self):
         for i in self.joueurs:

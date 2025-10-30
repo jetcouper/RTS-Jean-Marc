@@ -99,7 +99,57 @@ class Perso():
                                  "attaquerennemi": None,
                                  "retourbatimentmere": None,
                                  }
+        self.vision = {
+            "persos_amis": {},
+            "persos_ennemis": {},
+            "batiments_amis": {},
+            "batiments_ennemis": {},
+            "ressources": {}  # par type: {"daim": {...}, "arbre": {...}, ...} 
+            }
+    
 
+    ################ Zone AI ####################################
+    def mettre_a_jour_vision(self):
+        persos, bats, ressources = self.parent.parent.objets_dans_rayon(self.x, self.y, self.champvision)
+
+        # reset
+        self.vision = {
+            "persos_amis": {},
+            "persos_ennemis": {},
+            "batiments_amis": {},
+            "batiments_ennemis": {},
+            "ressources": {}
+        }
+
+        mon_joueur = self.parent  # le Joueur propriétaire de ce perso
+
+        # Persos
+        for p in persos:
+            cle = getattr(p, "id", id(p))
+            if p.parent is mon_joueur:
+                self.vision["persos_amis"][cle] = p
+            else:
+                self.vision["persos_ennemis"][cle] = p
+
+        # Bâtiments
+        for b in bats:
+            cle = getattr(b, "id", id(b))
+            if b.parent is mon_joueur:
+                self.vision["batiments_amis"][cle] = b
+            else:
+                self.vision["batiments_ennemis"][cle] = b
+
+        # Ressources (groupées par type)
+        for r in ressources:
+            typ = getattr(r, "montype", "inconnu")
+            self.vision["ressources"].setdefault(typ, {})
+            cle = getattr(r, "id", id(r))
+            self.vision["ressources"][typ][cle] = r
+
+    ##################################################################################################
+
+
+    
     def attaquer(self, ennemi):
         self.cibleennemi = ennemi
         x = self.cibleennemi.x
