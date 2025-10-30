@@ -6,6 +6,7 @@ import os
 from chargeurdimages import *
 import AoEw_client_main as m # a enlever test only
 import ctypes
+from datetime import datetime
 
 from PIL import Image, ImageTk  # Pour redimensionner l’image
 
@@ -464,7 +465,20 @@ class Vue():
 
         # Mode de jeu
         Label(left_frame, text="Mode de jeu", font=("Times New Roman", 20, "bold"), fg="white", bg="#2e1f1f").pack(pady=5)
-        Label(left_frame, text="* Paix mondial   * Conquête   * Achèvement", font=("Arial", 14), fg="gold", bg="#2e1f1f").pack(pady=5)
+        # Mode de jeu - radio buttons on one line
+        self.mode_jeu = StringVar(value="paix")
+        modes = [("Paix mondial", "paix"), ("Conquête", "conquete"), ("Achèvement", "achevement")]
+        rb_frame = Frame(left_frame, bg="#2e1f2f")
+        rb_frame.pack(pady=5, fill=X)
+        for text, val in modes:
+            rb = Radiobutton(
+            rb_frame, text=text, variable=self.mode_jeu, value=val,
+            font=("Arial", 14), bg="#2e1f2f", fg="gold",
+            selectcolor="#4a1d1d", activebackground="#7a3c3c",
+            activeforeground="gold", indicatoron=1,
+            command=lambda v=val: print("Mode sélectionné :", v)
+            )
+            rb.pack(side=LEFT, padx=8, expand=True)
 
         # === MILIEU (Option partie) ===
         # Option Partie as a button instead of a frame
@@ -481,12 +495,122 @@ class Vue():
         right_frame.place(relx=0.62, rely=0.05, relwidth=0.33, relheight=0.9)
 
         Label(right_frame, text="Charger Partie", font=("Times New Roman", 22, "bold"), bg="#4a1d1d", fg="gold", width=15, height=2, bd=2, relief="raised").pack(pady=10)
-        Label(right_frame, text="Game table list\n(mode de jeu, nbr joueur, ressource...)", font=("Arial", 14), fg="white", bg="#2e1f1f", justify="center").pack(expand=True)
+        # === Game saves treeview (chargement de parties) ===
+        saves_dir = os.path.join(os.path.dirname(__file__), "saves")
+        os.makedirs(saves_dir, exist_ok=True)
 
 
+        tree_frame = Frame(right_frame, bg="#2e1f1f")
+        tree_frame.pack(fill=BOTH, expand=True, padx=10, pady=10)
+
+        cols = ("name", "modified", "size_kb")
+        self.saves_tree = ttk.Treeview(tree_frame, columns=cols, show="headings", selectmode="browse", height=8)
+        self.saves_tree.heading("name", text="Fichier")
+        self.saves_tree.heading("modified", text="Modifié")
+        self.saves_tree.heading("size_kb", text="Taille (KB)")
+        self.saves_tree.column("name", width=220, anchor="w")
+        self.saves_tree.column("modified", width=140, anchor="center")
+        self.saves_tree.column("size_kb", width=80, anchor="e")
+
+        ysb = Scrollbar(tree_frame, orient="vertical", command=self.saves_tree.yview)
+        self.saves_tree.configure(yscroll=ysb.set)
+        self.saves_tree.pack(side=LEFT, fill=BOTH, expand=True)
+        ysb.pack(side=RIGHT, fill=Y)
+
+        def populate_saves():
+            """
+            Vide l'arbre de sauvegardes, puis ajoute le fichier de sauvegarde
+            principal (data/sauvegarde.pkl) s'il existe.
+            """
+            saves_dir = "data"
+            os.makedirs(saves_dir, exist_ok=True)  # S'assure que le dossier existe
+
+            # Vider la liste actuelle
+            for i in self.saves_tree.get_children():
+                self.saves_tree.delete(i)
+
+            try:
+                fichier = os.path.join(saves_dir, "sauvegarde.pkl")
+
+                if not os.path.exists(fichier):
+                    # Rien à afficher s'il n'y a pas encore de sauvegarde
+                    return
+
+                try:
+                    mtime = datetime.fromtimestamp(
+                        os.path.getmtime(fichier)
+                    ).strftime("%Y-%m-%d %H:%M")
+                    size_bytes = os.path.getsize(fichier)
+                    size_kb = int(size_bytes / 1024) if size_bytes > 0 else 0
+                except OSError:
+                    mtime = "N/A"
+                    size_kb = 0
+
+                # Utilise le chemin complet comme iid (pour le recharger facilement)
+                self.saves_tree.insert(
+                    "",
+                    "end",
+                    iid=os.path.abspath(fichier),
+                    values=("sauvegarde.pkl", mtime, size_kb)
+                )
+
+            except Exception as e:
+                messagebox.showerror(
+                    "Erreur",
+                    f"Impossible de lister la sauvegarde :\n{e}"
+                )
+
+
+        def load_selected(event=None):
+            sel = self.saves_tree.selection()
+            if not sel:
+                return
+            path = sel[0]
+            try:
+                # Appeler le chargeur du parent ; parent.charger attend un chemin dans le code existant
+                self.parent.charger(path)
+                # Basculer vers l'interface de jeu
+                self.lancer_partie()
+                # Si nécessaire, initialiser l'interface avec le modèle chargé
+                try:
+                    self.initialiser_avec_modele(chargement=True)
+                except Exception:
+                    # Ignorer les erreurs mineures d'initialisation
+                    pass
+            except Exception as e:
+                messagebox.showerror("Erreur", f"Impossible de charger la sauvegarde:\n{e}")
+
+        def delete_selected():
+            sel = self.saves_tree.selection()
+            if not sel:
+                return
+            path = sel[0]
+            if messagebox.askyesno("Supprimer", f"Supprimer la sauvegarde {os.path.basename(path)} ?"):
+                try:
+                    os.remove(path)
+                    self.saves_tree.delete(path)
+                except Exception as e:
+                    messagebox.showerror("Erreur", f"Impossible de supprimer:\n{e}")
+
+        # boutons d'action
+        btn_frame = Frame(right_frame, bg="#2e1f1f")
+        btn_frame.place(relx=0.5, rely=0.7, anchor="n")
+
+        btn_load = Button(btn_frame, text="Charger", width=12, command=load_selected)
+        btn_del = Button(btn_frame, text="Supprimer", width=12, command=delete_selected)
+        btn_refresh = Button(btn_frame, text="Actualiser", width=12, command=populate_saves)
+
+        btn_load.grid(row=0, column=0, padx=6, pady=8)
+        btn_del.grid(row=0, column=1, padx=6, pady=8)
+        btn_refresh.grid(row=0, column=2, padx=6, pady=8)
+
+        # double-clic pour charger rapidement
+        self.saves_tree.bind("<Double-1>", load_selected)
+
+        # remplissage initial
+        populate_saves()
 
         make_button(self.cadre_lobby_partie, "<- Retourner", "#4a1d1d", command=lambda: self.changer_cadre("mainlobby")).place(relx=0.95, rely=0.02, anchor="center")
-
 
         return self.cadre_lobby_partie
 
