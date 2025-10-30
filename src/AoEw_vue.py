@@ -75,7 +75,7 @@ class Vue():
         self.textchat = ""
         self.infohud = {}
         # # minicarte
-        self.tailleminicarte = 400
+        self.tailleminicarte = 500
         self.cadreactif = None
         self.toplevelactif = None
         self.topblackactif = None
@@ -908,7 +908,7 @@ class Vue():
 
         # fonction interne uniquement pour reproduire chaque item d'info
         def creer_champ_interne(listechamp):
-            titre = Champ(self.cadrejeuinfo, text=i, bg="red", fg="white")
+            titre = Champ(self.cadrejeuinfo, text=i, bg="red", fg="black" )
             varstr = StringVar()
             varstr.set(0)
             donnee = Champ(self.cadrejeuinfo, bg="red", fg="white", textvariable=varstr)
@@ -927,8 +927,7 @@ class Vue():
         self.infohud["msggeneral"] = [champmsg]
 
 
-
-        self.cadrejeuinfo.grid(row=0, column=0, sticky=E + W, columnspan=2)
+        self.cadrejeuinfo.place(relx=0.0, rely=0.0)
 
     def sauvegarder(self):
         self.parent.sauvegarde()
@@ -1626,7 +1625,7 @@ class Action():
 class Champ(Label):
     def __init__(self, master, *args, **kwargs):
         Label.__init__(self, master, *args, **kwargs)
-        self.config(font=("arial", 13, "bold"))
+        self.config(font=("arial", 25, "bold"))
         self.config(bg="goldenrod3")
 
 # a enlever test only
