@@ -374,19 +374,46 @@ class Ouvrier(Perso):
             self.y = self.y + random.randrange(4) - 2
 
     def construire_batiment(self):
-        self.cible.decremente_delai()
-        if self.cible.delai < 1:
-            batiment = self.parent.parent.classesbatiments[self.cible.sorte](self, self.cible.id, self.parent.couleur,
-                                                                             self.cible.x, self.cible.y,
-                                                                             self.cible.sorte)
-            self.parent.batiments[self.cible.sorte][self.cible.id] = batiment
+        batiment = self.cible
 
-            sitecons = self.parent.batiments['siteconstruction'].pop(batiment.id)
-            print(sitecons)
+        # VÉRIFIER QUE LE SITE DE CONSTRUCTION EXISTE TOUJOURS
+        if batiment.id not in self.parent.batiments['siteconstruction']:
+            print(f"⚠️ Site de construction '{batiment.id}' introuvable - abandon de la construction")
+            self.actioncourante = None
+            self.cible = None
+            return
 
-            self.parent.installer_batiment(batiment)
-            if self.cible.sorte == "maison":
-                self.batimentmere = batiment
+        batiment.decremente_delai()
+
+        if batiment.delai < 1:
+            # Créer le vrai bâtiment
+            batiment_final = self.parent.parent.classesbatiments[batiment.sorte](
+                self,
+                batiment.id,
+                self.parent.couleur,
+                batiment.x,
+                batiment.y,
+                batiment.sorte
+            )
+
+            # Ajouter le bâtiment final
+            self.parent.batiments[batiment.sorte][batiment.id] = batiment_final
+
+            # VÉRIFIER À NOUVEAU AVANT DE SUPPRIMER (au cas où)
+            if batiment.id in self.parent.batiments['siteconstruction']:
+                sitecons = self.parent.batiments['siteconstruction'].pop(batiment.id)
+                print(f"✅ Site de construction {sitecons.id} terminé et supprimé")
+            else:
+                print(f"⚠️ Site {batiment.id} déjà supprimé")
+
+            # Installer le bâtiment dans l'interface
+            self.parent.installer_batiment(batiment_final)
+
+            # Si c'est une maison, devenir le bâtiment mère
+            if batiment.sorte == "maison":
+                self.batimentmere = batiment_final
+
+            # Réinitialiser l'ouvrier
             self.cible = None
             self.actioncourante = None
 
@@ -397,6 +424,19 @@ class Ouvrier(Perso):
 
     def jouer_prochain_coup(self):
         if self.actioncourante:
+            # VÉRIFIER LA COHÉRENCE DES CONSTRUCTIONS
+            if self.actioncourante in ["construirebatiment", "ciblersiteconstruction"]:
+                if self.cible is None:
+                    print(f"{self.id}: Aucune cible de construction - retour au repos")
+                    self.actioncourante = None
+                    return
+
+                # Vérifier que le site existe toujours
+                if hasattr(self.cible, 'id') and self.cible.id not in self.parent.batiments.get('siteconstruction', {}):
+                    print(f"{self.id}: Site de construction {self.cible.id} introuvable - abandon")
+                    self.cible = None
+                    self.actioncourante = None
+                    return
             reponse = self.etats_et_actions[self.actioncourante]()
 
     def lancer_javelot(self, proie):
