@@ -56,7 +56,7 @@ class Partie():
                                  "delai": 80}
                }
 
-    def __init__(self, parent, nom_joueur_local, nb_IAs):
+    def __init__(self, parent, nom_joueur_local, nb_IAs , mode_de_jeu):
         self.parent = parent
         self.nom_joueur = nom_joueur_local
         self.actions_a_faire = {}

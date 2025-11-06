@@ -409,6 +409,8 @@ class Vue():
             def supprimer():
                 ia_lignes.remove(ligne)
                 ligne.destroy()
+                self.parent.nombreIA -= 1
+
 
             btn_del = Label(ligne, text="X", font=("Arial", 16, "bold"), bg="#7a3c3c", fg="white", width=2)
             btn_del.pack(side=LEFT, padx=5)
@@ -458,7 +460,9 @@ class Vue():
 
         # === Bouton Ajouter IA ===
         def ajouter_ia():
-            creer_ligne_ia()
+            if self.parent.nombreIA < 4:
+                creer_ligne_ia()
+                self.parent.nombreIA += 1
 
         make_button(left_frame, "Ajouter IA", "#4a1d1d", command=ajouter_ia).pack(pady=10)
 
@@ -476,7 +480,7 @@ class Vue():
             font=("Arial", 14), bg="#2e1f2f", fg="gold",
             selectcolor="#4a1d1d", activebackground="#7a3c3c",
             activeforeground="gold", indicatoron=1,
-            command=lambda v=val: print("Mode sélectionné :", v)
+            command=lambda v=val: setattr(self.parent, "mode_de_jeu", v)
             )
             rb.pack(side=LEFT, padx=8, expand=True)
 
@@ -1085,6 +1089,8 @@ class Vue():
         else:
             rep = rep - 0.02
         self.canevas.yview_moveto(rep)
+        self.update_minimap_viewport()
+
 
     def OnCtrlMouseWheel(self, evt):
         print("IN X")
@@ -1094,6 +1100,8 @@ class Vue():
         else:
             rep = rep - 0.02
         self.canevas.xview_moveto(rep)
+        self.update_minimap_viewport()
+
 
     def start_drag(self, event):
         # start canvas panning
