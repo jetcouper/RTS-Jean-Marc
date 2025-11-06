@@ -55,6 +55,7 @@ class Vue():
                 if nom_cadre_actif == "jeu":
                     self.changer_topblack("blackgame")
                     self.changer_toplevel("gameescape")
+                    #Faire condition pour la pause de jeu. (Mettre en pause la partie)
                 elif nom_cadre_actif in ("mainlobby"):
                     #self.changer_toplevel("useroption")
                     pass
@@ -1214,17 +1215,47 @@ class Vue():
 
     ##FONCTIONS D'AFFICHAGES##################################
     def afficher_depart(self, chargement=False):
-        self.canevas.delete("statique")  # Supprime arbres, roches, etc.
-        self.canevas.delete("mobile")  # Supprime daims, persos, etc.
-        self.canevas.delete("biotope")  # Supprime les biotopes
-        self.canevas.delete("batiment")  # Supprime les bâtiments
+        self.canevas.delete("statique")
+        self.canevas.delete("mobile")
+        self.canevas.delete("biotope")
+        self.canevas.delete("batiment")
+
+        elements_eau_pure = ['eaugrand1', 'eaugrand2', 'eaugrand3']
+
+        if chargement:
+            # Afficher l'eau depuis self.modele.biotopes
+            if "eau" in self.modele.biotopes:
+                for id_bio, bio in self.modele.biotopes["eau"].items():
+                    if bio.img in elements_eau_pure:
+                        tag_layer = "eau_layer"  # Eau pure = tout en bas
+                    else:
+                        tag_layer = "decoration_eau_layer"  # Décorations = au-dessus de l'eau
+
+                    self.canevas.create_image(bio.x, bio.y, image=self.images[bio.img], anchor=S,
+                                              tags=("statique", "", bio.id, "biotope", bio.montype, tag_layer))
+        else:
+            # Afficher l'eau depuis listebiotopes (nouveau jeu)
+            for i in self.modele.listebiotopes:
+                if i.montype == "eau":
+                    if i.img in elements_eau_pure:
+                        tag_layer = "eau_layer"  # Eau pure = tout en bas
+                    else:
+                        tag_layer = "decoration_eau_layer"  # Décorations = au-dessus de l'eau
+
+                    self.canevas.create_image(i.x, i.y, image=self.images[i.img], anchor=S,
+                                              tags=("statique", "", i.id, "biotope", i.montype, tag_layer))
+
+        self.canevas.tag_lower("eau_layer")
+        self.canevas.tag_raise("decoration_eau_layer", "eau_layer")
 
         # Afficher les biotopes (arbres, roches, etc.)
         if chargement:
             # Lors d'un chargement, on récupère les biotopes depuis self.modele.biotopes
             for type_bio in self.modele.biotopes:
+                # Sauter l'eau car déjà affichée
+                if type_bio == "eau":
+                    continue
                 for id_bio, bio in self.modele.biotopes[type_bio].items():
-                    # Les daims sont mobiles, les autres sont statiques
                     if bio.montype == "daim":
                         self.canevas.create_image(bio.x, bio.y, image=self.images[bio.img], anchor=S,
                                                   tags=("mobile", "", bio.id, "biotope", bio.montype, ""))
@@ -1233,14 +1264,17 @@ class Vue():
                                                   tags=("statique", "", bio.id, "biotope", bio.montype, ""))
         else:
             # Nouveau jeu : afficher depuis listebiotopes
-            self.modele.listebiotopes.sort(key=lambda c: c.y)
             for i in self.modele.listebiotopes:
+                # Sauter l'eau car déjà affichée
+                if i.montype == "eau":
+                    continue
+
                 if i.montype == "daim":
-                    monitem = self.canevas.create_image(i.x, i.y, image=self.images[i.img], anchor=S,
-                                                        tags=("mobile", "", i.id, "biotope", i.montype, ""))
+                    self.canevas.create_image(i.x, i.y, image=self.images[i.img], anchor=S,
+                                              tags=("mobile", "", i.id, "biotope", i.montype, ""))
                 else:
-                    monitem = self.canevas.create_image(i.x, i.y, image=self.images[i.img], anchor=S,
-                                                        tags=("statique", "", i.id, "biotope", i.montype, ""))
+                    self.canevas.create_image(i.x, i.y, image=self.images[i.img], anchor=S,
+                                              tags=("statique", "", i.id, "biotope", i.montype, ""))
 
             self.modele.listebiotopes = []  # Réinitialise la liste après affichage
 
@@ -1328,6 +1362,25 @@ class Vue():
         for i in self.modele.ressourcemorte:
             self.canevas.delete(i.id)
 
+        elements_eau_pure = ['eaugrand1', 'eaugrand2', 'eaugrand3']
+
+        for j in self.modele.biotopes["eau"].keys():
+            i = self.modele.biotopes["eau"][j]
+            if i.sprite:
+                tag_layer = "eau_layer"
+                self.canevas.create_image(i.x, i.y, image=self.gifs[i.sprite][i.spriteno],
+                                          tags=("mobile", "", i.id, "biotope", type(i).__name__, tag_layer))
+        self.canevas.tag_lower("eau_layer")
+
+        for j in self.modele.biotopes["daim"].keys():
+            i = self.modele.biotopes["daim"][j]
+            if i.etat == "mort":
+                self.canevas.create_image(i.x, i.y, image=self.images["daimMORT"],
+                                          tags=("mobile", "", i.id, "biotope", i.montype, ""))
+            else:
+                self.canevas.create_image(i.x, i.y, image=self.images[i.img],
+                                          tags=("mobile", "", i.id, "biotope", i.montype, ""))
+
         # commencer par les choses des joueurs
         for j in self.modele.joueurs.keys():
             # ajuster les infos du HUD
@@ -1367,29 +1420,8 @@ class Vue():
                         for b in self.modele.joueurs[j].persos[p][k].javelots:
                             self.canevas.create_image(b.x, b.y, image=self.images[b.image],
                                                       tags=("mobile", j, b.id, "", type(b).__name__, ""))
-                            # tags=(j,b.id,"artefact","mobile","javelot"))
 
-        # ajuster les choses vivantes dependantes de la partie (mais pas des joueurs)
-        for j in self.modele.biotopes["daim"].keys():
-            i = self.modele.biotopes["daim"][j]
-            if i.etat == "mort":
-                self.canevas.create_image(i.x, i.y, image=self.images["daimMORT"],
-                                          tags=("mobile", "", i.id, "biotope", i.montype, ""))
-                # tags=("",i.id,"artefact","daim","mobile"))
-
-            else:
-                self.canevas.create_image(i.x, i.y, image=self.images[i.img],
-                                          tags=("mobile", "", i.id, "biotope", i.montype, ""))
-                # tags=("",i.id,"artefact","daim","mobile"))
-
-        # ajuster les choses vivantes dependantes de la partie (mais pas des joueurs)
-        for j in self.modele.biotopes["eau"].keys():
-            i = self.modele.biotopes["eau"][j]
-            if i.sprite:
-                self.canevas.create_image(i.x, i.y, image=self.gifs[i.sprite][i.spriteno],
-                                          tags=("mobile", "", i.id, "biotope", type(i).__name__, ""))
-                # tags=("",i.id,"artefact","eau","mobile"))
-
+#
         # mettre les chat a jour si de nouveaux messages sont arrives
         if self.textchat and self.modele.joueurs[self.parent.nom_joueur_local].chatneuf:
             self.textchat.delete(0, END)

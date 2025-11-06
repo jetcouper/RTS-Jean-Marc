@@ -321,13 +321,14 @@ class Controleur():
             # Sauvegarder tout le dictionnaire
             with open(fichier, 'wb') as f:
                 pickle.dump(sauvegardes_dict, f)
-
             self.partie.parent = self
 
             print(f"Sauvegarde réussie pour '{nom_sauvegarde}' (total: {len(sauvegardes_dict)} sauvegardes)")
+            messagebox.showinfo("Succes", "Partie sauvegardée.")
             return True
         except Exception as e:
             print(f"Erreur lors de la sauvegarde : {e}")
+
             import traceback
             traceback.print_exc()
             # Restaurer la référence parent même en cas d'erreur
