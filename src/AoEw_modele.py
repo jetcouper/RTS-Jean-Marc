@@ -102,7 +102,8 @@ class Partie():
                              ["aureus", 12, 3, 4, "gold2"], ]
         self.creer_regions()
         self.creer_biotopes()
-        self.creer_population(len(ia_info))
+        self.creer_population(ia_info)
+        #self.ia_info = ia_info
 
     def trouver_valeurs(self):
         vals = Partie.valeurs
@@ -218,9 +219,9 @@ class Partie():
                 newregion.dicocases = dicoreg
                 self.regions[nomregion][id] = newregion
 
-    def creer_population(self, nb_IAs):
+    def creer_population(self, ia_info):
         noms_joueurs = [self.nom_joueur]
-        for i in range(nb_IAs):
+        for i in range(len(ia_info)):
             noms_joueurs.append("IA_"+str(i))
 
         couleurs = [["O", "orange"], ["R", "red"], ["B", "blue"], ["J", "yellow"], ["V", "lightgreen"]]
@@ -250,7 +251,7 @@ class Partie():
                     if z == 0:
                         self.joueurs[i] = Joueur(self, id, i, coul, x, y)
                     else:
-                        self.joueurs[i] = IA(self, id, i, coul, x, y)
+                        self.joueurs[i] = IA(self, id, i, coul, x, y, ia_info[int(i[-1])])
                     n = 0
             z += 1
 
