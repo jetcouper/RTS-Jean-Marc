@@ -1323,6 +1323,165 @@ class Vue():
                     self.minicarte.create_rectangle(x1 - 2, y1 - 2, x1 + 2, y1 + 2, fill=coul_mini,
                                                     tags=(j, bat.id, "artefact", bat.montype))
 
+        self.fusionner_eau_adjacente()
+
+    def fusionner_eau_adjacente(self):
+        """
+        Fusionne toutes les cases d'eau adjacentes en groupes
+        et crée une seule grande image pour chaque groupe
+        """
+        if "eau" not in self.modele.biotopes:
+            print("❌ Aucun biotope d'eau trouvé")
+            return
+
+        # 🔴 TROUVER LA VRAIE TAILLE DE CASE
+        # Option 1 : Si votre modèle a une taille de case définie
+        if hasattr(self.modele, 'taillecase'):
+            taille_case = self.modele.taillecase
+        else:
+            # Option 2 : Calculer à partir de la grille
+            taille_case = self.modele.aireX // self.modele.taillecarte
+
+        print(f"📏 Taille de case détectée : {taille_case}px")
+
+        # Identifier les cases d'eau pure
+        elements_eau_pure = ['eaugrand1', 'eaugrand2', 'eaugrand3']
+        cases_eau = {}
+
+        # Collecter toutes les cases d'eau avec leur position en cases de grille
+        for id_bio, bio in self.modele.biotopes["eau"].items():
+            if bio.img in elements_eau_pure:
+                case_x = bio.x // taille_case
+                case_y = bio.y // taille_case
+                cases_eau[(case_x, case_y)] = bio
+
+        print(f"💧 {len(cases_eau)} cases d'eau pure trouvées")
+
+        if len(cases_eau) == 0:
+            print("⚠️ Aucune case d'eau pure à fusionner")
+            return
+
+        # Regrouper les cases adjacentes
+        visited = set()
+        groupes_eau = []
+
+        def trouver_groupe(start_x, start_y):
+            """Trouve toutes les cases adjacentes à partir d'une case de départ"""
+            groupe = []
+            stack = [(start_x, start_y)]
+
+            while stack:
+                x, y = stack.pop()
+                if (x, y) in visited or (x, y) not in cases_eau:
+                    continue
+
+                visited.add((x, y))
+                groupe.append((x, y))
+
+                # Vérifier les 4 directions (haut, bas, gauche, droite)
+                for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                    voisin = (x + dx, y + dy)
+                    if voisin in cases_eau and voisin not in visited:
+                        stack.append(voisin)
+
+            return groupe
+
+        # Créer les groupes
+        for case_pos in cases_eau.keys():
+            if case_pos not in visited:
+                groupe = trouver_groupe(case_pos[0], case_pos[1])
+                if groupe:
+                    groupes_eau.append(groupe)
+
+        print(f"🌊 {len(groupes_eau)} groupes d'eau trouvés")
+
+        # Créer une grande image pour chaque groupe
+        for idx, groupe in enumerate(groupes_eau):
+            print(f"\n📦 Groupe {idx}: {len(groupe)} cases")
+
+            if len(groupe) == 1:
+                print(f"  ⏩ Groupe trop petit, ignoré")
+                continue
+
+            # Calculer les dimensions du groupe
+            min_x = min(pos[0] for pos in groupe)
+            max_x = max(pos[0] for pos in groupe)
+            min_y = min(pos[1] for pos in groupe)
+            max_y = max(pos[1] for pos in groupe)
+
+            largeur_groupe = (max_x - min_x + 1) * taille_case
+            hauteur_groupe = (max_y - min_y + 1) * taille_case
+
+            print(f"  📐 Dimensions: {largeur_groupe}x{hauteur_groupe}px")
+
+            # Créer une grande image transparente
+            grande_image = Image.new('RGBA', (largeur_groupe, hauteur_groupe), (0, 0, 0, 0))
+
+            # Copier chaque case d'eau dans la grande image
+            for case_x, case_y in groupe:
+                bio = cases_eau[(case_x, case_y)]
+
+                # 🔴 TROUVER L'IMAGE - ADAPTER SELON VOTRE STRUCTURE
+                # Essayer plusieurs chemins possibles
+                chemins_possibles = [
+                    os.path.join(os.path.dirname(__file__), f"images/eau/{bio.img}.png"),
+                    os.path.join(os.path.dirname(__file__), f"images/{bio.img}.png"),
+                    os.path.join(os.path.dirname(__file__), "images", "eau", f"{bio.img}.png"),
+                ]
+
+                case_img = None
+                for chemin in chemins_possibles:
+                    if os.path.exists(chemin):
+                        try:
+                            case_img = Image.open(chemin).convert('RGBA')
+                            break
+                        except Exception as e:
+                            print(f"  ⚠️ Erreur lors du chargement de {chemin}: {e}")
+
+                if case_img is None:
+                    print(f"  ❌ Image introuvable pour {bio.img}")
+                    # Créer une image bleue de remplacement
+                    case_img = Image.new('RGBA', (taille_case, taille_case), (70, 130, 180, 255))
+                else:
+                    case_img = case_img.resize((taille_case, taille_case), Image.Resampling.LANCZOS)
+
+                # Calculer la position dans la grande image
+                pos_x = (case_x - min_x) * taille_case
+                pos_y = (case_y - min_y) * taille_case
+
+                # Coller l'image
+                grande_image.paste(case_img, (pos_x, pos_y), case_img)
+
+            # Convertir en PhotoImage pour Tkinter
+            photo_grande = ImageTk.PhotoImage(grande_image)
+
+            # Stocker l'image
+            self.images[f"eau_fusionnee_{idx}"] = photo_grande
+
+            # Supprimer les anciennes cases individuelles du canvas
+            for case_x, case_y in groupe:
+                bio = cases_eau[(case_x, case_y)]
+                self.canevas.delete(bio.id)
+
+            # Afficher la grande image fusionnée
+            pos_centre_x = (min_x * taille_case) + (largeur_groupe // 2)
+            pos_centre_y = (min_y * taille_case) + (hauteur_groupe // 2)
+
+            print(f"  ✅ Placée à ({pos_centre_x}, {pos_centre_y})")
+
+            self.canevas.create_image(
+                pos_centre_x, pos_centre_y,
+                image=self.images[f"eau_fusionnee_{idx}"],
+                anchor=CENTER,
+                tags=("statique", "", f"eau_groupe_{idx}", "biotope", "eau", "eau_layer")
+            )
+
+        # Forcer l'eau à rester en dessous
+        self.canevas.tag_lower("eau_layer")
+        print("\n✅ Fusion de l'eau terminée")
+
+
+
     def afficher_bio(self, bio):
         self.canevas.create_image(bio.x, bio.y, image=self.images[bio.img],
                                   tags=("statique", "", bio.id, "biotope", bio.montype, ""))
