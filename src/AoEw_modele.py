@@ -56,7 +56,7 @@ class Partie():
                                  "delai": 80}
                }
 
-    def __init__(self, parent, nom_joueur_local, nb_IAs , mode_de_jeu):
+    def __init__(self, parent, nom_joueur_local, ia_info , mode_de_jeu):
         self.parent = parent
         self.nom_joueur = nom_joueur_local
         self.actions_a_faire = {}
@@ -102,7 +102,7 @@ class Partie():
                              ["aureus", 12, 3, 4, "gold2"], ]
         self.creer_regions()
         self.creer_biotopes()
-        self.creer_population(nb_IAs)
+        self.creer_population(len(ia_info))
 
     def trouver_valeurs(self):
         vals = Partie.valeurs

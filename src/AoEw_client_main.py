@@ -27,7 +27,7 @@ class Controleur():
         #MORT self.prochain_splash = None # requis pour sortir du splash et passer au lobby
         self.on_joue = 1 # si 0, indique qu'on saute un tour dans la boucle de jeu
         self.delai_de_boucle_de_jeu = 40
-        self.nombreIA = 1
+        self.info_ia = [] 
         self.mode_de_jeu = "paix"  # solo ou multi
         # frequence des appels vers le serveur
         #MORT self.modulo_appeler_serveur = 4
@@ -104,7 +104,7 @@ class Controleur():
         # for i in self.joueurs:
         #     listejoueurs.append(i[0])
         # on cree le modele (la partie)
-        self.partie = Partie(self, self.nom_joueur_local, self.nombreIA , self.mode_de_jeu)
+        self.partie = Partie(self, self.nom_joueur_local, self.info_ia , self.mode_de_jeu)
         # on passe le modele a la vue puisqu'elle trouvera toutes le sinfos a dessiner
         self.vue.modele = self.partie
         # on met la vue a jour avec les infos de partie

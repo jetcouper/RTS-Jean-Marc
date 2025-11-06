@@ -398,29 +398,37 @@ class Vue():
         # === Données IA disponibles ===
         types_ia = ["IA Agressive", "IA Conquête", "IA Défensive"]
         difficultes = ["Facile", "Moyenne", "Difficile"]
-        ia_lignes = []  # pour garder les références
-        
+
+        ia_lignes = []
+        ia_list = []
+
+        def getIa():
+            ia_list.clear()
+            for ia in ia_lignes:
+                ia_info = {
+                    "type": ia["type_var"].get(),
+                    "difficulte": ia["difficulte_var"].get()
+                }
+                ia_list.append(ia_info)
+            print("IAs sélectionnées :", ia_list)
+            self.parent.info_ia = ia_list
+
         def creer_ligne_ia(type_init="IA Agressive", difficulte_init="Facile"):
-            # ligne principale qui doit prendre toute la largeur du scrollable_frame
             ligne = Frame(scrollable_frame, bg="#4a1d1d", highlightbackground="goldenrod2", highlightthickness=2, padx=5, pady=5)
-            ligne.pack( pady= 20)   # <-- fill X + expand pour prendre toute la largeur
+            ligne.pack(pady=20)
 
-            # === Bouton X (supprimer) ===
             def supprimer():
-                ia_lignes.remove(ligne)
+                ia_lignes.remove(ia_entry)
                 ligne.destroy()
-                self.parent.nombreIA -= 1
-
+                getIa()
 
             btn_del = Label(ligne, text="X", font=("Arial", 16, "bold"), bg="#7a3c3c", fg="white", width=2)
             btn_del.pack(side=LEFT, padx=5)
             btn_del.bind("<Button-1>", lambda e: supprimer())
 
-            # === Cadre interne avec Type et Difficulté ===
             inner = Frame(ligne, bg="#4a1d1d")
             inner.pack(side=LEFT, fill=BOTH, expand=True)
 
-            # TYPE
             top_row = Frame(inner, bg="#4a1d1d")
             top_row.pack(fill=X, pady=2)
 
@@ -431,12 +439,12 @@ class Vue():
             def changer_type():
                 current = types_ia.index(label_type.cget("text"))
                 label_type.config(text=types_ia[(current + 1) % len(types_ia)])
+                ia_entry["type_var"].set(label_type.cget("text"))
 
             btn_type = Label(top_row, text="▼", bg="#2d2d2d", fg="white", width=2)
             btn_type.pack(side=LEFT, padx=5)
             btn_type.bind("<Button-1>", lambda e: changer_type())
 
-            # DIFFICULTÉ
             bottom_row = Frame(inner, bg="#4a1d1d")
             bottom_row.pack(fill=X, pady=2)
 
@@ -447,22 +455,26 @@ class Vue():
             def changer_diff():
                 current = difficultes.index(label_diff.cget("text"))
                 label_diff.config(text=difficultes[(current + 1) % len(difficultes)])
+                ia_entry["difficulte_var"].set(label_diff.cget("text"))
 
             btn_diff = Label(bottom_row, text="▼", bg="#2d2d2d", fg="white", width=2)
             btn_diff.pack(side=LEFT, padx=5)
             btn_diff.bind("<Button-1>", lambda e: changer_diff())
 
-            ia_lignes.append(ligne)
+            ia_entry = {
+                "frame": ligne,
+                "type_var": StringVar(value=type_init),
+                "difficulte_var": StringVar(value=difficulte_init)
+            }
+            ia_lignes.append(ia_entry)
 
-        # === Ajout initial de quelques IA ===
         for i in range(1):
             creer_ligne_ia(type_init=types_ia[i % len(types_ia)], difficulte_init=difficultes[i % len(difficultes)])
 
-        # === Bouton Ajouter IA ===
         def ajouter_ia():
-            if self.parent.nombreIA < 4:
+            if (len(self.parent.info_ia) < 4):
                 creer_ligne_ia()
-                self.parent.nombreIA += 1
+                getIa()
 
         make_button(left_frame, "Ajouter IA", "#4a1d1d", command=ajouter_ia).pack(pady=10)
 
