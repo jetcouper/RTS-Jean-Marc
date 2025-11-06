@@ -27,7 +27,8 @@ Lien Excel : https://cvmqc-my.sharepoint.com/:x:/g/personal/e_fdesrosiers2_etu_c
 ### &nbsp;    - Vous pouvez ajouter des IA au niveau de la vue.(Pas implémenté dans la partie, donc juste une IA disponible)
 
 ## - La partie
-### &nbsp;    - Vous pouvez vous déplacer dans la carte en cliquant sur carte et la mini-carte.
+### &nbsp;    - Vous pouvez vous déplacer dans la carte en retenant votre clique gauche sur carte et vous déplacer dans la direction que vous voulez. 
+### &nbsp;    - Vous pouvez voir un carré sur la mini-carte pour savoir où vous ètes. Vous pouvez aussi vous déplacer sur la carte en cliquant dans la mini-carte.
 ### &nbsp;    - Vous pouvez accéder au menu de la partie en appuyant sur <escape>.
 ### &nbsp;    - Vous pouvez sauvegarder une partie depuis le menu de la partie.
 ### &nbsp;    - Vous pouvez quitter une partie depuis le menu de la partie.
