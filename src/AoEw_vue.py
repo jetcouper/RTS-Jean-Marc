@@ -6,7 +6,8 @@ from chargeurdimages import *
 import AoEw_client_main as m # a enlever test only
 import ctypes
 from datetime import datetime
-from fog import FogOverlay, FogState
+from vue.fog import FogOverlay, FogState
+from vue.minimap import MiniMapRenderer
 
 from PIL import Image, ImageTk  # Pour redimensionner l’image
 
@@ -21,6 +22,7 @@ class Vue():
         self.nom_joueur_local.set(nom_joueur_local)
         self.user = None
         self.fog_overlay: FogOverlay
+        self.minimap_renderer: MiniMapRenderer
 
         # Centrer la fenêtre sur l'écran
         self.root.update_idletasks()
@@ -77,7 +79,7 @@ class Vue():
         self.textchat = ""
         self.infohud = {}
         # # minicarte
-        self.tailleminicarte = 400
+        self.tailleminicarte = 200
         self.cadreactif = None
         self.toplevelactif = None
         self.topblackactif = None
@@ -942,7 +944,7 @@ class Vue():
         # minicarte
         # minicarte : placer en bas à gauche du cadre de jeu (au-dessus du canevas)
         self.minicarte = Canvas(self.cadrecanevas, width=self.tailleminicarte, height=self.tailleminicarte,
-                    bg="tan1", highlightthickness=0)
+                    bg="tan1", highlightthickness=0, borderwidth=2)
         # placer ancré en bas-gauche avec une petite marge (anchor 'sw' = south-west)
         self.minicarte.place(relx=1.0, rely=1.0, x=-10, y=-10, anchor='se')
         self.minicarte.bind("<Button-1>", self.deplacer_carte)
@@ -1153,6 +1155,7 @@ class Vue():
         self.minicarte.create_rectangle(x1, y1, x2, y2, outline="red", width=3, tags=("viewport",))
 
 
+
     ##### FONCTION DU SPLASH #########################################################################
     def creer_partie(self):
         nom = self.nomsplash.get()
@@ -1201,6 +1204,12 @@ class Vue():
 
         self.canevas.delete("ALL")  # Supprime TOUS les dessins
         self.minicarte.delete("ALL")
+        # --- Initialiser conteneur image pour la minimap ---
+        self.minicarte_img = self.minicarte.create_image(
+            0, 0,
+            anchor="nw",
+            image=None
+        )
 
         if hasattr(self, 'action'):
             self.action.persochoisi = []
@@ -1231,6 +1240,8 @@ class Vue():
             self.modele.fog,
             self.modele.taillecase
         )
+        self.minimap_renderer = MiniMapRenderer(self.modele, self.tailleminicarte)
+        self.minicarte.itemconfigure(self.minicarte_img, image=self.minimap_renderer.tk)
         self.root.update()
         # self.centrer_maison()
 
@@ -1275,36 +1286,33 @@ class Vue():
         self.modele.listebiotopes = []  # Réinitialise la liste après affichage
 
         # Affichage de la minicarte
-        minitaillecase = int(self.tailleminicarte / self.modele.taillecarte)
-        couleurs = {0: "",
-                    "arbre": "light green",
-                    "eau": "light blue",
-                    "aureus": "tan",
-                    "roche": "gray30",
-                    "marais": "orange"}
+        # minitaillecase = int(self.tailleminicarte / self.modele.taillecarte)
+        # couleurs = {0: "",
+        #             "arbre": "light green",
+        #             "eau": "light blue",
+        #             "aureus": "tan",
+        #             "roche": "gray30",
+        #             "marais": "orange"}
 
-        for i, t in enumerate(self.modele.regions):
-            if t != "plaine":
-                for j, c in enumerate(self.modele.regions[t]):
-                    for cle, k in self.modele.regions[t][c].dicocases.items():
-                        y1 = k.y * minitaillecase
-                        y2 = y1 + minitaillecase
-                        x1 = k.x * minitaillecase
-                        x2 = x1 + minitaillecase
-                        self.minicarte.create_rectangle(x1, y1, x2, y2, outline="",
-                                                        fill=couleurs[k.parent.montype])
+        # for i, t in enumerate(self.modele.regions):
+        #     if t != "plaine":
+        #         for j, c in enumerate(self.modele.regions[t]):
+        #             for cle, k in self.modele.regions[t][c].dicocases.items():
+        #                 y1 = k.y * minitaillecase
+        #                 y2 = y1 + minitaillecase
+        #                 x1 = k.x * minitaillecase
+        #                 x2 = x1 + minitaillecase
+        #                 self.minicarte.create_rectangle(x1, y1, x2, y2, outline="",
+        #                                                 fill=couleurs[k.parent.montype])
 
-        # Affichage des bâtiments sur l'aire de jeu et sur la minicarte
-        px = int(self.tailleminicarte / self.modele.aireX)
-        py = int(self.tailleminicarte / self.modele.aireY)
+        # # Affichage des bâtiments sur l'aire de jeu et sur la minicarte
+        # px = int(self.tailleminicarte / self.modele.aireX)
+        # py = int(self.tailleminicarte / self.modele.aireY)
 
         # Afficher tous les bâtiments (pour nouveau jeu ET chargement)
         for j in self.modele.joueurs.keys():
             for type_bat in self.modele.joueurs[j].batiments:
                 for id_bat, bat in self.modele.joueurs[j].batiments[type_bat].items():
-                    if bat.parent != self.modele.joueurs[self.nom_joueur_local]:
-                        continue
-
                     coul = self.modele.joueurs[j].couleur[0]
                     # Utiliser l'image appropriée selon le type de bâtiment
                     if hasattr(bat, 'image'):
@@ -1339,17 +1347,11 @@ class Vue():
 
         x0, y0, x2, y2 = self.canevas.bbox(chose)
 
-        couleurs = {0: "",
-                    1: "light green",
-                    2: "light blue",
-                    3: "tan",
-                    4: "gray30",
-                    5: "orange"}
-        coul = self.modele.joueurs[joueur].couleur[1]
-        x1 = int((batiment.x / self.modele.aireX) * self.tailleminicarte)
-        y1 = int((batiment.y / self.modele.aireY) * self.tailleminicarte)
-        self.minicarte.create_rectangle(x1 - 2, y1 - 2, x1 + 2, y1 + 2, fill=coul,
-                                        tags=(self.parent.nom_joueur_local, batiment.id, "artefact", batiment.montype))
+        # coul = self.modele.joueurs[joueur].couleur[1]
+        # x1 = int((batiment.x / self.modele.aireX) * self.tailleminicarte)
+        # y1 = int((batiment.y / self.modele.aireY) * self.tailleminicarte)
+        # self.minicarte.create_rectangle(x1 - 2, y1 - 2, x1 + 2, y1 + 2, fill=coul,
+        #                                 tags=(self.parent.nom_joueur_local, batiment.id, "artefact", batiment.montype))
         return [x0, y0, x2, y2]
 
     def afficher_jeu(self):
@@ -1440,8 +1442,10 @@ class Vue():
             self.modele.joueurs[self.parent.nom_joueur_local].chatneuf = 0
 
         # FOG
-        if hasattr(self, "fog_overlay"):
-            self.fog_overlay.update()
+        self.fog_overlay.update()
+        self.minimap_renderer.update_fog()
+        self.minicarte.itemconfigure(self.minicarte_img, image=self.minimap_renderer.tk)
+
 
     def centrer_maison(self):
         self.root.update()

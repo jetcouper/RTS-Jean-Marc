@@ -10,7 +10,7 @@ from AoEw_batiments import *
 from AoEw_persos import *
 from AoEw_joueurs import *
 from RTS_IA import *
-from fog import FogState, FogModel
+from vue.fog import FogState, FogModel
 
 
 
