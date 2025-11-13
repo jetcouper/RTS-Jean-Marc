@@ -10,6 +10,8 @@ from AoEw_batiments import *
 from AoEw_persos import *
 from AoEw_joueurs import *
 from RTS_IA import *
+from fog import FogState, FogModel
+
 
 
 class Region():
@@ -68,6 +70,7 @@ class Partie():
         self.taillecarte = int(self.aireX / self.taillecase)
         self.cartecase = []
         self.make_carte_case()
+        self.fog = FogModel(self.taillecarte, self.taillecarte)
 
         self.delaiprochaineaction = 20
 
@@ -311,6 +314,8 @@ class Partie():
         # demander aux objets de s'activer
         for i in self.joueurs.keys():
             self.joueurs[i].jouer_prochain_coup()
+        
+        self.maj_fog_pour_joueur(self.nom_joueur)
 
         if self.msggeneral:
             self.msggeneralcompteur += 1
@@ -454,6 +459,62 @@ class Partie():
                 if distcase <= distmax:
                     t1.append(case)
         return t1
+    
+    def maj_fog_pour_joueur(self, nom_joueur):
+        """
+        Met à jour la carte de fog pour la perspective du joueur 'nom_joueur'.
+        - Les cases VISIBLE passent d'abord en KNOWN
+        - On recalcule la visibilité à partir du champ de vision
+          des unités & bâtiments du joueur.
+        """
+
+        fog_map = self.fog.map
+
+        # 1) Dégrader toutes les cases VISIBLE -> KNOWN
+        for y in range(self.taillecarte):
+            for x in range(self.taillecarte):
+                if fog_map[y][x] == FogState.VISIBLE:
+                    fog_map[y][x] = FogState.KNOWN
+
+        # 2) Marquer comme VISIBLE autour de chaque perso/bâtiment du joueur
+        joueur = self.joueurs.get(nom_joueur)
+        if not joueur:
+            return
+
+        # helper interne
+        def marquer_vision_cercle(px, py, rayon):
+            tc = self.taillecase
+            cx = int(px / tc)
+            cy = int(py / tc)
+            r_cells = int(rayon / tc) + 2  # un peu de marge
+
+            for dy in range(-r_cells, r_cells + 1):
+                yy = cy + dy
+                if yy < 0 or yy >= self.taillecarte:
+                    continue
+                for dx in range(-r_cells, r_cells + 1):
+                    xx = cx + dx
+                    if xx < 0 or xx >= self.taillecarte:
+                        continue
+
+                    # centre de la case en pixels
+                    case_cx = (xx * tc) + tc // 2
+                    case_cy = (yy * tc) + tc // 2
+
+                    if Helper.calcDistance(px, py, case_cx, case_cy) <= rayon:
+                        fog_map[yy][xx] = FogState.VISIBLE
+
+        # 2.a) Unités
+        for dico_persos in joueur.persos.values():
+            for p in dico_persos.values():
+                rayon = getattr(p, "champvision", 150)
+                marquer_vision_cercle(p.x, p.y, rayon)
+
+        # 2.b) Bâtiments (tu peux ajuster champ de vision)
+        for dico_bats in joueur.batiments.values():
+            for b in dico_bats.values():
+                rayon = getattr(b, "champvision", 200)
+                marquer_vision_cercle(b.x, b.y, rayon)
 
     def eliminer_ressource(self, type, ress):
         if ress.idregion:

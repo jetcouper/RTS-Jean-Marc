@@ -25,6 +25,7 @@ class Batiment():
         self.perso = 0
         self.cartebatiment = []
         self.mana = 200
+        self.champvision = 150
 
     def recevoir_coup(self, force):
         self.mana -= force

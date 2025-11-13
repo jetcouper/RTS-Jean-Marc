@@ -6,6 +6,7 @@ from chargeurdimages import *
 import AoEw_client_main as m # a enlever test only
 import ctypes
 from datetime import datetime
+from fog import FogOverlay
 
 from PIL import Image, ImageTk  # Pour redimensionner l’image
 
@@ -19,6 +20,7 @@ class Vue():
         self.nom_joueur_local = StringVar()
         self.nom_joueur_local.set(nom_joueur_local)
         self.user = None
+        self.fog_overlay: FogOverlay
 
         # Centrer la fenêtre sur l'écran
         self.root.update_idletasks()
@@ -1221,6 +1223,13 @@ class Vue():
         self.creer_chatter()
         # on affiche les maisons, point de depart des divers joueurs
 
+        #Fog
+        self.fog_overlay = FogOverlay(
+            self.canevas,
+            self.modele.fog,
+            self.modele.taillecase
+        )
+
         self.afficher_depart(chargement)
         self.root.update()
         # self.centrer_maison()
@@ -1417,6 +1426,10 @@ class Vue():
             if self.modele.joueurs[self.parent.nom_joueur_local].chatneuf and self.action.chaton == 0:
                 self.btnchat.config(bg="orange")
             self.modele.joueurs[self.parent.nom_joueur_local].chatneuf = 0
+
+        # FOG
+        if hasattr(self, "fog_overlay"):
+            self.fog_overlay.update()
 
     def centrer_maison(self):
         self.root.update()
