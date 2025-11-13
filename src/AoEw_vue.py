@@ -3,7 +3,7 @@ from tkinter import ttk, messagebox
 from tkinter.simpledialog import *
 import os
 from chargeurdimages import *
-import AoEw_client_main as m # a enlever test only
+import AoEw_client_main as m  # a enlever test only
 import ctypes
 from datetime import datetime
 
@@ -11,7 +11,7 @@ from PIL import Image, ImageTk  # Pour redimensionner l’image
 
 
 class Vue():
-    def __init__(self, parent, nom_joueur_local): #, testdispo):
+    def __init__(self, parent, nom_joueur_local):  # , testdispo):
         self.parent = parent
         self.root = Tk()
         self.root.title("Age of Empire")
@@ -38,7 +38,7 @@ class Vue():
         self.root.bind_all("<q>", lambda e: self.root.destroy())
         self.root.bind_all("<Q>", lambda e: self.root.destroy())
 
-        self.root.bind_all("<F11>", lambda e: switch_fullscreen())  
+        self.root.bind_all("<F11>", lambda e: switch_fullscreen())
 
         def toggle_escape(event=None):
             if self.toplevelactif:
@@ -55,18 +55,17 @@ class Vue():
                 if nom_cadre_actif == "jeu":
                     self.changer_topblack("blackgame")
                     self.changer_toplevel("gameescape")
-                    #Faire condition pour la pause de jeu. (Mettre en pause la partie)
+                    # Faire condition pour la pause de jeu. (Mettre en pause la partie)
                 elif nom_cadre_actif in ("mainlobby"):
-                    #self.changer_toplevel("useroption")
+                    # self.changer_toplevel("useroption")
                     pass
-
 
         # bind sur tous les widgets (fonctionne même quand le toplevel a le focus)
         self.root.bind_all("<Escape>", toggle_escape)
 
-
         # Interrupteur pour le mode plein écran avec les touches Échap et F11
         self.fullscreen = False
+
         def switch_fullscreen(event=None):
             self.fullscreen = not self.fullscreen
             self.root.attributes('-fullscreen', self.fullscreen)
@@ -93,12 +92,10 @@ class Vue():
         self.toplevel = {}
         self.topblack = {}
 
-
         self.creer_cadres()
         self.creer_toplevel()
 
         self.changer_cadre("login")
-
 
         # self.root.protocol("WM_DELETE_WINDOW", self.demanderabandon)
         # # sera charge apres l'initialisation de la partie, contient les donnees pour mettre l'interface a jour
@@ -144,7 +141,6 @@ class Vue():
         self.toplevelactif.lift()
         self.toplevelactif.focus_force()
 
-
     def changer_topblack(self, nomcadre: str):
         # suprrime le toplevel si 
         if nomcadre is None:
@@ -171,9 +167,6 @@ class Vue():
         self.topblackactif.lift()
         self.topblackactif.focus_force()
 
-
-        
-
     ###### LES CADRES ############################################################################################
     # Appel de la création des divers cadre
     def creer_cadres(self):
@@ -182,11 +175,10 @@ class Vue():
         self.cadres["login"] = self.creer_cadre_login()
         self.cadres["jeu"] = self.creer_cadre_jeu()
 
-    def creer_toplevel(self,):
+    def creer_toplevel(self, ):
         self.toplevel["gameescape"] = self.creer_top_escape()
         self.toplevel["useroption"] = self.creer_top_user()
         self.topblack["blackgame"] = self.creer_topblack()
-
 
     def creer_cadre_mainlobby(self) -> Frame:
         # === Cadre principal ===
@@ -200,12 +192,12 @@ class Vue():
         bg_path = os.path.join(os.path.dirname(__file__), "images/lobby2.png")
         # create a small ready image (kept as attribute) but do not place a Label that would sit above the Canvas
         # the parallax background will be rendered directly on the Canvas so it can receive Motion events
-        self.tk_bg = ImageTk.PhotoImage(Image.open(bg_path).resize((self.screen_width, self.screen_height), Image.Resampling.LANCZOS))
+        self.tk_bg = ImageTk.PhotoImage(
+            Image.open(bg_path).resize((self.screen_width, self.screen_height), Image.Resampling.LANCZOS))
 
-        
         # === Paramètres du parallax === Comme dans tower defense
         self.vitesse_background = 15  # plus grand = mouvement plus lent
-        self.background_zoom = 1.15   # image légèrement plus grande que l'écran pour que le mouvement ne révèle pas de bord noir
+        self.background_zoom = 1.15  # image légèrement plus grande que l'écran pour que le mouvement ne révèle pas de bord noir
         self.pos_background_x = self.screen_width // 2
         self.pos_background_y = self.screen_height // 2
 
@@ -218,7 +210,7 @@ class Vue():
 
         # Création du Canvas principal
         self.background = Canvas(self.cadremain, width=self.screen_width, height=self.screen_height,
-                     bd=0, highlightthickness=0, bg="black")
+                                 bd=0, highlightthickness=0, bg="black")
         self.background.pack(fill="both", expand=True)
 
         # Placement initial centré
@@ -233,6 +225,7 @@ class Vue():
             move_x = (event.x - self.screen_width // 2) / self.vitesse_background
             move_y = (event.y - self.screen_height // 2) / self.vitesse_background
             self.background.coords(self.splash_screen, -diffx + move_x, -diffy + move_y)
+
         self.background.bind("<Motion>", animate_background)
 
         # === MENU GAUCHE ===
@@ -241,19 +234,22 @@ class Vue():
 
         # === Colonne gauche (menu principal) ===
         menu_frame_size = int(self.screen_width // 4)
-        menu_frame = Frame(self.cadremain, bg="#3c2f2f", width=menu_frame_size, height=self.screen_height , highlightthickness=2, highlightbackground="goldenrod2")
+        menu_frame = Frame(self.cadremain, bg="#3c2f2f", width=menu_frame_size, height=self.screen_height,
+                           highlightthickness=2, highlightbackground="goldenrod2")
         menu_frame.pack_propagate(False)
         menu_frame.place(relx=0.03, rely=0.0, anchor="nw", relheight=1)
 
         def make_button(parent, text, image_path, font=("Times New Roman", 32, "bold"), command=None):
             # Cadre du "bouton"
-            frame_width = int(self.screen_width // 5.12) 
-            frame = Frame(parent, bg="#4a1d1d", width=frame_width, height=int(self.screen_height // 9.6) , highlightthickness=2, highlightbackground="goldenrod2")
+            frame_width = int(self.screen_width // 5.12)
+            frame = Frame(parent, bg="#4a1d1d", width=frame_width, height=int(self.screen_height // 9.6),
+                          highlightthickness=2, highlightbackground="goldenrod2")
             frame.pack_propagate(False)
 
             # Charger l'image
             img_path_full = os.path.join(os.path.dirname(__file__), image_path)
-            img = Image.open(img_path_full).resize((frame_width, int(self.screen_height // 14.4)), Image.Resampling.LANCZOS)
+            img = Image.open(img_path_full).resize((frame_width, int(self.screen_height // 14.4)),
+                                                   Image.Resampling.LANCZOS)
             tk_img = ImageTk.PhotoImage(img)
 
             # Créer widgets internes
@@ -268,9 +264,11 @@ class Vue():
             def on_enter(e):
                 frame.config(bg="#7a3c3c")
                 label_text.config(bg="#7a3c3c")
+
             def on_leave(e):
                 frame.config(bg="#4a1d1d")
                 label_text.config(bg="#4a1d1d")
+
             def on_click(e):
                 if command:
                     command()
@@ -286,19 +284,19 @@ class Vue():
                     "Tutoriel": lambda: print("Tutoriel cliqué"),
                     "Histoire": lambda: print("Histoire cliqué"),
                     "News": lambda: print("News cliqué"),
-                    "Quitter": self.root.destroy,  
+                    "Quitter": self.root.destroy,
                 }
-                
+
                 widget.bind(
                     "<Button-1>",
                     lambda e, t=text: actions.get(t, lambda: print(f"{t} cliqué"))()
                 )
 
             return frame
-        
 
         logo_path = os.path.join(os.path.dirname(__file__), "images/logo.png")
-        logo_img = Image.open(logo_path).resize((int(self.screen_width // 5.12), int(self.screen_height // 4.8)), Image.Resampling.LANCZOS)
+        logo_img = Image.open(logo_path).resize((int(self.screen_width // 5.12), int(self.screen_height // 4.8)),
+                                                Image.Resampling.LANCZOS)
         self.tk_logo = ImageTk.PhotoImage(logo_img)
         Label(menu_frame, image=self.tk_logo, bg="#3c2f2f").pack(pady=15)
 
@@ -308,23 +306,20 @@ class Vue():
         self.btn_news = make_button(menu_frame, "News", image_path="images/login.jpg")
         self.btn_exit = make_button(menu_frame, "Quitter", image_path="images/login.jpg")
 
-
         # tout afficher
         for b in [self.btn_jouer, self.btn_tutoriel, self.btn_histoire, self.btn_news, self.btn_exit]:
             b.pack(pady=self.screen_width // 80)
-
 
         # === Version info (bas) ===
         Label(self.cadremain, text="Version 1.0.0", bg="#3c2f2f", fg="white", font=("Arial", 10, "italic")) \
             .pack(side=BOTTOM, pady=5)
 
         return self.cadremain
-    
+
     def creer_cadre_gamemenu(self) -> Frame:
         # === Cadre principal ===
         self.cadre_lobby_partie = Frame(self.cadreapp, bg="black", width=self.screen_width, height=self.screen_height)
         self.cadre_lobby_partie.pack_propagate(False)
-
 
         splash_screen_size_x = int(self.screen_width * self.background_zoom)
         splash_screen_size_y = int(self.screen_height * self.background_zoom)
@@ -345,15 +340,21 @@ class Vue():
             move_x = (event.x - self.screen_width // 2) / self.vitesse_background
             move_y = (event.y - self.screen_height // 2) / self.vitesse_background
             self.background2.coords(self.splash_screen, -diffx + move_x, -diffy + move_y)
+
         self.background2.bind("<Motion>", animate_background)
 
         # === FONCTION POUR FAIRE DES BOUTONS JOLIS ===
         def make_button(parent, text, color="#3c2f2f", hover="#7a3c3c", command=None):
-            btn = Label(parent, text=text, font=("Times New Roman", 22, "bold"), bg=color, fg="gold", width=15, height=2, bd=2, relief="raised")
+            btn = Label(parent, text=text, font=("Times New Roman", 22, "bold"), bg=color, fg="gold", width=15,
+                        height=2, bd=2, relief="raised")
+
             def on_enter(e): btn.config(bg=hover)
+
             def on_leave(e): btn.config(bg=color)
+
             def on_click(e):
                 if command: command()
+
             btn.bind("<Enter>", on_enter)
             btn.bind("<Leave>", on_leave)
             btn.bind("<Button-1>", on_click)
@@ -366,45 +367,49 @@ class Vue():
         # Ligne du haut (Créer partie / Commencer)
         top_bar = Frame(left_frame, bg="#3c2f2f")
         top_bar.pack(fill=X, pady=10)
-        Label(top_bar, text="Créer partie", font=("Times New Roman", 22, "bold"), bg="#4a1d1d", fg="gold", width=15, height=2, bd=2, relief="raised").pack(side=LEFT, expand=True, padx=10)
-        make_button(top_bar, "Commencer", "#2d6a2d", hover="#3fa63f" , command=lambda: self.lancer_partie()).pack(side=LEFT, expand=True, padx=10)
+        Label(top_bar, text="Créer partie", font=("Times New Roman", 22, "bold"), bg="#4a1d1d", fg="gold", width=15,
+              height=2, bd=2, relief="raised").pack(side=LEFT, expand=True, padx=10)
+        make_button(top_bar, "Commencer", "#2d6a2d", hover="#3fa63f", command=lambda: self.lancer_partie()).pack(
+            side=LEFT, expand=True, padx=10)
 
         # === Liste IA avec Scroll
         ia_frame = Frame(left_frame, bg="#3c2f2f")
         ia_frame.pack(fill=BOTH, expand=True, padx=20, pady=10)
-        
+
         # Scroll components
         canvas = Canvas(ia_frame, bg="#3c2f2f", highlightthickness=0)
         scrollbar = Scrollbar(ia_frame, orient="vertical", command=canvas.yview)
         scrollable_frame = Frame(canvas, bg="#3c2f2f")
-        
+
         # Quand le contenu change, mettre à jour la zone scrollable
         scrollable_frame.bind(
             "<Configure>",
             lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
         )
-        
-        # Créer la fenêtre dans le canvas 
+
+        # Créer la fenêtre dans le canvas
         window_id = canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-        
+
         # Ajuster dynamiquement la largeur du contenu quand le canvas change
         def resize_scrollable(event):
             canvas.itemconfig(window_id, width=event.width)
+
         canvas.bind("<Configure>", resize_scrollable)
-        
+
         canvas.configure(yscrollcommand=scrollbar.set)
         canvas.pack(side=LEFT, fill=BOTH, expand=True)
         scrollbar.pack(side=RIGHT, fill=Y)
-        
+
         # === Données IA disponibles ===
         types_ia = ["IA Agressive", "IA Conquête", "IA Défensive"]
         difficultes = ["Facile", "Moyenne", "Difficile"]
         ia_lignes = []  # pour garder les références
-        
+
         def creer_ligne_ia(type_init="IA Agressive", difficulte_init="Facile"):
             # ligne principale qui doit prendre toute la largeur du scrollable_frame
-            ligne = Frame(scrollable_frame, bg="#4a1d1d", highlightbackground="goldenrod2", highlightthickness=2, padx=5, pady=5)
-            ligne.pack( pady= 20)   # <-- fill X + expand pour prendre toute la largeur
+            ligne = Frame(scrollable_frame, bg="#4a1d1d", highlightbackground="goldenrod2", highlightthickness=2,
+                          padx=5, pady=5)
+            ligne.pack(pady=20)  # <-- fill X + expand pour prendre toute la largeur
 
             # === Bouton X (supprimer) ===
             def supprimer():
@@ -463,9 +468,9 @@ class Vue():
 
         make_button(left_frame, "Ajouter IA", "#4a1d1d", command=ajouter_ia).pack(pady=10)
 
-
         # Mode de jeu
-        Label(left_frame, text="Mode de jeu", font=("Times New Roman", 20, "bold"), fg="white", bg="#2e1f1f").pack(pady=5)
+        Label(left_frame, text="Mode de jeu", font=("Times New Roman", 20, "bold"), fg="white", bg="#2e1f1f").pack(
+            pady=5)
         # Mode de jeu - radio buttons on one line
         self.mode_jeu = StringVar(value="paix")
         modes = [("Paix mondial", "paix"), ("Conquête", "conquete"), ("Achèvement", "achevement")]
@@ -473,11 +478,11 @@ class Vue():
         rb_frame.pack(pady=5, fill=X)
         for text, val in modes:
             rb = Radiobutton(
-            rb_frame, text=text, variable=self.mode_jeu, value=val,
-            font=("Arial", 14), bg="#2e1f2f", fg="gold",
-            selectcolor="#4a1d1d", activebackground="#7a3c3c",
-            activeforeground="gold", indicatoron=1,
-            command=lambda v=val: print("Mode sélectionné :", v)
+                rb_frame, text=text, variable=self.mode_jeu, value=val,
+                font=("Arial", 14), bg="#2e1f2f", fg="gold",
+                selectcolor="#4a1d1d", activebackground="#7a3c3c",
+                activeforeground="gold", indicatoron=1,
+                command=lambda v=val: print("Mode sélectionné :", v)
             )
             rb.pack(side=LEFT, padx=8, expand=True)
 
@@ -495,16 +500,16 @@ class Vue():
         right_frame = Frame(self.background2, bg="#2e1f1f", highlightbackground="goldenrod2", highlightthickness=2)
         right_frame.place(relx=0.62, rely=0.05, relwidth=0.33, relheight=0.9)
 
-        Label(right_frame, text="Charger Partie", font=("Times New Roman", 22, "bold"), bg="#4a1d1d", fg="gold", width=15, height=2, bd=2, relief="raised").pack(pady=10)
+        Label(right_frame, text="Charger Partie", font=("Times New Roman", 22, "bold"), bg="#4a1d1d", fg="gold",
+              width=15, height=2, bd=2, relief="raised").pack(pady=10)
         # === Game saves treeview (chargement de parties) ===
         saves_dir = os.path.join(os.path.dirname(__file__), "data")
         os.makedirs(saves_dir, exist_ok=True)
 
-
         tree_frame = Frame(right_frame, bg="#2e1f1f")
         tree_frame.pack(fill=BOTH, expand=True, padx=10, pady=10)
 
-        #cols = ("name", "modified", "size_kb")
+        # cols = ("name", "modified", "size_kb")
         cols = ("name", "date", "iteration")
         self.saves_tree = ttk.Treeview(tree_frame, columns=cols, show="headings", selectmode="browse", height=8)
         self.saves_tree.heading("name", text="Joueur")
@@ -645,11 +650,10 @@ class Vue():
         # remplissage initial
         populate_saves()
 
-        make_button(self.cadre_lobby_partie, "<- Retourner", "#4a1d1d", command=lambda: self.changer_cadre("mainlobby")).place(relx=0.95, rely=0.02, anchor="center")
+        make_button(self.cadre_lobby_partie, "<- Retourner", "#4a1d1d",
+                    command=lambda: self.changer_cadre("mainlobby")).place(relx=0.95, rely=0.02, anchor="center")
 
         return self.cadre_lobby_partie
-
-    
 
     # le login (ce qui 'login' à l'écran lors du démarrage)
     # sera le cadre visuel initial lors du lancement de l'application
@@ -689,7 +693,7 @@ class Vue():
             self.label_image.config(image=self.tk_image)
             self.label_image.image = self.tk_image  # enlever du garbage collector
 
-        self.frame_gauche.bind("<Configure>", resize_image) # appelée à chaque redimensionnement
+        self.frame_gauche.bind("<Configure>", resize_image)  # appelée à chaque redimensionnement
 
         # === Formulaire de connexion (section droite) ===
         self.cadre_login = Frame(self.frame_droite, bg="white")
@@ -702,7 +706,8 @@ class Vue():
         self.entree_mdp = Entry(self.cadre_login, show="*", font=("Arial", 12))
         self.btn_enregistrer = Button(self.cadre_login, text="Enregistrer", font=("Arial", 12))
         self.btn_connexion = Button(self.cadre_login, text="Connexion", font=("Arial", 12))
-        self.label_invite = Label(self.cadre_login, text="connectez-vous en tant qu'invité", bg="white", font=("Arial", 10, "italic"))
+        self.label_invite = Label(self.cadre_login, text="connectez-vous en tant qu'invité", bg="white",
+                                  font=("Arial", 10, "italic"))
 
         # Placement dans une grille propre
         self.label_nom.grid(row=0, column=0, pady=(10, 0))
@@ -717,7 +722,6 @@ class Vue():
         self.btn_enregistrer.bind("<Button-1>", lambda e: self.enregistrer_et_changer())
         self.btn_connexion.bind("<Button-1>", lambda e: self.login_et_changer())
         self.label_invite.bind("<Button-1>", lambda e: self.connecter_invite())
-
 
         # on retourne ce cadre pour l'insérer dans le dictionnaires des cadres
         return self.cadrelobby
@@ -736,6 +740,7 @@ class Vue():
         self.root.attributes('-fullscreen', True)
 
         print("Connecté en tant qu'invité")
+
     def creer_top_escape(self):
         # le cadre escape, qui apparait en toplevel lorsque le joueur presse echap
         size_x = 480
@@ -755,9 +760,10 @@ class Vue():
         self.label_bg.place(x=0, y=0, relwidth=1, relheight=1)
 
         # === Création des boutons du menu pause ===
-        def make_button_pause(text, command=None , padding=60):
+        def make_button_pause(text, command=None, padding=60):
             frame_width = 250
-            frame = Frame(self.cadreescape, bg="#4a1d1d", width=frame_width, height=50, highlightthickness=2, highlightbackground="goldenrod2")
+            frame = Frame(self.cadreescape, bg="#4a1d1d", width=frame_width, height=50, highlightthickness=2,
+                          highlightbackground="goldenrod2")
             frame.pack_propagate(False)
             frame.pack(pady=padding)
 
@@ -769,9 +775,11 @@ class Vue():
             def on_enter(e):
                 frame.config(bg="#7a3c3c")
                 label_text.config(bg="#7a3c3c")
+
             def on_leave(e):
                 frame.config(bg="#4a1d1d")
                 label_text.config(bg="#4a1d1d")
+
             def on_click(e):
                 if command:
                     command()
@@ -787,9 +795,12 @@ class Vue():
             return frame
 
         # === Boutons spécifiques au menu Pause ===
-        btnreprendre = make_button_pause("Reprendre", command=lambda: (self.cadreescape.withdraw(), self.changer_topblack(None), self.changer_toplevel(None)))
-        btnsave = make_button_pause("Sauvegarder", command=lambda : self.sauvegarder())
-        btnquitter = make_button_pause("Quitter la partie", command=lambda: (self.changer_cadre("mainlobby"), self.arreter_boucle(), self.cadreescape.withdraw(), self.changer_topblack(None), self.changer_toplevel(None)))
+        btnreprendre = make_button_pause("Reprendre", command=lambda: (
+        self.cadreescape.withdraw(), self.changer_topblack(None), self.changer_toplevel(None)))
+        btnsave = make_button_pause("Sauvegarder", command=lambda: self.sauvegarder())
+        btnquitter = make_button_pause("Quitter la partie", command=lambda: (
+        self.changer_cadre("mainlobby"), self.arreter_boucle(), self.cadreescape.withdraw(),
+        self.changer_topblack(None), self.changer_toplevel(None)))
 
         # === Affichage des boutons ===
         for btn in [btnreprendre, btnsave, btnquitter]:
@@ -808,10 +819,8 @@ class Vue():
             self.action.ciblechoisi = None
             self.action.prochaineaction = None
             self.action.position = []
-        #Va mettre self.partie = None
+        # Va mettre self.partie = None
         self.parent.detruire_partie()
-
-
 
     def creer_top_user(self):
         # le cadre escape, qui apparait en toplevel lorsque le joueur presse echap
@@ -828,30 +837,30 @@ class Vue():
         btnaide.pack(pady=10)
 
         return self.top
-    
+
     def creer_topblack(self):
 
         # le cadre escape, qui apparait en toplevel lorsque le joueur presse echap
-        self.topblack_win = Toplevel(self.root , background="black")
+        self.topblack_win = Toplevel(self.root, background="black")
         self.topblack_win.title("black")
         self.topblack_win.overrideredirect(True)  # enlever bar du haut
 
         self.topblack_win.configure(bg='black')
         self.topblack_win.withdraw()  # on le cache initialement
         self.topblack_win.attributes('-alpha', 0.5)  # noir plus pale
-        self.topblack_win.lift()  #  dessus de la page
+        self.topblack_win.lift()  # dessus de la page
 
         return self.topblack_win
 
-    def enregistrer(self, username,password):
+    def enregistrer(self, username, password):
         condition = self.parent.enregistrerUser(username, password)
         return condition
 
     def enregistrer_et_changer(self):
         message = self.enregistrer(self.entree_nom.get(), self.entree_mdp.get())
-        if  message == True:
+        if message == True:
             self.nom_joueur_local.set(self.entree_nom.get())
-            #self.parent.nom_joueur_local = {self.entree_nom.get()}
+            # self.parent.nom_joueur_local = {self.entree_nom.get()}
             self.user = self.parent.user
             self.changer_cadre("mainlobby")
             self.root.attributes('-fullscreen', True)
@@ -861,7 +870,7 @@ class Vue():
             # Affiche ton message d'erreur (à adapter selon ton interface)
             messagebox.showerror("Erreur", "L'utilisateur existe déjà")
 
-    def login(self, username,password):
+    def login(self, username, password):
         condition = self.parent.loginUser(username, password)
         return condition
 
@@ -870,7 +879,7 @@ class Vue():
         print(f"Type: {type(self.entree_nom)}, Valeur: {self.entree_nom.get()}")
         if message == True:
             self.nom_joueur_local.set(self.entree_nom.get())
-            #self.parent.nom_joueur_local = self.entree_nom.get()
+            # self.parent.nom_joueur_local = self.entree_nom.get()
             self.user = self.parent.user
             self.changer_cadre("mainlobby")
             self.root.attributes('-fullscreen', True)
@@ -879,7 +888,6 @@ class Vue():
         if message == False:
             # Affiche ton message d'erreur (à adapter selon ton interface)
             messagebox.showerror("Erreur", "L'utilisateur n'existe pas ou erreur de saisi du mot de passe.")
-
 
     def creer_cadre_jeu(self):
         # le cadre principal du jeu, remplace le Lobby
@@ -903,11 +911,13 @@ class Vue():
         self.scrollV = Scrollbar(self.cadrecanevas, orient=VERTICAL)
         self.scrollH = Scrollbar(self.cadrecanevas, orient=HORIZONTAL)
         self.canevas = Canvas(self.cadrecanevas, width=400, height=400, bg="DarkOliveGreen2",
-                      yscrollcommand=self.scrollV.set,
-                      xscrollcommand=self.scrollH.set, highlightthickness=0)
+                              yscrollcommand=self.scrollV.set,
+                              xscrollcommand=self.scrollH.set, highlightthickness=0)
         # Keep scrollbars functional but make them invisible (hidden)
-        self.scrollV.config(command=self.canevas.yview, width=0, troughcolor=self.canevas['bg'], bd=0, highlightthickness=0)
-        self.scrollH.config(command=self.canevas.xview, width=0, troughcolor=self.canevas['bg'], bd=0, highlightthickness=0)
+        self.scrollV.config(command=self.canevas.yview, width=0, troughcolor=self.canevas['bg'], bd=0,
+                            highlightthickness=0)
+        self.scrollH.config(command=self.canevas.xview, width=0, troughcolor=self.canevas['bg'], bd=0,
+                            highlightthickness=0)
         # on visualise utilisant grid (grille)
         # le grid avec 'sticky' indique que l'objet doit s'acroitre pour coller aux 'points cardinaux' (anglais)
 
@@ -925,7 +935,7 @@ class Vue():
         # minicarte
         # minicarte : placer en bas à gauche du cadre de jeu (au-dessus du canevas)
         self.minicarte = Canvas(self.cadrecanevas, width=self.tailleminicarte, height=self.tailleminicarte,
-                    bg="tan1", highlightthickness=0)
+                                bg="tan1", highlightthickness=0)
         # placer ancré en bas-gauche avec une petite marge (anchor 'sw' = south-west)
         self.minicarte.place(relx=1.0, rely=1.0, x=-10, y=-10, anchor='se')
         self.minicarte.bind("<Button-1>", self.deplacer_carte)
@@ -942,7 +952,7 @@ class Vue():
 
         # fonction interne uniquement pour reproduire chaque item d'info
         def creer_champ_interne(listechamp):
-            titre = Champ(self.cadrejeuinfo, text=i, bg="red", fg="black" )
+            titre = Champ(self.cadrejeuinfo, text=i, bg="red", fg="black")
             varstr = StringVar()
             varstr.set(0)
             donnee = Champ(self.cadrejeuinfo, bg="red", fg="white", textvariable=varstr)
@@ -957,12 +967,11 @@ class Vue():
         varstr = StringVar()
         varstr.set("")
         fontinfo = ("arial", 25, "bold")
-        champmsg = Label(self.cadrejeuinfo, text="", font = fontinfo , bg="#4a1d1d", fg="#D4AF37" , highlightthickness=2, highlightbackground="goldenrod2")
+        champmsg = Label(self.cadrejeuinfo, text="", font=fontinfo, bg="#4a1d1d", fg="#D4AF37", highlightthickness=2,
+                         highlightbackground="goldenrod2")
         champmsg.pack(side=LEFT)
 
-        
         self.infohud["msggeneral"] = [champmsg]
-
 
         self.cadrejeuinfo.place(relx=0.0, rely=0.0)
 
@@ -971,7 +980,7 @@ class Vue():
 
     def charger(self):
         nom_joueur = self.parent.nom_joueur_local
-        #Avec le nom du joueur
+        # Avec le nom du joueur
         self.parent.charger(nom_joueur)
 
     def creer_cadre_jeu_action(self):
@@ -1019,9 +1028,9 @@ class Vue():
         self.scrollVaide.config(command=self.textaide.yview)
         self.textaide.pack(side=LEFT)
         self.scrollVaide.pack(side=LEFT, expand=1, fill=Y)
-        #fichieraide = open("aide.txt")
-        #monaide = fichieraide.read()
-        #fichieraide.close()
+        # fichieraide = open("aide.txt")
+        # monaide = fichieraide.read()
+        # fichieraide.close()
         fichieraide = open(os.path.join(os.path.dirname(__file__), "aide.txt"), "r", encoding="utf-8")
         monaide = fichieraide.read()
         fichieraide.close()
@@ -1065,7 +1074,7 @@ class Vue():
         self.canevas.bind("<Control-MouseWheel>", self.OnCtrlMouseWheel)
         self.canevas.bind("<ButtonPress-1>", self.start_drag)
         self.canevas.bind("<B1-Motion>", self.do_drag)
-        
+
         # soit aux dessins, en vertu de leur tag (propriétés des objets dessinés)
         # ALL va réagir à n'importe quel dessin
         # sinon on spécifie un tag particulier, exemple avec divers tag, attaché par divers événements
@@ -1102,16 +1111,13 @@ class Vue():
         # update minimap viewport immediately (in case nothing moves yet)
         self.update_minimap_viewport()
 
-
     def do_drag(self, event):
         # perform canvas panning
         self.canevas.scan_dragto(event.x, event.y, gain=1)
         # update the rectangle on the minimap that shows the visible area
         self.update_minimap_viewport()
 
-
     def update_minimap_viewport(self):
-
 
         x_left_frac, x_right_frac = self.canevas.xview()
         y_top_frac, y_bottom_frac = self.canevas.yview()
@@ -1131,13 +1137,12 @@ class Vue():
         self.minicarte.delete("viewport")
         self.minicarte.create_rectangle(x1, y1, x2, y2, outline="red", width=3, tags=("viewport",))
 
-
     ##### FONCTION DU SPLASH #########################################################################
     def creer_partie(self):
         nom = self.nomsplash.get()
         ## ON VA LIRE LA VALEUR DE LA VARIABLE ASSOCIEE AU BTN RADION CHOISI
         # MORT urljeu = self.url_initial.get()
-        self.parent.creer_partie(nom) #, urljeu)  # ,valciv)
+        self.parent.creer_partie(nom)  # , urljeu)  # ,valciv)
 
     # ###  METHODES POUR SPLASH ET LOBBY INSCRIPTION pour participer a une partie
     # def update_splash(self, etat):
@@ -1172,7 +1177,6 @@ class Vue():
     def lancer_partie(self):
         self.parent.lancer_partie()
 
-
     # def reset_partie(self):
     #     rep = self.parent.reset_partie()
 
@@ -1191,7 +1195,8 @@ class Vue():
         # on ajuste la taille du canevas de jeu
         self.canevas.config(scrollregion=(0, 0, self.modele.aireX, self.modele.aireY))
         self.canevasaction.delete("nom")
-        self.canevasaction.create_text(100, 30, text=self.nom_joueur_local, font=("arial", 18, "bold"), anchor=S, tags=("nom"))
+        self.canevasaction.create_text(100, 30, text=self.nom_joueur_local, font=("arial", 18, "bold"), anchor=S,
+                                       tags=("nom"))
 
         # on cree les cadres affichant les items d'actions du joueur
         # cadre apparaissant si on selectionne un ouvrier
@@ -1220,7 +1225,7 @@ class Vue():
         self.canevas.delete("biotope")
         self.canevas.delete("batiment")
 
-        elements_eau_pure = ['eaugrand1', 'eaugrand2', 'eaugrand3']
+        elements_eau_pure = ['eaugrand', 'eaugrand1', 'eaugrand2', 'eaugrand3']
 
         if chargement:
             # Afficher l'eau depuis self.modele.biotopes
@@ -1245,8 +1250,11 @@ class Vue():
                     self.canevas.create_image(i.x, i.y, image=self.images[i.img], anchor=S,
                                               tags=("statique", "", i.id, "biotope", i.montype, tag_layer))
 
-        self.canevas.tag_lower("eau_layer")
-        self.canevas.tag_raise("decoration_eau_layer", "eau_layer")
+        # Réorganiser les couches seulement si elles existent
+        if self.canevas.find_withtag("eau_layer"):
+            self.canevas.tag_lower("eau_layer")
+        if self.canevas.find_withtag("decoration_eau_layer") and self.canevas.find_withtag("eau_layer"):
+            self.canevas.tag_raise("decoration_eau_layer", "eau_layer")
 
         # Afficher les biotopes (arbres, roches, etc.)
         if chargement:
@@ -1345,7 +1353,7 @@ class Vue():
         print(f"📏 Taille de case détectée : {taille_case}px")
 
         # Identifier les cases d'eau pure
-        elements_eau_pure = ['eaugrand1', 'eaugrand2', 'eaugrand3']
+        elements_eau_pure = ['eaugrand', 'eaugrand1', 'eaugrand2', 'eaugrand3']
         cases_eau = {}
 
         # Collecter toutes les cases d'eau avec leur position en cases de grille
@@ -1480,8 +1488,6 @@ class Vue():
         self.canevas.tag_lower("eau_layer")
         print("\n✅ Fusion de l'eau terminée")
 
-
-
     def afficher_bio(self, bio):
         self.canevas.create_image(bio.x, bio.y, image=self.images[bio.img],
                                   tags=("statique", "", bio.id, "biotope", bio.montype, ""))
@@ -1494,8 +1500,9 @@ class Vue():
         print(self.parent.nom_joueur_local)
         chose = self.canevas.create_image(batiment.x, batiment.y, image=self.images[batiment.image],
                                           tags=(
-                                          "statique", self.parent.nom_joueur_local, batiment.id, "batiment", batiment.montype,
-                                          ""))
+                                              "statique", self.parent.nom_joueur_local, batiment.id, "batiment",
+                                              batiment.montype,
+                                              ""))
 
         x0, y0, x2, y2 = self.canevas.bbox(chose)
 
@@ -1521,7 +1528,7 @@ class Vue():
         for i in self.modele.ressourcemorte:
             self.canevas.delete(i.id)
 
-        elements_eau_pure = ['eaugrand1', 'eaugrand2', 'eaugrand3']
+        elements_eau_pure = ['eaugrand', 'eaugrand1', 'eaugrand2', 'eaugrand3']
 
         for j in self.modele.biotopes["eau"].keys():
             i = self.modele.biotopes["eau"][j]
@@ -1580,7 +1587,7 @@ class Vue():
                             self.canevas.create_image(b.x, b.y, image=self.images[b.image],
                                                       tags=("mobile", j, b.id, "", type(b).__name__, ""))
 
-#
+        #
         # mettre les chat a jour si de nouveaux messages sont arrives
         if self.textchat and self.modele.joueurs[self.parent.nom_joueur_local].chatneuf:
             self.textchat.delete(0, END)
@@ -1689,8 +1696,6 @@ class Vue():
         x = evt.x
         y = evt.y
 
-
-
         pctx = x / self.tailleminicarte
         pcty = y / self.tailleminicarte
 
@@ -1703,7 +1708,6 @@ class Vue():
         yl = self.canevas.winfo_height()
 
         self.update_minimap_viewport()
-
 
     def batir_artefact(self, evt):
         obj = evt.widget
@@ -1805,8 +1809,8 @@ class Action():
         h = max(1, self.parent.canevasaction.winfo_height())
         cx, cy = w // 2, h // 2
         self.widgetsactifs = self.parent.canevasaction.create_window(cx, cy,
-                                         window=self.parent.cadreouvrier,
-                                         anchor=CENTER)
+                                                                     window=self.parent.cadreouvrier,
+                                                                     anchor=CENTER)
         self.parent.root.update()
         fh = self.parent.cadreouvrier.winfo_height()
         ch = int(self.parent.canevasaction.cget("height"))
@@ -1818,7 +1822,8 @@ class Action():
         txt = self.parent.entreechat.get()
         joueur = self.parent.joueurs.get()
         if joueur:
-            action = [self.parent.nom_joueur_local, "chatter", [self.parent.nom_joueur_local + ": " + txt, self.parent.nom_joueur_local, joueur]]
+            action = [self.parent.nom_joueur_local, "chatter",
+                      [self.parent.nom_joueur_local + ": " + txt, self.parent.nom_joueur_local, joueur]]
             self.parent.parent.actions_requises.append(action)
 
     def chatter(self):
@@ -1852,6 +1857,7 @@ class Action():
 
     ### FIN des methodes pour lancer la partie
 
+
 # classe qui est une sous-classe d'une classe tkinter dont on change les proprietes
 class Champ(Label):
     def __init__(self, master, *args, **kwargs):
@@ -1859,6 +1865,7 @@ class Champ(Label):
         self.config(font=("arial", 25, "bold"))
         self.config(bg="goldenrod3")
         self.config(highlightthickness=2, highlightbackground="goldenrod2")
+
 
 # a enlever test only
 if __name__ == '__main__':

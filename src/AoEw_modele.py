@@ -23,6 +23,7 @@ class Region():
         self.montype = montype
         self.dicocases = {}
 
+
 class Caseregion():
     def __init__(self, parent, id, x, y):
         self.parent = parent
@@ -31,6 +32,7 @@ class Caseregion():
         self.ressources = {}
         self.x = x
         self.y = y
+
 
 #######################  LE MODELE est la partie #######################
 class Partie():
@@ -119,6 +121,56 @@ class Partie():
             self.cartecase[i[1]][i[0]].montype = "batiment"
         batiment.cartebatiment = cartebatiment
 
+    def position_libre_pour_batiment_complet(self, x, y, rayon=60):
+        """
+        Vérifie si un bâtiment peut être placé à la position (x, y) en tenant
+        compte de tout le rayon autour du centre.
+        - Aucun point du rayon ne doit être sur eau ou marais.
+        - Empêche la proximité avec les ressources terrestres.
+        """
+        xmin = max(0, x - rayon)
+        xmax = min(self.aireX - 1, x + rayon)
+        ymin = max(0, y - rayon)
+        ymax = min(self.aireY - 1, y + rayon)
+
+        # Vérifie chaque case du rectangle englobant le rayon
+        step = self.taillecase  # on peut aussi tester tous les pixels pour plus de sécurité
+        for px in range(xmin, xmax, step):
+            for py in range(ymin, ymax, step):
+                case = self.trouver_case(px, py)
+                if case.montype in ["eau", "marais"]:
+                    return False
+
+        # Vérifie la distance avec les ressources terrestres
+        for bio in self.listebiotopes:
+            if bio.montype in ["eau", "marais"]:
+                continue
+            if Helper.calcDistance(x, y, bio.x, bio.y) < rayon:
+                return False
+
+        return True
+    def position_libre_pour_batiment(self, x, y, rayon=60):
+        """
+        Vérifie si un bâtiment peut être placé à la position (x, y).
+        - Empêche les constructions sur l’eau ou les marais.
+        - Empêche la proximité avec des ressources (arbres, roches, etc.)
+        """
+        # Vérifie la nature du terrain
+        case = self.trouver_case(x, y)
+        if case.montype in ["eau", "marais"]:
+            return False
+
+        # Vérifie qu’aucune ressource terrestre n’est trop proche
+        for bio in self.listebiotopes:
+            if bio.montype in ["eau", "marais"]:
+                continue
+            if Helper.calcDistance(x, y, bio.x, bio.y) < rayon:
+                return False
+
+        return True
+
+
+
     def creer_biotopes(self):
         # creer des daims éparpillés
         n = 20
@@ -143,26 +195,131 @@ class Partie():
 
         for cleregion in self.regions[region].keys():
             listecases = self.regions[region][cleregion].dicocases
-            # for listecase in self.regions[region]:
-            # nressource = random.randrange(int(len(listecases) / 3)) + int((len(listecases) / 5))
-            nressource = int((random.randrange(len(listecases)) / 3) + 1)
-            print("RESSOURCES N", nressource)
-            while nressource:
-                cases = list(listecases.keys())
-                pos = listecases[random.choice(cases)]
-                # pos=random.choice(listecases)
-                x = random.randrange(self.taillecase)
-                y = random.randrange(self.taillecase)
-                xa = (pos.x * self.taillecase) + x
-                ya = (pos.y * self.taillecase) + y
 
-                styleress = random.choice(typeressource)
-                id = get_prochain_id()
-                objet = typeclasse(self, id, styleress, xa, ya, ressource, cleregion, pos.id)
-                pos.ressources[id] = objet
-                self.biotopes[ressource][id] = (objet)
-                self.listebiotopes.append(objet)
-                nressource -= 1
+            # Traitement spécial pour l'eau : remplir densément pour créer des lacs
+            if ressource == "eau":
+                # ÉTAPE 1 : Remplir toutes les cases avec de l'eau de base (dense)
+                for cle, pos in listecases.items():
+                    # Créer plusieurs éléments d'eau de base par case pour un effet de lac dense
+                    nb_elements_par_case = random.randint(3, 6)  # 3 à 6 éléments par case
+                    for _ in range(nb_elements_par_case):
+                        x = random.randrange(self.taillecase)
+                        y = random.randrange(self.taillecase)
+                        xa = (pos.x * self.taillecase) + x
+                        ya = (pos.y * self.taillecase) + y
+
+                        # Utiliser uniquement l'eau de base
+                        styleress = random.choice(typeclasse.typeressource_base)
+                        id = get_prochain_id()
+                        objet = typeclasse(self, id, styleress, xa, ya, ressource, cleregion, pos.id)
+                        pos.ressources[id] = objet
+                        self.biotopes[ressource][id] = (objet)
+                        self.listebiotopes.append(objet)
+
+                # ÉTAPE 2 : Ajouter des décorations de façon éparse (5-10% des cases)
+                nb_decorations = int(len(listecases) * random.uniform(0.05, 0.10))
+                cases_pour_decoration = random.sample(list(listecases.keys()), min(nb_decorations, len(listecases)))
+
+                for cle in cases_pour_decoration:
+                    pos = listecases[cle]
+                    # 1 décoration par case choisie (réduit de 1-2 à 1)
+                    for _ in range(1):
+                        x = random.randrange(self.taillecase)
+                        y = random.randrange(self.taillecase)
+                        xa = (pos.x * self.taillecase) + x
+                        ya = (pos.y * self.taillecase) + y
+
+                        # Utiliser les éléments décoratifs
+                        styleress = random.choice(typeclasse.typeressource_decoration)
+                        id = get_prochain_id()
+                        objet = typeclasse(self, id, styleress, xa, ya, ressource, cleregion, pos.id)
+                        pos.ressources[id] = objet
+                        self.biotopes[ressource][id] = (objet)
+                        self.listebiotopes.append(objet)
+            else:
+                # Pour les ressources terrestres : génération par amas
+                n_clusters = max(1, len(listecases) // 30)  # nombre de groupes de ressources dans la région
+                taille_amas = random.randint(3, 8)  # ressources par groupe
+                distance_cluster = 40  # distance moyenne entre les ressources du même groupe
+                distance_min_entre_ressources = 30  # empêche les chevauchements
+                distance_securite = 40  # distance minimale de l’e
+                if ressource == "marais":
+                    terrains_interdits = ["roche", "aureus", "arbre"]
+                else:
+                    terrains_interdits = ["eau", "marais"]
+
+                tentatives_max = n_clusters * taille_amas * 10
+                tentatives = 0
+                creees = 0
+
+                pos_centre = random.choice(list(listecases.values()))
+                cx = (pos_centre.x * self.taillecase) + random.randrange(self.taillecase)
+                cy = (pos_centre.y * self.taillecase) + random.randrange(self.taillecase)
+                while creees < n_clusters * taille_amas and tentatives < tentatives_max:
+                    tentatives += 1
+                    # --- Si on commence un nouvel amas ---
+                    if creees % taille_amas == 0:
+                        pos_centre = random.choice(list(listecases.values()))
+                        cx = (pos_centre.x * self.taillecase) + random.randrange(self.taillecase)
+                        cy = (pos_centre.y * self.taillecase) + random.randrange(self.taillecase)
+                    # --- Génération autour du centre ---
+                    angle = random.uniform(0, 360)
+                    dist = random.randint(10, distance_cluster)
+                    xa, ya = Helper.getAngledPoint(angle, dist, cx, cy)
+
+
+                    case_cible = self.trouver_case(xa, ya)
+                    if case_cible.montype in terrains_interdits:
+                        continue
+
+                    # Trop proche de l’eau ?
+                    proche_eau = False
+                    for dx in range(-distance_securite, distance_securite + 1, self.taillecase):
+                        for dy in range(-distance_securite, distance_securite + 1, self.taillecase):
+                            case_voisine = self.trouver_case(xa + dx, ya + dy)
+                            if case_voisine.montype == "eau":
+                                proche_eau = True
+                                break
+                        if proche_eau:
+                            break
+                    if proche_eau:
+                        continue
+
+
+
+                    # Trop proche d’une autre ressource ?
+                    chevauche = False
+                    for autre in self.listebiotopes:
+                        if autre.montype in ["eau", "marais"]:
+                            continue
+                        if Helper.calcDistance(xa, ya, autre.x, autre.y) < distance_min_entre_ressources:
+                            chevauche = True
+                            break
+                    if chevauche:
+                        continue
+
+
+                    # Vérif spéciale : marais collés à l’eau
+                    if ressource == "marais":
+                        voisin_eau = False
+                        for dx in [-self.taillecase, 0, self.taillecase]:
+                            for dy in [-self.taillecase, 0, self.taillecase]:
+                                case_voisine = self.trouver_case(xa + dx, ya + dy)
+                                if case_voisine.montype == "eau":
+                                    voisin_eau = True
+                                    break
+                            if voisin_eau:
+                                break
+                        if not voisin_eau:
+                            continue
+                    # Placement validé 🎯
+                    styleress = random.choice(typeressource)
+                    id = get_prochain_id()
+                    objet = typeclasse(self, id, styleress, xa, ya, ressource, cleregion, pos_centre.id)
+                    pos_centre.ressources[id] = objet
+                    self.biotopes[ressource][id] = objet
+                    self.listebiotopes.append(objet)
+                    creees += 1
 
     def creer_regions(self):
         for reg in self.regionstypes:
@@ -221,7 +378,7 @@ class Partie():
     def creer_population(self, nb_IAs):
         noms_joueurs = [self.nom_joueur]
         for i in range(nb_IAs):
-            noms_joueurs.append("IA_"+str(i))
+            noms_joueurs.append("IA_" + str(i))
 
         couleurs = [["O", "orange"], ["R", "red"], ["B", "blue"], ["J", "yellow"], ["V", "lightgreen"]]
         quadrants = [[[0, 0], [int(self.aireX / 2), int(self.aireY / 2)]],
@@ -241,7 +398,7 @@ class Partie():
             quad = quadrants.pop(choixquad)
 
             n = 1
-            
+
             while n:
                 x = random.randrange(quad[0][0] + bord, quad[1][0] - bord)
                 y = random.randrange(quad[0][1] + bord, quad[1][1] - bord)
@@ -256,15 +413,15 @@ class Partie():
 
     ################ Zone pour méthodes AI ###############################################
     def objets_dans_rayon(self, x, y, r):
-    # Retourne des générateurs (ou listes) d’objets candidats, on garde simple au début.
-    # 1) Ressources (biotopes)
+        # Retourne des générateurs (ou listes) d’objets candidats, on garde simple au début.
+        # 1) Ressources (biotopes)
         ressources = []
         for typ, d in self.biotopes.items():
             for obj in d.values():
                 # Filtre rapide par distance
                 if Helper.calcDistance(x, y, obj.x, obj.y) <= r:
-                    ressources.append(obj)           
-      # 2) Persos & bâtiments de tous les joueurs
+                    ressources.append(obj)
+                    # 2) Persos & bâtiments de tous les joueurs
         persos = []
         batiments = []
         for j in self.joueurs.values():
@@ -280,9 +437,7 @@ class Partie():
                         batiments.append(b)
 
         return persos, batiments, ressources
-    
 
-    
     #############################################################################
 
     def deplacer(self):
@@ -293,7 +448,7 @@ class Partie():
         self.ressourcemorte = []
         ##################################################################
         # faire nouvelle action recu du serveur si on est au bon cadrecourant
-        # ATTENTION : NE PAS TOUCHER 
+        # ATTENTION : NE PAS TOUCHER
         if cadrecourant in self.actions_a_faire:
             for i in self.actions_a_faire[cadrecourant]:
                 print(i)
@@ -466,8 +621,7 @@ class Partie():
         if ress not in self.ressourcemorte:
             self.ressourcemorte.append(ress)
 
-
-    #Transmet les actions du AI vers le contrôleur
+    # Transmet les actions du AI vers le contrôleur
     def action_AI_vers_controleur(self, action):
         self.parent.actions_requises.append(action)
 
@@ -479,7 +633,7 @@ class Partie():
             if (iteration - 1) > int(iteration_cle):
                 print("PEUX PASSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS")
             if i[1]:
-                #action = json.loads(i[1])
+                # action = json.loads(i[1])
                 action = i[1]
             else:
                 action = None
@@ -490,5 +644,3 @@ class Partie():
                     for j in action:
                         self.actions_a_faire[iteration_cle].append(j)
     ##############################################################################
-
-

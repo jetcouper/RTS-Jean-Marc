@@ -1,6 +1,7 @@
 import random
 from helper import Helper
 
+
 class Biotope():
     def __init__(self, parent, id, monimg, x, y, montype, idregion=0, posid="0"):
         self.parent = parent
@@ -14,6 +15,7 @@ class Biotope():
         self.idregion = idregion
         self.idcaseregion = posid
 
+
 class Baie(Biotope):
     typeressource = ['arbustebaiesgrand',
                      'arbustebaiespetit',
@@ -22,6 +24,7 @@ class Baie(Biotope):
     def __init__(self, parent, id, monimg, x, y, montype):
         Biotope.__init__(self, parent, id, monimg, x, y, montype)
         self.valeur = 30
+
 
 class Marais(Biotope):
     typeressource = ['marais1',
@@ -32,21 +35,26 @@ class Marais(Biotope):
         Biotope.__init__(self, parent, id, monimg, x, y, montype, cleregion, posid)
         self.valeur = 100
 
+
 class Eau(Biotope):
-    typeressource = ['eaugrand1',
-                     'eaugrand2',
-                     'eaugrand3',
-                     'eaujoncD',
-                     'eaujoncG',
-                     'eauquenouillesD',
-                     'eauquenouillesG',
-                     'eauquenouillesgrand',
-                     'eautourbillon',
-                     'eautroncs']
+    # Eau de base pour remplir les lacs
+    typeressource_base = ['eaugrand']
+
+    # Éléments décoratifs à ajouter par-dessus de façon éparse
+    typeressource_decoration = ['eaujoncD',
+                                'eaujoncG',
+                                'eauquenouillesD',
+                                'eauquenouillesG',
+                                'eauquenouillesgrand',
+                                'eautourbillon',
+                                'eautroncs']
+
+    # Liste complète (pour compatibilité avec le code existant)
+    typeressource = typeressource_base + typeressource_decoration
 
     def __init__(self, parent, id, monimg, x, y, montype, cleregion, posid):
         Biotope.__init__(self, parent, id, monimg, x, y, montype, cleregion, posid)
-        n = random.randrange(50)
+        n = random.randrange(500)  # Changé de 50 à 200 pour moins de poissons
         if n == 6:
             self.spritelen = 6  # len(self.parent.parent.vue.gifs["poissons"])
             self.sprite = "poissons"
@@ -61,6 +69,7 @@ class Eau(Biotope):
             if self.spriteno > self.spritelen - 1:
                 self.spriteno = 0
 
+
 class Aureus(Biotope):
     typeressource = ['aureusbrillant',
                      'aureusD_',
@@ -72,6 +81,7 @@ class Aureus(Biotope):
     def __init__(self, parent, id, monimg, x, y, montype, cleregion, posid):
         Biotope.__init__(self, parent, id, monimg, x, y, montype, cleregion, posid)
         self.valeur = 100
+
 
 class Roche(Biotope):
     typeressource = ['roches1 grand',
@@ -88,6 +98,7 @@ class Roche(Biotope):
         Biotope.__init__(self, parent, id, monimg, x, y, montype, cleregion, posid)
         self.valeur = 100
 
+
 class Arbre(Biotope):
     typeressource = ['arbre0grand',
                      'arbre0petit',
@@ -99,6 +110,7 @@ class Arbre(Biotope):
     def __init__(self, parent, id, monimg, x, y, montype, cleregion, posid):
         Biotope.__init__(self, parent, id, monimg, x, y, montype, cleregion, posid)
         self.valeur = 30
+
 
 class Daim():
     def __init__(self, parent, id, x, y, notyperegion=-1, idregion=None):
@@ -172,4 +184,3 @@ class Daim():
         else:
             self.dir = self.dir + "H"
         self.img = self.nomimg + self.dir
-
