@@ -232,12 +232,12 @@ class Perso():
         case = self.parent.parent.trouver_case(x1, y1)
         #
         # test si different de 0 (0=plaine), voir Partie pour attribution des valeurs
-        if case.montype != "plaine":
-            # test pour être sur que de n'est 9 (9=batiment)
-            if case.montype != "batiment":
-                print("marche dans ", case.montype)
-            else:
-                print("marche dans batiment")
+        # if case.montype != "plaine":
+        #     # test pour être sur que de n'est 9 (9=batiment)
+        #     if case.montype != "batiment":
+        #         print("marche dans ", case.montype)
+        #     else:
+        #         print("marche dans batiment")
 
     def test_etat_du_sol1(self, x1, y1):
         ######## SINON TROUVER VOIE DE CONTOURNEMENT

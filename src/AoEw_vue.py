@@ -6,7 +6,7 @@ from chargeurdimages import *
 import AoEw_client_main as m # a enlever test only
 import ctypes
 from datetime import datetime
-from fog import FogOverlay
+from fog import FogOverlay, FogState
 
 from PIL import Image, ImageTk  # Pour redimensionner l’image
 
@@ -1223,14 +1223,14 @@ class Vue():
         self.creer_chatter()
         # on affiche les maisons, point de depart des divers joueurs
 
+
+        self.afficher_depart(chargement)
         #Fog
         self.fog_overlay = FogOverlay(
             self.canevas,
             self.modele.fog,
             self.modele.taillecase
         )
-
-        self.afficher_depart(chargement)
         self.root.update()
         # self.centrer_maison()
 
@@ -1263,15 +1263,16 @@ class Vue():
         else:
             # Nouveau jeu : afficher depuis listebiotopes
             self.modele.listebiotopes.sort(key=lambda c: c.y)
-            for i in self.modele.listebiotopes:
-                if i.montype == "daim":
-                    monitem = self.canevas.create_image(i.x, i.y, image=self.images[i.img], anchor=S,
-                                                        tags=("mobile", "", i.id, "biotope", i.montype, ""))
-                else:
-                    monitem = self.canevas.create_image(i.x, i.y, image=self.images[i.img], anchor=S,
-                                                        tags=("statique", "", i.id, "biotope", i.montype, ""))
+            self.modele.listebiotopes.sort(key=lambda c: c.y)
+        for i in self.modele.listebiotopes:
+            if i.montype == "daim":
+                self.canevas.create_image(i.x, i.y, image=self.images[i.img], anchor=S,
+                                        tags=("mobile", "", i.id, "biotope", i.montype, ""))
+            else:
+                self.canevas.create_image(i.x, i.y, image=self.images[i.img], anchor=S,
+                                        tags=("statique", "", i.id, "biotope", i.montype, ""))
 
-            self.modele.listebiotopes = []  # Réinitialise la liste après affichage
+        self.modele.listebiotopes = []  # Réinitialise la liste après affichage
 
         # Affichage de la minicarte
         minitaillecase = int(self.tailleminicarte / self.modele.taillecarte)
@@ -1301,6 +1302,9 @@ class Vue():
         for j in self.modele.joueurs.keys():
             for type_bat in self.modele.joueurs[j].batiments:
                 for id_bat, bat in self.modele.joueurs[j].batiments[type_bat].items():
+                    if bat.parent != self.modele.joueurs[self.nom_joueur_local]:
+                        continue
+
                     coul = self.modele.joueurs[j].couleur[0]
                     # Utiliser l'image appropriée selon le type de bâtiment
                     if hasattr(bat, 'image'):
@@ -1370,6 +1374,8 @@ class Vue():
             # ajuster les constructions de chaque joueur
             for p in self.modele.joueurs[j].batiments['siteconstruction']:
                 s = self.modele.joueurs[j].batiments['siteconstruction'][p]
+                if self.modele.case_fog(s.x, s.y) == FogState.HIDDEN:
+                    continue
                 if s.etat == "attente":
                     self.canevas.create_image(s.x, s.y, anchor=CENTER, image=self.images["siteX"],
                                               tags=("mobile", j, p, "batiment", type(s).__name__, ""))
@@ -1382,6 +1388,8 @@ class Vue():
             for p in self.modele.joueurs[j].persos.keys():
                 for k in self.modele.joueurs[j].persos[p].keys():
                     i = self.modele.joueurs[j].persos[p][k]
+                    if self.modele.case_fog(i.x, i.y) != FogState.VISIBLE:
+                        continue
                     coul = self.modele.joueurs[j].couleur[0]
                     self.canevas.create_image(i.x, i.y, anchor=S, image=self.images[i.image],
                                               tags=("mobile", j, k, "perso", type(i).__name__, ""))
@@ -1401,6 +1409,8 @@ class Vue():
         # ajuster les choses vivantes dependantes de la partie (mais pas des joueurs)
         for j in self.modele.biotopes["daim"].keys():
             i = self.modele.biotopes["daim"][j]
+            if self.modele.case_fog(i.x, i.y) != FogState.VISIBLE:
+                continue
             if i.etat == "mort":
                 self.canevas.create_image(i.x, i.y, image=self.images["daimMORT"],
                                           tags=("mobile", "", i.id, "biotope", i.montype, ""))
@@ -1414,6 +1424,8 @@ class Vue():
         # ajuster les choses vivantes dependantes de la partie (mais pas des joueurs)
         for j in self.modele.biotopes["eau"].keys():
             i = self.modele.biotopes["eau"][j]
+            if self.modele.case_fog(i.x, i.y) != FogState.VISIBLE:
+                continue
             if i.sprite:
                 self.canevas.create_image(i.x, i.y, image=self.gifs[i.sprite][i.spriteno],
                                           tags=("mobile", "", i.id, "biotope", type(i).__name__, ""))

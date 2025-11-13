@@ -516,6 +516,16 @@ class Partie():
                 rayon = getattr(b, "champvision", 200)
                 marquer_vision_cercle(b.x, b.y, rayon)
 
+    def case_fog(self, xpx, ypx):
+        """Retourne l’état fog d’une position en pixels."""
+        tc = self.taillecase
+        cx = int(xpx / tc)
+        cy = int(ypx / tc)
+        if 0 <= cx < self.taillecarte and 0 <= cy < self.taillecarte:
+            return self.fog.map[cy][cx]
+        return FogState.VISIBLE   # fallback
+
+
     def eliminer_ressource(self, type, ress):
         if ress.idregion:
             # self.regions[ress.montype][ress.idregion].listecases.pop(ress.id)
