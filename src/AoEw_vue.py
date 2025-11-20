@@ -1352,8 +1352,20 @@ class Vue():
         # On place le bâtiment sous le fog (là où les cases sont HIDDEN/KNOWN)
         self.canevas.tag_lower(obj_id, "fog")
 
+        all_tags = ("statique", self.parent.nom_joueur_local, batiment.id, "batiment", batiment.montype,"")
+        self.dessiner_barre_vie(batiment, all_tags)
+
         x0, y0, x2, y2 = self.canevas.bbox(obj_id)
         return [x0, y0, x2, y2]
+    
+
+    def dessiner_barre_vie(self, obj, tagged, offset_y = 10, largeur=20):
+
+        life_ratio = obj.mana / obj.mana_max
+        current_width = largeur * life_ratio    
+        color_liferange = "green" if life_ratio > 0.5 else "orange" if life_ratio > 0.2 else "red"
+        self.canevas.create_rectangle(obj.x - largeur/2, obj.y - offset_y, obj.x + largeur/2 + current_width, obj.y - offset_y - 5, fill=color_liferange, tags=tagged)
+                                                     
 
 
     def afficher_jeu(self):
