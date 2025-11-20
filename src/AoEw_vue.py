@@ -1373,6 +1373,7 @@ class Vue():
         # On efface tout ce qui est 'mobile' (un tag)
         self.canevas.delete("mobile")
         self.canevas.delete("batiment")
+        self.canevas.delete("path")
 
         # on se debarrasse des choses mortes (disparues), le id est dans le tag du dessin
         for i in self.modele.ressourcemorte:
@@ -1412,6 +1413,18 @@ class Vue():
                                               tags=("mobile", j, k, "perso", p, ""))
                     # tags=(j,k,"artefact","mobile","perso",p))
 
+                    if getattr(i, "chemin_planifie", None):
+                        for px, py in i.chemin_planifie:
+                            self.canevas.create_oval(
+                                px - 3, py - 3, px + 3, py + 3,
+                                fill="red",
+                                outline="",
+                                tags=("path",)
+                            )
+                        # on met les points sous les mobiles pour garder la lisibilit��
+                        self.canevas.tag_lower("path", "mobile")
+                        self.canevas.tag_lower("path", "fog")
+            
             
                     if k in self.action.persochoisi:
                         all_tags=("mobile", j, p, "perso", type(i).__name__, "persochoisi")
