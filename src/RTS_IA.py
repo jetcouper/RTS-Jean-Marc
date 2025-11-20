@@ -92,13 +92,13 @@ class IA(Joueur):
         if self.delai_action==0:
             #action=random.choice(list(self.actions.keys())) #On ne veut pas que ses choix soient random
             #self.actions[action]()
-            self.decideraction()
+            self.decider_action()
             self.delai_action=20
         else:
             self.delai_action-=1
         
 
-    def decideraction(self):
+    def decider_action(self):
         # anti-spam
         if self.delai_action > 0:
             self.delai_action -= 1

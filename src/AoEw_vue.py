@@ -6,6 +6,8 @@ from chargeurdimages import *
 import AoEw_client_main as m # a enlever test only
 import ctypes
 from datetime import datetime
+from vue.fog import FogOverlay, FogState
+from vue.minimap import MiniMapRenderer
 
 from PIL import Image, ImageTk  # Pour redimensionner l’image
 
@@ -19,6 +21,8 @@ class Vue():
         self.nom_joueur_local = StringVar()
         self.nom_joueur_local.set(nom_joueur_local)
         self.user = None
+        self.fog_overlay: FogOverlay
+        self.minimap_renderer: MiniMapRenderer
 
         # Centrer la fenêtre sur l'écran
         self.root.update_idletasks()
@@ -75,7 +79,7 @@ class Vue():
         self.textchat = ""
         self.infohud = {}
         # # minicarte
-        self.tailleminicarte = 400
+        self.tailleminicarte = 200
         self.cadreactif = None
         self.toplevelactif = None
         self.topblackactif = None
@@ -940,7 +944,7 @@ class Vue():
         # minicarte
         # minicarte : placer en bas à gauche du cadre de jeu (au-dessus du canevas)
         self.minicarte = Canvas(self.cadrecanevas, width=self.tailleminicarte, height=self.tailleminicarte,
-                    bg="tan1", highlightthickness=0)
+                    bg="tan1", highlightthickness=0, borderwidth=2)
         # placer ancré en bas-gauche avec une petite marge (anchor 'sw' = south-west)
         self.minicarte.place(relx=1.0, rely=1.0, x=-10, y=-10, anchor='se')
         self.minicarte.bind("<Button-1>", self.deplacer_carte)
@@ -1151,6 +1155,7 @@ class Vue():
         self.minicarte.create_rectangle(x1, y1, x2, y2, outline="red", width=3, tags=("viewport",))
 
 
+
     ##### FONCTION DU SPLASH #########################################################################
     def creer_partie(self):
         nom = self.nomsplash.get()
@@ -1199,6 +1204,12 @@ class Vue():
 
         self.canevas.delete("ALL")  # Supprime TOUS les dessins
         self.minicarte.delete("ALL")
+        # --- Initialiser conteneur image pour la minimap ---
+        self.minicarte_img = self.minicarte.create_image(
+            0, 0,
+            anchor="nw",
+            image=None
+        )
 
         if hasattr(self, 'action'):
             self.action.persochoisi = []
@@ -1221,7 +1232,16 @@ class Vue():
         self.creer_chatter()
         # on affiche les maisons, point de depart des divers joueurs
 
+
         self.afficher_depart(chargement)
+        #Fog
+        self.fog_overlay = FogOverlay(
+            self.canevas,
+            self.modele.fog,
+            self.modele.taillecase
+        )
+        self.minimap_renderer = MiniMapRenderer(self.modele, self.tailleminicarte)
+        self.minicarte.itemconfigure(self.minicarte_img, image=self.minimap_renderer.tk)
         self.root.update()
         # self.centrer_maison()
 
@@ -1254,39 +1274,40 @@ class Vue():
         else:
             # Nouveau jeu : afficher depuis listebiotopes
             self.modele.listebiotopes.sort(key=lambda c: c.y)
-            for i in self.modele.listebiotopes:
-                if i.montype == "daim":
-                    monitem = self.canevas.create_image(i.x, i.y, image=self.images[i.img], anchor=S,
-                                                        tags=("mobile", "", i.id, "biotope", i.montype, ""))
-                else:
-                    monitem = self.canevas.create_image(i.x, i.y, image=self.images[i.img], anchor=S,
-                                                        tags=("statique", "", i.id, "biotope", i.montype, ""))
+            self.modele.listebiotopes.sort(key=lambda c: c.y)
+        for i in self.modele.listebiotopes:
+            if i.montype == "daim":
+                self.canevas.create_image(i.x, i.y, image=self.images[i.img], anchor=S,
+                                        tags=("mobile", "", i.id, "biotope", i.montype, ""))
+            else:
+                self.canevas.create_image(i.x, i.y, image=self.images[i.img], anchor=S,
+                                        tags=("statique", "", i.id, "biotope", i.montype, ""))
 
-            self.modele.listebiotopes = []  # Réinitialise la liste après affichage
+        self.modele.listebiotopes = []  # Réinitialise la liste après affichage
 
         # Affichage de la minicarte
-        minitaillecase = int(self.tailleminicarte / self.modele.taillecarte)
-        couleurs = {0: "",
-                    "arbre": "light green",
-                    "eau": "light blue",
-                    "aureus": "tan",
-                    "roche": "gray30",
-                    "marais": "orange"}
+        # minitaillecase = int(self.tailleminicarte / self.modele.taillecarte)
+        # couleurs = {0: "",
+        #             "arbre": "light green",
+        #             "eau": "light blue",
+        #             "aureus": "tan",
+        #             "roche": "gray30",
+        #             "marais": "orange"}
 
-        for i, t in enumerate(self.modele.regions):
-            if t != "plaine":
-                for j, c in enumerate(self.modele.regions[t]):
-                    for cle, k in self.modele.regions[t][c].dicocases.items():
-                        y1 = k.y * minitaillecase
-                        y2 = y1 + minitaillecase
-                        x1 = k.x * minitaillecase
-                        x2 = x1 + minitaillecase
-                        self.minicarte.create_rectangle(x1, y1, x2, y2, outline="",
-                                                        fill=couleurs[k.parent.montype])
+        # for i, t in enumerate(self.modele.regions):
+        #     if t != "plaine":
+        #         for j, c in enumerate(self.modele.regions[t]):
+        #             for cle, k in self.modele.regions[t][c].dicocases.items():
+        #                 y1 = k.y * minitaillecase
+        #                 y2 = y1 + minitaillecase
+        #                 x1 = k.x * minitaillecase
+        #                 x2 = x1 + minitaillecase
+        #                 self.minicarte.create_rectangle(x1, y1, x2, y2, outline="",
+        #                                                 fill=couleurs[k.parent.montype])
 
-        # Affichage des bâtiments sur l'aire de jeu et sur la minicarte
-        px = int(self.tailleminicarte / self.modele.aireX)
-        py = int(self.tailleminicarte / self.modele.aireY)
+        # # Affichage des bâtiments sur l'aire de jeu et sur la minicarte
+        # px = int(self.tailleminicarte / self.modele.aireX)
+        # py = int(self.tailleminicarte / self.modele.aireY)
 
         # Afficher tous les bâtiments (pour nouveau jeu ET chargement)
         for j in self.modele.joueurs.keys():
@@ -1302,57 +1323,44 @@ class Vue():
                     self.canevas.create_image(bat.x, bat.y, image=self.images[img_key], anchor=S,
                                               tags=("statique", j, bat.id, "batiment", bat.montype, ""))
 
-                    # Afficher sur minicarte
-                    coul_mini = self.modele.joueurs[j].couleur[1]
-                    x1 = int((bat.x / self.modele.aireX) * self.tailleminicarte)
-                    y1 = int((bat.y / self.modele.aireY) * self.tailleminicarte)
-                    self.minicarte.create_rectangle(x1 - 2, y1 - 2, x1 + 2, y1 + 2, fill=coul_mini,
-                                                    tags=(j, bat.id, "artefact", bat.montype))
+                    # # Afficher sur minicarte
+                    # coul_mini = self.modele.joueurs[j].couleur[1]
+                    # x1 = int((bat.x / self.modele.aireX) * self.tailleminicarte)
+                    # y1 = int((bat.y / self.modele.aireY) * self.tailleminicarte)
+                    # self.minicarte.create_rectangle(x1 - 2, y1 - 2, x1 + 2, y1 + 2, fill=coul_mini,
+                    #                                 tags=(j, bat.id, "artefact", bat.montype))
 
     def afficher_bio(self, bio):
-        self.canevas.create_image(bio.x, bio.y, image=self.images[bio.img],
+        bio = self.canevas.create_image(bio.x, bio.y, image=self.images[bio.img],
                                   tags=("statique", "", bio.id, "biotope", bio.montype, ""))
+        self.canevas.tag_lower(bio, "fog")
 
     def afficher_batiment(self, joueur, batiment):
-        coul = self.modele.joueurs[joueur].couleur[0]
-
+        # Supprime les anciens dessins de ce bâtiment
         self.canevas.delete(batiment.id)
 
-        print(self.parent.nom_joueur_local)
-        chose = self.canevas.create_image(batiment.x, batiment.y, image=self.images[batiment.image],
-                                          tags=(
-                                          "statique", self.parent.nom_joueur_local, batiment.id, "batiment", batiment.montype,
-                                          ""))
-        all_tags = ("statique", self.parent.nom_joueur_local, batiment.id, "batiment", batiment.montype,"")
-        self.dessiner_barre_vie(batiment, all_tags)
+        img_key = batiment.image  # tu l’as sur tes objets
 
-        x0, y0, x2, y2 = self.canevas.bbox(chose)
+        obj_id = self.canevas.create_image(
+            batiment.x,
+            batiment.y,
+            image=self.images[img_key],
+            anchor=S,
+            tags=("statique", joueur, batiment.id, "batiment", batiment.montype, "")
+        )
 
-        couleurs = {0: "",
-                    1: "light green",
-                    2: "light blue",
-                    3: "tan",
-                    4: "gray30",
-                    5: "orange"}
-        coul = self.modele.joueurs[joueur].couleur[1]
-        x1 = int((batiment.x / self.modele.aireX) * self.tailleminicarte)
-        y1 = int((batiment.y / self.modele.aireY) * self.tailleminicarte)
-        self.minicarte.create_rectangle(x1 - 2, y1 - 2, x1 + 2, y1 + 2, fill=coul,
-                                        tags=(self.parent.nom_joueur_local, batiment.id, "artefact", batiment.montype))
+        # On place le bâtiment sous le fog (là où les cases sont HIDDEN/KNOWN)
+        self.canevas.tag_lower(obj_id, "fog")
+
+        x0, y0, x2, y2 = self.canevas.bbox(obj_id)
         return [x0, y0, x2, y2]
-    
-    def dessiner_barre_vie(self, obj, tagged, offset_y = 10, largeur=20):
 
-        life_ratio = obj.mana / obj.mana_max
-        current_width = largeur * life_ratio    
-        color_liferange = "green" if life_ratio > 0.5 else "orange" if life_ratio > 0.2 else "red"
-        self.canevas.create_rectangle(obj.x - largeur/2, obj.y - offset_y, obj.x + largeur/2 + current_width, obj.y - offset_y - 5, fill=color_liferange, tags=tagged)
-                                                     
 
     def afficher_jeu(self):
       
         # On efface tout ce qui est 'mobile' (un tag)
         self.canevas.delete("mobile")
+        self.canevas.delete("batiment")
 
         # on se debarrasse des choses mortes (disparues), le id est dans le tag du dessin
         for i in self.modele.ressourcemorte:
@@ -1371,6 +1379,8 @@ class Vue():
             # ajuster les constructions de chaque joueur
             for p in self.modele.joueurs[j].batiments['siteconstruction']:
                 s = self.modele.joueurs[j].batiments['siteconstruction'][p]
+                if self.modele.case_fog(s.x, s.y) != FogState.VISIBLE:
+                    continue
                 if s.etat == "attente":
                     self.canevas.create_image(s.x, s.y, anchor=CENTER, image=self.images["siteX"],
                                               tags=("mobile", j, p, "batiment", type(s).__name__, ""))
@@ -1383,6 +1393,8 @@ class Vue():
             for p in self.modele.joueurs[j].persos.keys():
                 for k in self.modele.joueurs[j].persos[p].keys():
                     i = self.modele.joueurs[j].persos[p][k]
+                    if self.modele.case_fog(i.x, i.y) != FogState.VISIBLE:
+                        continue
                     coul = self.modele.joueurs[j].couleur[0]
                     self.canevas.create_image(i.x, i.y, anchor=S, image=self.images[i.image],
                                               tags=("mobile", j, k, "perso", p, ""))
@@ -1405,6 +1417,8 @@ class Vue():
         # ajuster les choses vivantes dependantes de la partie (mais pas des joueurs)
         for j in self.modele.biotopes["daim"].keys():
             i = self.modele.biotopes["daim"][j]
+            if self.modele.case_fog(i.x, i.y) != FogState.VISIBLE:
+                continue
             if i.etat == "mort":
                 self.canevas.create_image(i.x, i.y, image=self.images["daimMORT"],
                                           tags=("mobile", "", i.id, "biotope", i.montype, ""))
@@ -1418,6 +1432,8 @@ class Vue():
         # ajuster les choses vivantes dependantes de la partie (mais pas des joueurs)
         for j in self.modele.biotopes["eau"].keys():
             i = self.modele.biotopes["eau"][j]
+            if self.modele.case_fog(i.x, i.y) != FogState.VISIBLE:
+                continue
             if i.sprite:
                 self.canevas.create_image(i.x, i.y, image=self.gifs[i.sprite][i.spriteno],
                                           tags=("mobile", "", i.id, "biotope", type(i).__name__, ""))
@@ -1430,6 +1446,14 @@ class Vue():
             if self.modele.joueurs[self.parent.nom_joueur_local].chatneuf and self.action.chaton == 0:
                 self.btnchat.config(bg="orange")
             self.modele.joueurs[self.parent.nom_joueur_local].chatneuf = 0
+        
+        self.afficher_batiment_visible()
+
+        # FOG
+        self.fog_overlay.update()
+        self.minimap_renderer.update()
+        self.minicarte.itemconfigure(self.minicarte_img, image=self.minimap_renderer.tk)
+
 
     def centrer_maison(self):
         self.root.update()
@@ -1447,6 +1471,41 @@ class Vue():
         self.canevas.yview_moveto(pcty)
 
         self.update_minimap_viewport()
+    
+    def afficher_batiment_visible(self):
+        for j, jdata in self.modele.joueurs.items():
+            for type_bat, dico_bats in jdata.batiments.items():
+                # on laisse 'siteconstruction' géré plus haut dans la fonction
+                if type_bat == "siteconstruction":
+                    continue
+
+                for bat in dico_bats.values():
+                    if j == self.parent.nom_joueur_local:
+                        self.afficher_batiment(j, bat)
+                    else:
+                        state = self.modele.case_fog(bat.x, bat.y)
+                        if state == FogState.VISIBLE:
+                            self.afficher_batiment(j, bat)
+        # Effacer anciens fantômes
+        self.canevas.delete("batiment_memory")
+
+        # Afficher les bâtiments connus
+        for memo in self.modele.fog_memory.iter_known():
+            img = self.images.get(memo.image_key)
+            if not img:
+                continue
+
+            obj = self.canevas.create_image(
+                memo.x, memo.y,
+                anchor=S,
+                image=img,
+                tags=("statique", memo.joueur, memo.id,
+                    "batiment", memo.type, "batiment_memory")
+            )
+
+            self.canevas.tag_lower(obj, "fog")
+
+
 
     ##### ACTIONS DU JOUEUR #######################################################################
 
