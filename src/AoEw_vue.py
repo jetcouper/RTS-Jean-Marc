@@ -1385,7 +1385,7 @@ class Vue():
                     i = self.modele.joueurs[j].persos[p][k]
                     coul = self.modele.joueurs[j].couleur[0]
                     self.canevas.create_image(i.x, i.y, anchor=S, image=self.images[i.image],
-                                              tags=("mobile", j, k, "perso", type(i).__name__, ""))
+                                              tags=("mobile", j, k, "perso", p, ""))
                     # tags=(j,k,"artefact","mobile","perso",p))
 
             
@@ -1465,13 +1465,14 @@ class Vue():
     def ajouter_selection(self, evt):
         mestags = self.canevas.gettags(CURRENT)
         if self.parent.nom_joueur_local == mestags[1]:
-            if "Ouvrier" == mestags[4]:
+            if "ouvrier" == mestags[4]:
                 self.action.persochoisi.append(mestags[2])
                 self.action.afficher_commande_perso()
             else:
                 self.action.persochoisi.append(mestags[2])
         elif self.action.persochoisi != []:
             self.action.ciblechoisi = mestags
+            mestags
             self.action.attaquer()
 
     # Methodes pour multiselect
@@ -1616,7 +1617,7 @@ class Action():
         if self.persochoisi:
             qui = self.ciblechoisi[1]
             cible = self.ciblechoisi[2]
-            sorte = self.ciblechoisi[5]
+            sorte = self.ciblechoisi[4]
             action = [self.parent.parent.nom_joueur_local, "attaquer", [self.persochoisi, [qui, cible, sorte]]]
             self.parent.parent.actions_requises.append(action)
 
