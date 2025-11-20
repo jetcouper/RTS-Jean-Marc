@@ -504,7 +504,6 @@ class Ouvrier(Perso):
 
     def chercher_nouvelle_ressource(self, typ, idreg):
 
-        print("Je cherche nouvelle ressource")
         # Types à régions (arbre/roche/eau/marais/aureus) → même région
         if typ in self.parent.parent.regions:
             reg = self.parent.parent.regions[typ]

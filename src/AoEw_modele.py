@@ -11,6 +11,8 @@ from AoEw_persos import *
 from AoEw_joueurs import *
 from RTS_IA import *
 from vue.fog import FogState, FogModel
+from fog_memory import FogMemory
+
 
 
 
@@ -71,6 +73,7 @@ class Partie():
         self.cartecase = []
         self.make_carte_case()
         self.fog = FogModel(self.taillecarte, self.taillecarte)
+        self.fog_memory = FogMemory(self)
 
         self.delaiprochaineaction = 20
 
@@ -315,7 +318,10 @@ class Partie():
         for i in self.joueurs.keys():
             self.joueurs[i].jouer_prochain_coup()
         
+        # Gestion du fog of war
         self.maj_fog_pour_joueur(self.nom_joueur)
+        self.fog_memory.memoriser_visible(self.nom_joueur)
+
 
         if self.msggeneral:
             self.msggeneralcompteur += 1

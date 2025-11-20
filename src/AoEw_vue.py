@@ -1336,26 +1336,31 @@ class Vue():
         self.canevas.tag_lower(bio, "fog")
 
     def afficher_batiment(self, joueur, batiment):
+        # Supprime les anciens dessins de ce bâtiment
         self.canevas.delete(batiment.id)
-        batiment = self.canevas.create_image(batiment.x, batiment.y, image=self.images[batiment.image],
-                                          tags=(
-                                          "statique", self.parent.nom_joueur_local, batiment.id, "batiment", batiment.montype,
-                                          ""))
 
-        x0, y0, x2, y2 = self.canevas.bbox(batiment)
-        self.canevas.tag_lower(batiment, "fog")
+        img_key = batiment.image  # tu l’as sur tes objets
 
-        # coul = self.modele.joueurs[joueur].couleur[1]
-        # x1 = int((batiment.x / self.modele.aireX) * self.tailleminicarte)
-        # y1 = int((batiment.y / self.modele.aireY) * self.tailleminicarte)
-        # self.minicarte.create_rectangle(x1 - 2, y1 - 2, x1 + 2, y1 + 2, fill=coul,
-        #                                 tags=(self.parent.nom_joueur_local, batiment.id, "artefact", batiment.montype))
+        obj_id = self.canevas.create_image(
+            batiment.x,
+            batiment.y,
+            image=self.images[img_key],
+            anchor=S,
+            tags=("statique", joueur, batiment.id, "batiment", batiment.montype, "")
+        )
+
+        # On place le bâtiment sous le fog (là où les cases sont HIDDEN/KNOWN)
+        self.canevas.tag_lower(obj_id, "fog")
+
+        x0, y0, x2, y2 = self.canevas.bbox(obj_id)
         return [x0, y0, x2, y2]
+
 
     def afficher_jeu(self):
 
         # On efface tout ce qui est 'mobile' (un tag)
         self.canevas.delete("mobile")
+        self.canevas.delete("batiment")
 
         # on se debarrasse des choses mortes (disparues), le id est dans le tag du dessin
         for i in self.modele.ressourcemorte:
@@ -1374,7 +1379,7 @@ class Vue():
             # ajuster les constructions de chaque joueur
             for p in self.modele.joueurs[j].batiments['siteconstruction']:
                 s = self.modele.joueurs[j].batiments['siteconstruction'][p]
-                if self.modele.case_fog(s.x, s.y) == FogState.HIDDEN:
+                if self.modele.case_fog(s.x, s.y) != FogState.VISIBLE:
                     continue
                 if s.etat == "attente":
                     self.canevas.create_image(s.x, s.y, anchor=CENTER, image=self.images["siteX"],
@@ -1438,6 +1443,8 @@ class Vue():
             if self.modele.joueurs[self.parent.nom_joueur_local].chatneuf and self.action.chaton == 0:
                 self.btnchat.config(bg="orange")
             self.modele.joueurs[self.parent.nom_joueur_local].chatneuf = 0
+        
+        self.afficher_batiment_visible()
 
         # FOG
         self.fog_overlay.update()
@@ -1461,6 +1468,41 @@ class Vue():
         self.canevas.yview_moveto(pcty)
 
         self.update_minimap_viewport()
+    
+    def afficher_batiment_visible(self):
+        for j, jdata in self.modele.joueurs.items():
+            for type_bat, dico_bats in jdata.batiments.items():
+                # on laisse 'siteconstruction' géré plus haut dans la fonction
+                if type_bat == "siteconstruction":
+                    continue
+
+                for bat in dico_bats.values():
+                    if j == self.parent.nom_joueur_local:
+                        self.afficher_batiment(j, bat)
+                    else:
+                        state = self.modele.case_fog(bat.x, bat.y)
+                        if state == FogState.VISIBLE:
+                            self.afficher_batiment(j, bat)
+        # Effacer anciens fantômes
+        self.canevas.delete("batiment_memory")
+
+        # Afficher les bâtiments connus
+        for memo in self.modele.fog_memory.iter_known():
+            img = self.images.get(memo.image_key)
+            if not img:
+                continue
+
+            obj = self.canevas.create_image(
+                memo.x, memo.y,
+                anchor=S,
+                image=img,
+                tags=("statique", memo.joueur, memo.id,
+                    "batiment", memo.type, "batiment_memory")
+            )
+
+            self.canevas.tag_lower(obj, "fog")
+
+
 
     ##### ACTIONS DU JOUEUR #######################################################################
 
