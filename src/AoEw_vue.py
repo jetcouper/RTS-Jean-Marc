@@ -1323,12 +1323,12 @@ class Vue():
                     self.canevas.create_image(bat.x, bat.y, image=self.images[img_key], anchor=S,
                                               tags=("statique", j, bat.id, "batiment", bat.montype, ""))
 
-                    # Afficher sur minicarte
-                    coul_mini = self.modele.joueurs[j].couleur[1]
-                    x1 = int((bat.x / self.modele.aireX) * self.tailleminicarte)
-                    y1 = int((bat.y / self.modele.aireY) * self.tailleminicarte)
-                    self.minicarte.create_rectangle(x1 - 2, y1 - 2, x1 + 2, y1 + 2, fill=coul_mini,
-                                                    tags=(j, bat.id, "artefact", bat.montype))
+                    # # Afficher sur minicarte
+                    # coul_mini = self.modele.joueurs[j].couleur[1]
+                    # x1 = int((bat.x / self.modele.aireX) * self.tailleminicarte)
+                    # y1 = int((bat.y / self.modele.aireY) * self.tailleminicarte)
+                    # self.minicarte.create_rectangle(x1 - 2, y1 - 2, x1 + 2, y1 + 2, fill=coul_mini,
+                    #                                 tags=(j, bat.id, "artefact", bat.montype))
 
     def afficher_bio(self, bio):
         bio = self.canevas.create_image(bio.x, bio.y, image=self.images[bio.img],
@@ -1448,7 +1448,7 @@ class Vue():
 
         # FOG
         self.fog_overlay.update()
-        self.minimap_renderer.update_fog()
+        self.minimap_renderer.update()
         self.minicarte.itemconfigure(self.minicarte_img, image=self.minimap_renderer.tk)
 
 
