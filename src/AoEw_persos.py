@@ -97,10 +97,10 @@ class Perso():
         self.vitesse = 5
         self.angle = None
         self.etats_et_actions = {"bouger": self.bouger,
-                                 "ciblerennemi": None,
-                                 "attaquerennemi": None,
+                                 "ciblerennemi": self.cibler_ennemi,
+                                 "attaquerennemi": self.attaquer_ennemi,
                                  "retourbatimentmere": None,
-                                 "attaquerbatiment": None, 
+                                 "attaquerbatiment": self.attaquer_batiment, 
                                  }
         self.vision = {
             "persos_amis": {},
@@ -152,23 +152,37 @@ class Perso():
     ##################################################################################################
 
     def attaquer(self, ennemi):
-        self.cibleennemi = ennemi
-        x = self.cibleennemi.x
-        y = self.cibleennemi.y
+
+        if not ennemi:
+            return 
+        # self.cibleennemi = ennemi
+        # x = self.cibleennemi.x
+        # y = self.cibleennemi.y
         self.cibler(ennemi)
-        dist = Helper.calcDistance(self.x, self.y, x, y)
-        if dist <= self.vitesse:
-            self.actioncourante = "attaquerennemi"
-        else:
-            self.actioncourante = "ciblerennemi"
+
+        # dist = Helper.calcDistance(self.x, self.y, x, y)
+        # if dist <= self.vitesse:
+        #     self.actioncourante = "attaquerennemi"
+        # else:
+        self.actioncourante = "ciblerennemi"
 
     def attaquer_ennemi(self):
+
+        if not self.cible:
+            self.actioncourante = None
+            return 
+        
+        if not hasattr(self.cible, "recevoir_coup"): #si on ne peut pas attaquer, cancelled
+            self.cible = None
+            self.actioncourante = None 
+
         rep = self.cibleennemi.recevoir_coup(self.force)
         if rep == 1:
             self.cibleennemi = None
             self.cible = None
-
-            self.actioncourante = "deplacer"
+        else:
+            pass
+        #   gestion delai compteur attaque? 
     
     def attaquer_batiment(self, batiment):
         self.ciblebatiment = batiment 
@@ -219,6 +233,44 @@ class Perso():
                 return "rendu"
             else:
                 return dist
+            
+    def cibler_ennemi(self): 
+
+        if not self.cible: # si pas de cible, ne rien faire
+            self.actioncourante = None
+            return
+
+        if getattr(self.cible, "etat", None) == "mort": #si l'objet est mort, ne rien faire 
+            self.cible = None
+            self.actioncourante = None
+            return 
+        
+        try:  
+            self.position_visee = [self.cible.x, self.cible.y]
+        except AttributeError: #si erreur, ne fait rien 
+            self.cible = None
+            self.actioncourante = None
+            return 
+
+        reponse = self.bouger()
+
+        if reponse == "rendu":
+            if any(obj is self.cible for obj in self.vision.get("persos_ennemis", {}).values()):
+                self.actioncourante = "attaquerennemi"
+            elif any(obj is self.cible for obj in self.vision.get("batiments_ennemis", {}).values()):
+                self.actioncourante = "attaquerbatiment"
+            else:
+                self.actioncourante = None 
+
+        else:
+            if isinstance(reponse, (int, float)):
+                dist = reponse
+            if dist <= self.vitesse:
+                if getattr(self.cible, "montype", None) == "daim":
+                    self.actioncourante = "validerjavelot"
+                else:
+                    self.actioncourante = "attaquerennemi"
+
 
     def cibler(self, obj):
         self.cible = obj
