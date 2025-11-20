@@ -1379,10 +1379,10 @@ class Vue():
         et crée une seule grande image pour chaque groupe
         """
         if "eau" not in self.modele.biotopes:
-            print("❌ Aucun biotope d'eau trouvé")
+            print("Aucun biotope d'eau trouvé")
             return
 
-        # 🔴 TROUVER LA VRAIE TAILLE DE CASE
+        # TROUVER LA VRAIE TAILLE DE CASE
         # Option 1 : Si votre modèle a une taille de case définie
         if hasattr(self.modele, 'taillecase'):
             taille_case = self.modele.taillecase
@@ -1460,7 +1460,7 @@ class Vue():
             largeur_groupe = (max_x - min_x + 1) * taille_case
             hauteur_groupe = (max_y - min_y + 1) * taille_case
 
-            print(f"  📐 Dimensions: {largeur_groupe}x{hauteur_groupe}px")
+            print(f" Dimensions: {largeur_groupe}x{hauteur_groupe}px")
 
             # Créer une grande image transparente
             grande_image = Image.new('RGBA', (largeur_groupe, hauteur_groupe), (0, 0, 0, 0))
@@ -1469,7 +1469,7 @@ class Vue():
             for case_x, case_y in groupe:
                 bio = cases_eau[(case_x, case_y)]
 
-                # 🔴 TROUVER L'IMAGE - ADAPTER SELON VOTRE STRUCTURE
+                #TROUVER L'IMAGE - ADAPTER SELON VOTRE STRUCTURE
                 # Essayer plusieurs chemins possibles
                 chemins_possibles = [
                     os.path.join(os.path.dirname(__file__), f"images/eau/{bio.img}.png"),
@@ -1484,10 +1484,10 @@ class Vue():
                             case_img = Image.open(chemin).convert('RGBA')
                             break
                         except Exception as e:
-                            print(f"  ⚠️ Erreur lors du chargement de {chemin}: {e}")
+                            print(f" Erreur lors du chargement de {chemin}: {e}")
 
                 if case_img is None:
-                    print(f"  ❌ Image introuvable pour {bio.img}")
+                    print(f" Image introuvable pour {bio.img}")
                     # Créer une image bleue de remplacement
                     case_img = Image.new('RGBA', (taille_case, taille_case), (70, 130, 180, 255))
                 else:
@@ -1515,7 +1515,7 @@ class Vue():
             pos_centre_x = (min_x * taille_case) + (largeur_groupe // 2)
             pos_centre_y = (min_y * taille_case) + (hauteur_groupe // 2)
 
-            print(f"  ✅ Placée à ({pos_centre_x}, {pos_centre_y})")
+            print(f" Placée à ({pos_centre_x}, {pos_centre_y})")
 
             self.canevas.create_image(
                 pos_centre_x, pos_centre_y,
@@ -1526,7 +1526,7 @@ class Vue():
 
         # Forcer l'eau à rester en dessous
         self.canevas.tag_lower("eau_layer")
-        print("\n✅ Fusion de l'eau terminée")
+        print("\nFusion de l'eau terminée")
 
     def afficher_bio(self, bio):
         self.canevas.create_image(bio.x, bio.y, image=self.images[bio.img],
