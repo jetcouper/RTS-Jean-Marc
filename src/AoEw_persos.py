@@ -189,8 +189,9 @@ class Perso():
         if rep == 1:
             self.cibleennemi = None
             self.cible = None
-        else:
+        elif self.cibleennemi.etat == "vivant": 
             self.actioncourante = "validerjavelot"
+            print("attaque")
         #   gestion delai compteur attaque? 
     
     def attaquer_batiment(self, batiment):
@@ -510,7 +511,7 @@ class Ouvrier(Perso):
         self.champvision = random.randrange(100) + 300
         self.champchasse = 120
         self.javelots = []
-        self.vitesse = random.randrange(5) + 5
+        self.vitesse = random.randrange(5) + 50
         self.etats_et_actions = {"bouger": self.bouger,
                                  "ciblersiteconstruction": self.cibler_site_construction,
                                  "ciblerproie": self.cibler_proie,
