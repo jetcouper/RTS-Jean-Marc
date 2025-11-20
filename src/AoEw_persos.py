@@ -89,6 +89,7 @@ class Perso():
         self.cible = None
         self.position_visee = None
         self.cibleennemi = None
+        self.ciblebatiment = None
         self.mana = 100
         self.force = 5
         self.champvision = 100
@@ -98,6 +99,7 @@ class Perso():
                                  "ciblerennemi": None,
                                  "attaquerennemi": None,
                                  "retourbatimentmere": None,
+                                 "attaquerbatiment": None, 
                                  }
         self.vision = {
             "persos_amis": {},
@@ -148,8 +150,6 @@ class Perso():
 
     ##################################################################################################
 
-
-
     def attaquer(self, ennemi):
         self.cibleennemi = ennemi
         x = self.cibleennemi.x
@@ -168,6 +168,18 @@ class Perso():
             self.cible = None
 
             self.actioncourante = "deplacer"
+    
+    def attaquer_batiment(self, batiment):
+        self.ciblebatiment = batiment 
+        x = self.ciblebatiment.x
+        y = self.ciblebatiment.y 
+        self.cibler(batiment)
+
+        dist = Helper.calcDistance(self.x, self.y, x, y)
+        if dist <= self.vitesse:
+            self.actioncourante = "attaquerbatiment"
+        else:
+            self.actioncourante = "ciblerennemi"
 
     def recevoir_coup(self, force):
         self.mana -= force
