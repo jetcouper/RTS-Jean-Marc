@@ -90,6 +90,7 @@ class Perso():
         self.position_visee = None
         self.cibleennemi = None
         self.ciblebatiment = None
+        self.mana_max = 100
         self.mana = 100
         self.force = 5
         self.champvision = 100

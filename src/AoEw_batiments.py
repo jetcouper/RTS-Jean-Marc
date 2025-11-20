@@ -24,6 +24,7 @@ class Batiment():
         self.maxperso = 0
         self.perso = 0
         self.cartebatiment = []
+        self.mana_max = 200 
         self.mana = 200
 
     def recevoir_coup(self, force):

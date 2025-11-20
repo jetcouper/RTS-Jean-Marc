@@ -1323,6 +1323,8 @@ class Vue():
                                           tags=(
                                           "statique", self.parent.nom_joueur_local, batiment.id, "batiment", batiment.montype,
                                           ""))
+        all_tags = ("statique", self.parent.nom_joueur_local, batiment.id, "batiment", batiment.montype,"")
+        self.dessiner_barre_vie(batiment, all_tags)
 
         x0, y0, x2, y2 = self.canevas.bbox(chose)
 
@@ -1338,9 +1340,17 @@ class Vue():
         self.minicarte.create_rectangle(x1 - 2, y1 - 2, x1 + 2, y1 + 2, fill=coul,
                                         tags=(self.parent.nom_joueur_local, batiment.id, "artefact", batiment.montype))
         return [x0, y0, x2, y2]
+    
+    def dessiner_barre_vie(self, obj, tagged, offset_y = 10, largeur=20):
+
+        life_ratio = obj.mana / obj.mana_max
+        current_width = largeur * life_ratio    
+        color_liferange = "green" if life_ratio > 0.5 else "orange" if life_ratio > 0.2 else "red"
+        self.canevas.create_rectangle(obj.x - largeur/2, obj.y - offset_y, obj.x + largeur/2 + current_width, obj.y - offset_y - 5, fill=color_liferange, tags=tagged)
+                                                     
 
     def afficher_jeu(self):
-
+      
         # On efface tout ce qui est 'mobile' (un tag)
         self.canevas.delete("mobile")
 
@@ -1377,9 +1387,12 @@ class Vue():
                     self.canevas.create_image(i.x, i.y, anchor=S, image=self.images[i.image],
                                               tags=("mobile", j, k, "perso", type(i).__name__, ""))
                     # tags=(j,k,"artefact","mobile","perso",p))
+
+            
                     if k in self.action.persochoisi:
-                        self.canevas.create_rectangle(i.x - 10, i.y + 5, i.x + 10, i.y + 10, fill="yellow",
-                                                      tags=("mobile", j, p, "perso", type(i).__name__, "persochoisi"))
+                        all_tags=("mobile", j, p, "perso", type(i).__name__, "persochoisi")
+                        self.dessiner_barre_vie(i, all_tags)
+                      
                         # tags=(j,k,"artefact","mobile","persochoisi"))
 
                     # dessiner javelot de l'ouvrier
