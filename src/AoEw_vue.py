@@ -40,8 +40,23 @@ class Vue():
 
         self.root.bind_all("<F11>", lambda e: switch_fullscreen())
 
+        def deselectionner_tout(event=None):
+            # Désélectionner uniquement quand on est dans le jeu
+            if hasattr(self, 'action') and hasattr(self, 'canevasaction'):
+                if self.action.widgetsactifs:
+                    if isinstance(self.action.widgetsactifs, list):
+                        for widget_id in self.action.widgetsactifs:
+                            self.canevasaction.delete(widget_id)
+                    else:
+                        self.canevasaction.delete(self.action.widgetsactifs)
+
+                if self.action.btnactif:
+                    self.action.btnactif.config(bg="SystemButtonFace")
+                self.action = Action(self)
+                print("élection annulée")
         def toggle_escape(event=None):
             if self.toplevelactif:
+                self.reprendre_partie()
                 self.changer_toplevel(None)
                 self.changer_topblack(None)
             else:
@@ -53,16 +68,19 @@ class Vue():
                         break
 
                 if nom_cadre_actif == "jeu":
+                    self.mettre_en_pause_partie()
                     self.changer_topblack("blackgame")
                     self.changer_toplevel("gameescape")
                     # Faire condition pour la pause de jeu. (Mettre en pause la partie)
+
                 elif nom_cadre_actif in ("mainlobby"):
                     # self.changer_toplevel("useroption")
                     pass
 
         # bind sur tous les widgets (fonctionne même quand le toplevel a le focus)
         self.root.bind_all("<Escape>", toggle_escape)
-
+        self.root.bind_all("<d>", deselectionner_tout)
+        self.root.bind_all("<D>", deselectionner_tout)
         # Interrupteur pour le mode plein écran avec les touches Échap et F11
         self.fullscreen = False
 
@@ -796,7 +814,8 @@ class Vue():
 
         # === Boutons spécifiques au menu Pause ===
         btnreprendre = make_button_pause("Reprendre", command=lambda: (
-        self.cadreescape.withdraw(), self.changer_topblack(None), self.changer_toplevel(None)))
+            self.reprendre_partie(), self.cadreescape.withdraw(),
+            self.changer_topblack(None), self.changer_toplevel(None)))
         btnsave = make_button_pause("Sauvegarder", command=lambda: self.sauvegarder())
         btnquitter = make_button_pause("Quitter la partie", command=lambda: (
         self.changer_cadre("mainlobby"), self.arreter_boucle(), self.cadreescape.withdraw(),
@@ -808,6 +827,17 @@ class Vue():
 
         return self.cadreescape
 
+    def mettre_en_pause_partie(self):
+        """Met le jeu en pause via le contrôleur"""
+        if hasattr(self.parent, 'mettre_en_pause'):
+            self.parent.mettre_en_pause()
+            print("Interface : Jeu mis en pause")
+
+    def reprendre_partie(self):
+        """Reprend le jeu via le contrôleur"""
+        if hasattr(self.parent, 'reprendre_jeu'):
+            self.parent.reprendre_jeu()
+            print("Interface : Jeu repris")
     def arreter_boucle(self):
         self.parent.arreter_boucle_jeu()
 
@@ -1068,6 +1098,9 @@ class Vue():
         self.canevas.bind("<Shift-B1-Motion>", self.afficher_selection)
         self.canevas.bind("<Shift-ButtonRelease-1>", self.terminer_selection)
 
+        self.canevas.bind("<Button-1>", self.annuler_action)
+        self.canevas.tag_bind("fond", "<Button-1>", self.forcer_deselection)
+
         self.canevas.bind("<Button-2>", self.indiquer_position)
 
         self.canevas.bind("<MouseWheel>", self.OnMouseWheel)
@@ -1197,6 +1230,13 @@ class Vue():
         self.canevasaction.delete("nom")
         self.canevasaction.create_text(100, 30, text=self.nom_joueur_local, font=("arial", 18, "bold"), anchor=S,
                                        tags=("nom"))
+
+
+        self.canevas.create_rectangle(0, 0, self.modele.aireX, self.modele.aireY,
+                                      fill="", outline="",
+                                      tags=("fond", "arriere_plan"))
+        self.canevas.tag_lower("fond")
+
 
         # on cree les cadres affichant les items d'actions du joueur
         # cadre apparaissant si on selectionne un ouvrier
@@ -1536,7 +1576,7 @@ class Vue():
                 tag_layer = "eau_layer"
                 self.canevas.create_image(i.x, i.y, image=self.gifs[i.sprite][i.spriteno],
                                           tags=("mobile", "", i.id, "biotope", type(i).__name__, tag_layer))
-        self.canevas.tag_lower("eau_layer")
+        #self.canevas.tag_lower("eau_layer")
 
         for j in self.modele.biotopes["daim"].keys():
             i = self.modele.biotopes["daim"][j]
@@ -1617,8 +1657,26 @@ class Vue():
 
     def annuler_action(self, evt):
         mestags = self.canevas.gettags(CURRENT)
+
+        should_deselect = False
         if not mestags:
-            self.canevasaction.delete(self.action.widgetsactifs)
+            should_deselect = True
+
+        elif mestags:
+            if len(mestags) < 5 or mestags[4] == "":
+                should_deselect = True
+            #if self.action.btnactif:
+            #    self.action.btnactif.config(bg="SystemButtonFace")
+            #self.action = Action(self)
+
+        if should_deselect:
+            if self.action.widgetsactifs:
+                if isinstance(self.action.widgetsactifs, list):
+                    for widget_id in self.action.widgetsactifs:
+                        self.canevasaction.delete(widget_id)
+                else:
+                    self.canevasaction.delete(self.action.widgetsactifs)
+
             if self.action.btnactif:
                 self.action.btnactif.config(bg="SystemButtonFace")
             self.action = Action(self)
@@ -1638,6 +1696,21 @@ class Vue():
         elif self.action.persochoisi != []:
             self.action.ciblechoisi = mestags
             self.action.attaquer()
+
+    def forcer_deselection(self, evt):
+        print("forcer_deselection appelé - Clic sur le fond")
+        if self.action.widgetsactifs:
+            if isinstance(self.action.widgetsactifs, list):
+                for widget_id in self.action.widgetsactifs:
+                    self.canevasaction.delete(widget_id)
+            else:
+                self.canevasaction.delete(self.action.widgetsactifs)
+
+        if self.action.btnactif:
+            self.action.btnactif.config(bg="SystemButtonFace")
+        self.action = Action(self)
+        print("Désélection forcée terminée")  # DEBUG
+
 
     # Methodes pour multiselect
     def debuter_selection(self, evt):

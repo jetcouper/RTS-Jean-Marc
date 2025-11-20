@@ -381,34 +381,124 @@ class Partie():
             noms_joueurs.append("IA_" + str(i))
 
         couleurs = [["O", "orange"], ["R", "red"], ["B", "blue"], ["J", "yellow"], ["V", "lightgreen"]]
-        quadrants = [[[0, 0], [int(self.aireX / 2), int(self.aireY / 2)]],
-                     [[int(self.aireX / 2), 0], [self.aireX, int(self.aireY / 2)]],
-                     [[0, int(self.aireY / 2)], [int(self.aireX / 2), self.aireY]],
-                     [[int(self.aireX / 2), int(self.aireY / 2)], [self.aireX, self.aireY]],
-                     [[int(self.aireX / 2), int(self.aireY / 2)], [self.aireX, self.aireY]]]
-        nquad = 5
-        bord = 50
+
+        nb_joueurs = len(noms_joueurs)
+        positions_joueurs = []  # Liste pour stocker les positions déjà attribuées
+
+        # Marge de sécurité depuis les bords
+        marge = 200
+
+        # Distance minimale entre deux joueurs (augmentée considérablement)
+        distance_min_joueurs = 1500  # Distance minimale entre maisons
+
+        # Positions prédéfinies pour différents nombres de joueurs
+        if nb_joueurs == 2:
+            # Pour 2 joueurs : coins opposés en diagonal
+            positions_predefinies = [
+                [marge, marge],  # Coin haut-gauche
+                [self.aireX - marge, self.aireY - marge]  # Coin bas-droite
+            ]
+        elif nb_joueurs == 3:
+            # Pour 3 joueurs : triangle
+            positions_predefinies = [
+                [marge, marge],  # Coin haut-gauche
+                [self.aireX - marge, marge],  # Coin haut-droite
+                [self.aireX // 2, self.aireY - marge]  # Centre-bas
+            ]
+        elif nb_joueurs == 4:
+            # Pour 4 joueurs : un dans chaque coin
+            positions_predefinies = [
+                [marge, marge],  # Coin haut-gauche
+                [self.aireX - marge, marge],  # Coin haut-droite
+                [marge, self.aireY - marge],  # Coin bas-gauche
+                [self.aireX - marge, self.aireY - marge]  # Coin bas-droite
+            ]
+        else:
+            # Pour 5+ joueurs : distribution en cercle
+            positions_predefinies = []
+            centre_x = self.aireX // 2
+            centre_y = self.aireY // 2
+            rayon = min(self.aireX, self.aireY) // 2 - marge
+
+            for i in range(nb_joueurs):
+                angle = (2 * math.pi * i) / nb_joueurs
+                x = int(centre_x + rayon * math.cos(angle))
+                y = int(centre_y + rayon * math.sin(angle))
+                positions_predefinies.append([x, y])
+
         z = 0
-        for i in noms_joueurs:
+        for idx, nom_joueur in enumerate(noms_joueurs):
             id = get_prochain_id()
-            coul = couleurs.pop()
-            # placer les joueurs dans des quandrants differents
-            choixquad = random.choice(range(nquad))
-            nquad -= 1
-            quad = quadrants.pop(choixquad)
+            coul = couleurs.pop() if couleurs else [["G", "green"]][0]
 
-            n = 1
+            # Utiliser la position prédéfinie
+            pos_cible = positions_predefinies[idx]
+            x_base, y_base = pos_cible
 
-            while n:
-                x = random.randrange(quad[0][0] + bord, quad[1][0] - bord)
-                y = random.randrange(quad[0][1] + bord, quad[1][1] - bord)
+            # Chercher une position valide proche de la position cible
+            position_trouvee = False
+            rayon_recherche = 100
+            max_tentatives = 1000
+
+            for tentative in range(max_tentatives):
+                # Chercher autour de la position cible
+                if tentative < 100:
+                    # D'abord essayer très proche
+                    x = x_base + random.randrange(-rayon_recherche, rayon_recherche)
+                    y = y_base + random.randrange(-rayon_recherche, rayon_recherche)
+                else:
+                    # Élargir la zone de recherche si nécessaire
+                    rayon_elargi = rayon_recherche + (tentative - 100) * 2
+                    x = x_base + random.randrange(-rayon_elargi, rayon_elargi)
+                    y = y_base + random.randrange(-rayon_elargi, rayon_elargi)
+
+                # Vérifier que la position est dans les limites
+                if x < marge or x > self.aireX - marge or y < marge or y > self.aireY - marge:
+                    continue
+
+                # Vérifier que c'est une plaine
                 case = self.trouver_case(x, y)
-                if case.montype == "plaine":
-                    if z == 0:
-                        self.joueurs[i] = Joueur(self, id, i, coul, x, y)
-                    else:
-                        self.joueurs[i] = IA(self, id, i, coul, x, y)
-                    n = 0
+                if case.montype != "plaine":
+                    continue
+
+                # Vérifier la distance avec les autres joueurs déjà placés
+                trop_proche = False
+                for pos_existante in positions_joueurs:
+                    distance = Helper.calcDistance(x, y, pos_existante[0], pos_existante[1])
+                    if distance < distance_min_joueurs:
+                        trop_proche = True
+                        break
+
+                if trop_proche:
+                    continue
+
+                # Position valide trouvée !
+                position_trouvee = True
+                positions_joueurs.append([x, y])
+
+                if z == 0:
+                    self.joueurs[nom_joueur] = Joueur(self, id, nom_joueur, coul, x, y)
+                else:
+                    self.joueurs[nom_joueur] = IA(self, id, nom_joueur, coul, x, y)
+
+                break
+
+            if not position_trouvee:
+                # Fallback : utiliser la position de base même si pas idéale
+                print(f"⚠️  Position de secours utilisée pour {nom_joueur}")
+                x, y = x_base, y_base
+                case = self.trouver_case(x, y)
+                while case.montype != "plaine":
+                    x = random.randrange(marge, self.aireX - marge)
+                    y = random.randrange(marge, self.aireY - marge)
+                    case = self.trouver_case(x, y)
+
+                positions_joueurs.append([x, y])
+                if z == 0:
+                    self.joueurs[nom_joueur] = Joueur(self, id, nom_joueur, coul, x, y)
+                else:
+                    self.joueurs[nom_joueur] = IA(self, id, nom_joueur, coul, x, y)
+
             z += 1
 
     ################ Zone pour méthodes AI ###############################################
