@@ -96,11 +96,13 @@ class Perso():
         self.champvision = 100
         self.vitesse = 5
         self.angle = None
+        self.javelots = []
         self.etats_et_actions = {"bouger": self.bouger,
                                  "ciblerennemi": self.cibler_ennemi,
                                  "attaquerennemi": self.attaquer_ennemi,
                                  "retourbatimentmere": None, #à vérifier car fct ds ouvrier
                                  "attaquerbatiment": self.attaquer_batiment, 
+                                 "validerjavelot": self.valider_javelot,
                                  }
         self.vision = {
             "persos_amis": {},
@@ -181,7 +183,7 @@ class Perso():
             self.cibleennemi = None
             self.cible = None
         else:
-            pass
+            self.actioncourante = "validerjavelot"
         #   gestion delai compteur attaque? 
     
     def attaquer_batiment(self, batiment):
@@ -195,6 +197,16 @@ class Perso():
             self.actioncourante = "attaquerbatiment"
         else:
             self.actioncourante = "ciblerennemi"
+    
+    def valider_javelot(self):
+        self.lancer_javelot(self.cible)
+        for i in self.javelots:
+            i.bouger()
+    
+    def lancer_javelot(self, ennemi):
+        if self.javelots == []:
+            id = get_prochain_id()
+            self.javelots.append(Javelot(self, id, ennemi))
 
     def recevoir_coup(self, force):
         self.mana -= force
