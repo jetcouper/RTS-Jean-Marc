@@ -92,11 +92,16 @@ class Joueur():
     def attaquer(self, param):
         attaquants, attaque = param
         nomjoueur, idperso, sorte = attaque
-        ennemi = self.parent.joueurs[nomjoueur].persos[sorte][idperso]
+
+        if sorte in self.persos: 
+            cible = self.parent.joueurs[nomjoueur].persos[sorte][idperso]
+        else:
+            return
+
         for i in self.persos.keys():
             for j in attaquants:
                 if j in self.persos[i]:
-                    self.persos[i][j].attaquer(ennemi)
+                    self.persos[i][j].attaquer(cible)
                     # j.attaquer(ennemi)
 
     def abandonner(self, param):

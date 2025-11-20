@@ -99,7 +99,7 @@ class Perso():
         self.etats_et_actions = {"bouger": self.bouger,
                                  "ciblerennemi": self.cibler_ennemi,
                                  "attaquerennemi": self.attaquer_ennemi,
-                                 "retourbatimentmere": None,
+                                 "retourbatimentmere": None, #à vérifier car fct ds ouvrier
                                  "attaquerbatiment": self.attaquer_batiment, 
                                  }
         self.vision = {
@@ -410,15 +410,16 @@ class Ouvrier(Perso):
         self.etats_et_actions = {"bouger": self.bouger,
                                  "ciblersiteconstruction": self.cibler_site_construction,
                                  "ciblerproie": self.cibler_proie,
-                                 "ciblerennemi": None,
-                                 "attaquerennemi": None,
+                                 "ciblerennemi": self.cibler_ennemi,
+                                 "attaquerennemi": self.attaquer_ennemi,
+                                 "attaquerbatiment": self.attaquer_batiment, 
                                  "construirebatiment": self.construire_batiment,
                                  "ramasserressource": self.ramasser,
                                  "ciblerressource": self.cibler_ressource,
                                  "retourbatimentmere": self.retour_batiment_mere,
                                  "validerjavelot": self.valider_javelot,
                                  }
-
+    
     def chasser_ramasser(self, objetcible, sontype, actiontype):
         self.cible = objetcible
         self.typeressource = sontype
