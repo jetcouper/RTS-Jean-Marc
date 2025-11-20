@@ -102,7 +102,8 @@ class Joueur():
             for j in attaquants:
                 if j in self.persos[i]:
                     self.persos[i][j].attaquer(cible)
-                    # j.attaquer(ennemi)
+                    # j.attaquer(ennemi
+    
 
     def abandonner(self, param):
         # ajouter parametre nom de l'Abandonneux, et si c'est moi, envoyer une action
