@@ -1331,21 +1331,19 @@ class Vue():
                                                     tags=(j, bat.id, "artefact", bat.montype))
 
     def afficher_bio(self, bio):
-        self.canevas.create_image(bio.x, bio.y, image=self.images[bio.img],
+        bio = self.canevas.create_image(bio.x, bio.y, image=self.images[bio.img],
                                   tags=("statique", "", bio.id, "biotope", bio.montype, ""))
+        self.canevas.tag_lower(bio, "fog")
 
     def afficher_batiment(self, joueur, batiment):
-        coul = self.modele.joueurs[joueur].couleur[0]
-
         self.canevas.delete(batiment.id)
-
-        print(self.parent.nom_joueur_local)
-        chose = self.canevas.create_image(batiment.x, batiment.y, image=self.images[batiment.image],
+        batiment = self.canevas.create_image(batiment.x, batiment.y, image=self.images[batiment.image],
                                           tags=(
                                           "statique", self.parent.nom_joueur_local, batiment.id, "batiment", batiment.montype,
                                           ""))
 
-        x0, y0, x2, y2 = self.canevas.bbox(chose)
+        x0, y0, x2, y2 = self.canevas.bbox(batiment)
+        self.canevas.tag_lower(batiment, "fog")
 
         # coul = self.modele.joueurs[joueur].couleur[1]
         # x1 = int((batiment.x / self.modele.aireX) * self.tailleminicarte)
