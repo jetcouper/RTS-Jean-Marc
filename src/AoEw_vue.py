@@ -559,7 +559,7 @@ class Vue():
                 if not os.path.exists(fichier):
                     return
 
-                # 🔴 CHARGER TOUTES LES SAUVEGARDES
+                # CHARGER TOUTES LES SAUVEGARDES
                 import pickle
                 with open(fichier, 'rb') as f:
                     sauvegardes_dict = pickle.load(f)
@@ -568,19 +568,19 @@ class Vue():
                 if not isinstance(sauvegardes_dict, dict):
                     return
 
-                # 🔴 RÉCUPÉRER LE NOM DU JOUEUR CONNECTÉ
+                # RÉCUPÉRER LE NOM DU JOUEUR CONNECTÉ
                 nom_joueur_actuel = self.parent.nom_joueur_local
 
                 if not nom_joueur_actuel:
                     print("⚠️ Aucun joueur connecté")
                     return
 
-                # 🔴 VÉRIFIER SI CE JOUEUR A UNE SAUVEGARDE
+                # VÉRIFIER SI CE JOUEUR A UNE SAUVEGARDE
                 if nom_joueur_actuel not in sauvegardes_dict:
                     print(f"Aucune sauvegarde trouvée pour '{nom_joueur_actuel}'")
                     return
 
-                # 🔴 AFFICHER LA SAUVEGARDE DU JOUEUR
+                # AFFICHER LA SAUVEGARDE DU JOUEUR
                 sauvegarde_data = sauvegardes_dict[nom_joueur_actuel]
 
                 try:
@@ -595,7 +595,7 @@ class Vue():
                     self.saves_tree.insert(
                         "",
                         "end",
-                        iid=nom_joueur_actuel,  # 🔴 Utiliser le nom du joueur comme ID
+                        iid=nom_joueur_actuel,  # Utiliser le nom du joueur comme ID
                         values=(nom_joueur_actuel, date_save, iteration)
                     )
 
@@ -633,12 +633,12 @@ class Vue():
             if not sel:
                 return
 
-            # 🔴 sel[0] contient le nom du joueur
+            # sel[0] contient le nom du joueur
             nom_joueur = sel[0]
 
             if messagebox.askyesno("Supprimer", f"Supprimer la sauvegarde de '{nom_joueur}' ?"):
                 try:
-                    # 🔴 APPELER LA MÉTHODE DE SUPPRESSION DU CONTRÔLEUR
+                    # APPELER LA MÉTHODE DE SUPPRESSION DU CONTRÔLEUR
                     success = self.parent.supprimer_sauvegarde(nom_joueur)
 
                     if success:
@@ -1441,11 +1441,11 @@ class Vue():
                 if groupe:
                     groupes_eau.append(groupe)
 
-        print(f"🌊 {len(groupes_eau)} groupes d'eau trouvés")
+        print(f"{len(groupes_eau)} groupes d'eau trouvés")
 
         # Créer une grande image pour chaque groupe
         for idx, groupe in enumerate(groupes_eau):
-            print(f"\n📦 Groupe {idx}: {len(groupe)} cases")
+            print(f"\nGroupe {idx}: {len(groupe)} cases")
 
             if len(groupe) == 1:
                 print(f"  ⏩ Groupe trop petit, ignoré")
