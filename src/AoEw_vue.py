@@ -1598,22 +1598,22 @@ class Vue():
 
         elements_eau_pure = ['eaugrand', 'eaugrand1', 'eaugrand2', 'eaugrand3']
 
-        for j in self.modele.biotopes["eau"].keys():
-            i = self.modele.biotopes["eau"][j]
-            if i.sprite:
-                tag_layer = "eau_layer"
-                self.canevas.create_image(i.x, i.y, image=self.gifs[i.sprite][i.spriteno],
-                                          tags=("mobile", "", i.id, "biotope", type(i).__name__, tag_layer))
-        #self.canevas.tag_lower("eau_layer")
-
-        for j in self.modele.biotopes["daim"].keys():
-            i = self.modele.biotopes["daim"][j]
-            if i.etat == "mort":
-                self.canevas.create_image(i.x, i.y, image=self.images["daimMORT"],
-                                          tags=("mobile", "", i.id, "biotope", i.montype, ""))
-            else:
-                self.canevas.create_image(i.x, i.y, image=self.images[i.img],
-                                          tags=("mobile", "", i.id, "biotope", i.montype, ""))
+#        for j in self.modele.biotopes["eau"].keys():
+#            i = self.modele.biotopes["eau"][j]
+#            if i.sprite:
+#                tag_layer = "eau_layer"
+#                self.canevas.create_image(i.x, i.y, image=self.gifs[i.sprite][i.spriteno],
+#                                          tags=("mobile", "", i.id, "biotope", type(i).__name__, tag_layer))
+#        #self.canevas.tag_lower("eau_layer")
+#
+#        for j in self.modele.biotopes["daim"].keys():
+#            i = self.modele.biotopes["daim"][j]
+#            if i.etat == "mort":
+#                self.canevas.create_image(i.x, i.y, image=self.images["daimMORT"],
+#                                          tags=("mobile", "", i.id, "biotope", i.montype, ""))
+#            else:
+#                self.canevas.create_image(i.x, i.y, image=self.images[i.img],
+#                                          tags=("mobile", "", i.id, "biotope", i.montype, ""))
 
         # commencer par les choses des joueurs
         for j in self.modele.joueurs.keys():
@@ -1859,10 +1859,10 @@ class Vue():
 
     def indiquer_position(self, evt):
         tag = self.canevas.gettags(CURRENT)
-        if not tag:
-            x, y = (self.canevas.canvasx(evt.x), self.canevas.canvasy(evt.y))
-            self.action.position = [x, y]
-            self.action.deplacer()
+        #if not tag:
+        x, y = (self.canevas.canvasx(evt.x), self.canevas.canvasy(evt.y))
+        self.action.position = [x, y]
+        self.action.deplacer()
 
     # Cette fonction permet se se deplacer via un click sur la minicarte
     def deplacer_carte(self, evt):

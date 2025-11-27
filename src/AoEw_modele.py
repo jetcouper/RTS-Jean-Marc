@@ -484,7 +484,7 @@ class Partie():
                 if z == 0:
                     self.joueurs[nom_joueur] = Joueur(self, id, nom_joueur, coul, x, y)
                 else:
-                    self.joueurs[nom_joueur] = IA(self, id, idx, coul, x, y, ia_info[int(idx[-1])])
+                    self.joueurs[nom_joueur] = IA(self, id, nom_joueur, coul, x, y, ia_info[z - 1])
 
                 break
 
@@ -502,7 +502,7 @@ class Partie():
                 if z == 0:
                     self.joueurs[nom_joueur] = Joueur(self, id, nom_joueur, coul, x, y)
                 else:
-                    self.joueurs[nom_joueur] = IA(self, id, nom_joueur, coul, x, y)
+                    self.joueurs[nom_joueur] = IA(self, id, nom_joueur, coul, x, y, ia_info[z - 1])
 
             z += 1
 
