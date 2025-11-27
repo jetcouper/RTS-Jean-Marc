@@ -184,7 +184,7 @@ class Perso():
             self.cible = None
         elif self.cibleennemi.etat == "vivant": 
             self.actioncourante = "validerjavelot"
-            print("attaque")
+            print("attaque ennemi")
         #   gestion delai compteur attaque? 
     
     def attaquer_batiment(self, batiment):
@@ -196,6 +196,7 @@ class Perso():
         dist = Helper.calcDistance(self.x, self.y, x, y)
         if dist <= self.vitesse:
             self.actioncourante = "attaquerbatiment"
+            print("attaquer bâtiment")
         else:
             self.actioncourante = "ciblerennemi"
     
@@ -208,6 +209,7 @@ class Perso():
         if self.javelots == []:
             id = get_prochain_id()
             self.javelots.append(Javelot(self, id, ennemi))
+            print("lancer javelot")
 
     def recevoir_coup(self, force):
         self.mana -= force
@@ -419,7 +421,7 @@ class Ouvrier(Perso):
         self.champvision = random.randrange(100) + 300
         self.champchasse = 120
         self.javelots = []
-        self.vitesse = random.randrange(5) + 50
+        self.vitesse = random.randrange(5) + 20
         self.etats_et_actions = {"bouger": self.bouger,
                                  "ciblersiteconstruction": self.cibler_site_construction,
                                  "ciblerproie": self.cibler_proie,
