@@ -4,11 +4,21 @@ from AoEw_joueurs import *
 # La classe IA herite des attributs et methodes mais redefinit les methodes... 
 class IA(Joueur):
 
-    def __init__(self, parent, id, nom, couleur, x, y):
-        Joueur.__init__(self, parent, id, nom, couleur, x, y)
+    def __init__(self, parent, id, nom, couleur, x, y, info_ia):
+        super().__init__(parent, id, nom, couleur, x, y)
 
-        self.delai_action=20
         self.cibles_unites = {"ouvrier": 3, "soldat": 4, "archer": 2}
+
+        self.diff = info_ia["difficulte"]
+        self.type = info_ia["type"]
+
+
+        if self.diff == "Facile":
+            self.delai_action = 30
+        elif self.diff == "Difficile":
+            self.delai_action = 10
+        else:
+            self.delai_action = 20
 
         #self.actions={"creerouvrier":self.creerouvrier,
         #              "ouvrierciblermaison":self.ouvrierciblermaison,
@@ -82,13 +92,13 @@ class IA(Joueur):
         if self.delai_action==0:
             #action=random.choice(list(self.actions.keys())) #On ne veut pas que ses choix soient random
             #self.actions[action]()
-            self.decideraction()
+            self.decider_action()
             self.delai_action=20
         else:
             self.delai_action-=1
         
 
-    def decideraction(self):
+    def decider_action(self):
         # anti-spam
         if self.delai_action > 0:
             self.delai_action -= 1

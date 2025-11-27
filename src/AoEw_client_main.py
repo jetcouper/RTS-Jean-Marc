@@ -28,6 +28,8 @@ class Controleur():
         #MORT self.prochain_splash = None # requis pour sortir du splash et passer au lobby
         self.on_joue = 1 # si 0, indique qu'on saute un tour dans la boucle de jeu
         self.delai_de_boucle_de_jeu = 40
+        self.info_ia = [] 
+        self.mode_de_jeu = "paix"  # solo ou multi
         # frequence des appels vers le serveur
         #MORT self.modulo_appeler_serveur = 4
         # adresses du URL du serveur de jeu, adresse 127.0.0.1 est pour des tests avec un serveur local... utile pour tester
@@ -62,7 +64,6 @@ class Controleur():
         if not nom_joueur_local or nom_joueur_local == "":
             nom_joueur_local = "invité"
 
-        self.vue.root.title("je suis " + nom_joueur_local)
         self.nom_joueur_local = nom_joueur_local
         self.vue.changer_cadre("lobby")
         #MORT self.boucler_sur_lobby()
@@ -90,7 +91,7 @@ class Controleur():
     #     reptext = self.appeler_serveur(url, params, "POST")
 
     # methode de demarrage local de la boucle de jeu (partie demarre ainsi)
-    def initialiser_partie(self, nb_IAs=1):
+    def initialiser_partie(self):
         # on recoit les divers parametres d'initialisation du serveur
         # MORT initaleatoire = mondict[1][0][0]
         # ment, decommenter un ligne et commenter l'autre
@@ -104,8 +105,7 @@ class Controleur():
         # for i in self.joueurs:
         #     listejoueurs.append(i[0])
         # on cree le modele (la partie)
-        if self.partie == None:
-            self.partie = Partie(self, self.nom_joueur_local, nb_IAs)
+        self.partie = Partie(self, self.nom_joueur_local, self.info_ia , self.mode_de_jeu)
         # on passe le modele a la vue puisqu'elle trouvera toutes le sinfos a dessiner
         self.vue.modele = self.partie
         # on met la vue a jour avec les infos de partie
