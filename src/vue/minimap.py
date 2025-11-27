@@ -1,4 +1,4 @@
-# minimap.py – version optimisée et vectorisée 100%
+# minimap.py — version optimisée et vectorisée 100%
 import numpy as np
 from PIL import Image, ImageTk
 from vue.fog import FogState
@@ -93,7 +93,7 @@ class MiniMapRenderer:
         return center, stroke
 
     # ---------------------------------------------------------
-    #  BLIT D’UNE FORME SUR LA MINI-MAP
+    #  BLIT D'UNE FORME SUR LA MINI-MAP
     # ---------------------------------------------------------
 
     def _blit_shape(self, cx, cy, color_rgb, center_mask, stroke_mask,
@@ -125,6 +125,15 @@ class MiniMapRenderer:
 
         if sm.any():
             sub[sm] = (*stroke_rgb, 255)
+
+    # ---------------------------------------------------------
+    #  HELPER: Vérification des limites de la grille fog
+    # ---------------------------------------------------------
+
+    def _is_case_in_bounds(self, case_x, case_y):
+        """Vérifie si les coordonnées de case sont dans les limites de la grille."""
+        return (0 <= case_x < self.modele.taillecarte and
+                0 <= case_y < self.modele.taillecarte)
 
     # ---------------------------------------------------------
     #  UPDATE : FOG + OBJECTS + COMPOSE
@@ -169,13 +178,19 @@ class MiniMapRenderer:
 
         # --- UNITÉS VISIBLES ---
         for joueur, jdata in modele.joueurs.items():
-            color = players[joueur]
+            color = players.get(joueur)
+            if color is None:
+                continue
 
             for persos in jdata.persos.values():
                 for p in persos.values():
 
                     case_x = int(p.x // tc)
                     case_y = int(p.y // tc)
+
+                    # ✅ Vérification des limites avant d'accéder à fog
+                    if not self._is_case_in_bounds(case_x, case_y):
+                        continue
 
                     if fog[case_y][case_x] != FogState.VISIBLE:
                         continue
@@ -193,7 +208,9 @@ class MiniMapRenderer:
 
         # --- BÂTIMENTS VISIBLES ---
         for joueur, jdata in modele.joueurs.items():
-            color = players[joueur]
+            color = players.get(joueur)
+            if color is None:
+                continue
 
             for type_b, bats in jdata.batiments.items():
                 if type_b == "siteconstruction":
@@ -203,6 +220,10 @@ class MiniMapRenderer:
 
                     case_x = int(b.x // tc)
                     case_y = int(b.y // tc)
+
+                    # ✅ Vérification des limites avant d'accéder à fog
+                    if not self._is_case_in_bounds(case_x, case_y):
+                        continue
 
                     if fog[case_y][case_x] != FogState.VISIBLE:
                         continue
@@ -220,10 +241,17 @@ class MiniMapRenderer:
 
         # --- BÂTIMENTS MEMORISES (KNOWN) ---
         for memo in modele.fog_memory.iter_known():
-            color = players[memo.joueur]
+            # ✅ Vérification que le joueur existe dans player_colors
+            color = players.get(memo.joueur)
+            if color is None:
+                continue
 
             case_x = int(memo.x // tc)
             case_y = int(memo.y // tc)
+
+            # ✅ Vérification des limites avant d'accéder à fog
+            if not self._is_case_in_bounds(case_x, case_y):
+                continue
 
             if fog[case_y][case_x] != FogState.KNOWN:
                 continue
