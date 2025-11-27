@@ -12,6 +12,7 @@ from AoEw_joueurs import *
 from RTS_IA import *
 from vue.fog import FogState, FogModel
 from fog_memory import FogMemory
+from path_finder import PathFinder
 
 
 
@@ -74,6 +75,7 @@ class Partie():
         self.make_carte_case()
         self.fog = FogModel(self.taillecarte, self.taillecarte)
         self.fog_memory = FogMemory(self)
+        self.pathfinder = PathFinder(self)
 
         self.delaiprochaineaction = 20
 
