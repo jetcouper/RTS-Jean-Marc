@@ -1023,41 +1023,114 @@ class Vue():
         self.parent.charger(nom_joueur)
 
     def creer_cadre_jeu_action(self):
-        # Crée un petit panneau d'action "overlay" placé par-dessus l'aire de jeu
-        # (parent = cadrecanevas pour ne pas modifier la grille globale)
-        overlay_width = 260
+        # Crée un cadre pour afficher le texte d'aide/contextuel au-dessus du panneau d'action
+        overlay_width_action = self.screen_width // 6
+        overlay_height = self.screen_height // 4
 
-        self.cadreaction = Frame(self.cadrecanevas, bg="#2e2e2e", width=overlay_width, bd=2, relief="ridge")
-        # place en overlay sur le bord droit du canvas, sans occuper une colonne entière
-        self.cadreaction.place(relx=1.0, rely=0.02, anchor="ne", relheight=0.4, x=-10)
+        # ============================
+        #  TEXTE CONTEXTUEL (au-dessus du panneau action)
+        # ============================
+        self.cadre_action_text = Frame(
+            self.cadrecanevas,
+            bg="#222",
+            width=overlay_width_action,
+            bd=2,
+            relief="ridge"
+        )
+        self.cadre_action_text.place(
+            relx=0.01, rely=1 - (overlay_height / self.screen_height) - 0.02,
+            anchor="sw"
+        )
 
-        # scrollbar + canvas internes pour le panneau d'action
-        self.scrollVaction = Scrollbar(self.cadreaction, orient=VERTICAL)
+        # Widget Text dynamique qui s'étend verticalement selon le texte
+        self.action_text_var = StringVar()
+        self.action_text_widget = Text(
+            self.cadre_action_text,
+            bg="#222",
+            fg="white",
+            font=("Arial", 24 , "bold"),
+            wrap="word",
+            width=overlay_width_action // 10,  # largeur similaire à avant
+            height=2,  # hauteur initiale
+            relief="flat"
+        )
+        self.action_text_widget.pack(fill=BOTH, expand=True, padx=8, pady=10)
+        self.action_text_widget.config(state=DISABLED)
+
+        def update_action_text(text):
+            self.action_text_widget.config(state=NORMAL)
+            self.action_text_widget.delete("1.0", END)
+            self.action_text_widget.insert("1.0", text)
+            self.action_text_widget.config(state=DISABLED)
+            # Ajuste la hauteur selon le contenu
+            lines = int(self.action_text_widget.index('end-1c').split('.')[0])
+            self.action_text_widget.config(height=max(2, lines))
+            self.cadre_action_text.update_idletasks()
+
+        self.update_action_text = update_action_text
+
+
+        # ============================
+        #  PANNEAU D'ACTION (gauche)
+        # ============================
+        self.cadreaction = Frame(
+            self.cadrecanevas,
+            bg="#2e2e2e",
+            width=overlay_width_action,
+            height=overlay_height,
+            bd=2,
+            relief="ridge"
+        )
+        self.cadreaction.place(
+            relx=0.01, rely=0.99,
+            anchor="sw"
+        )
+
         self.canevasaction = Canvas(
             self.cadreaction,
-            width=overlay_width,
-            bg="lightblue",
-            yscrollcommand=self.scrollVaction.set,
+            width=overlay_width_action,
+            height=overlay_height,
+            bg="#3d3d3d",
             highlightthickness=0
         )
-        self.scrollVaction.config(command=self.canevasaction.yview)
+        self.canevasaction.pack(fill="both", expand=True)
 
-        # layout interne du panneau (utilise pack pour remplir l'espace de l'overlay)
-        self.canevasaction.pack(side=LEFT, fill=BOTH, expand=True)
-        self.scrollVaction.pack(side=RIGHT, fill=Y)
+        # ============================
+        #  PANNEAU INFO (collé à droite)
+        # ============================
+        overlay_width_info = self.screen_width // 4
 
-        # affichage du nom du joueur en haut du panneau (centre)
-        self.canevasaction.create_text(
-            overlay_width // 2, 30,
-            text=self.parent.nom_joueur_local,
-            font=("arial", 18, "bold"),
-            anchor=S,
-            tags=("nom",)
+        self.cadre_info = Frame(
+            self.cadrecanevas,
+            bg="#2e2e2e",
+            width=overlay_width_info,
+            height=overlay_height,
+            bd=2,
+            relief="ridge"
+        )
+        # Position juste collé à droite du panneau action
+        self.cadre_info.place(
+            x=overlay_width_action + 40,
+            rely=0.99,
+            anchor="sw"
         )
 
-        # on retourne ce cadre pour l'insérer dans le dictionnaires des cadres
-        self.canevasaction.rowconfigure(0, weight=1)
-        self.cadreaction.rowconfigure(0, weight=1)
+        self.canevasinfo = Canvas(
+            self.cadre_info,
+            width=overlay_width_info,
+            height=overlay_height,
+            bg="#3d3d3d",
+            highlightthickness=0
+        )
+        self.canevasinfo.pack(fill="both", expand=True)
+
+        # ============================
+        #  INTERACTION : survol des boutons/action
+        # ============================
+        self.canevasaction.bind("<Leave>", lambda e: self.update_action_text(""))
+
+        # Pour afficher un texte par défaut au démarrage
+        self.update_action_text("Survolez une action pour voir son description.")
 
     def creer_aide(self):
         self.cadreaide = Frame(self.canevas)
@@ -1120,7 +1193,8 @@ class Vue():
         # soit aux dessins, en vertu de leur tag (propriétés des objets dessinés)
         # ALL va réagir à n'importe quel dessin
         # sinon on spécifie un tag particulier, exemple avec divers tag, attaché par divers événements
-        self.canevas.tag_bind("batiment", "<Button-1>", self.creer_entite)
+        self.canevas.tag_bind("batiment", "<Button-1>", self.show_batiment_info)
+
         self.canevas.tag_bind("perso", "<Button-1>", self.ajouter_selection)
         self.canevas.tag_bind("arbre", "<Button-1>", self.ramasser_ressource)
         self.canevas.tag_bind("aureus", "<Button-1>", self.ramasser_ressource)
@@ -1128,6 +1202,34 @@ class Vue():
         self.canevas.tag_bind("baie", "<Button-1>", self.ramasser_ressource)
         self.canevas.tag_bind("eau", "<Button-1>", self.ramasser_ressource)
         self.canevas.tag_bind("daim", "<Button-1>", self.chasser_ressource)
+
+        # Hover/leave for each tag to show contextual info
+        def show_tag_info(event, tag_type):
+            txt = ""
+            if tag_type == "arbre":
+                txt = "Cliquez sur un ouvrier pour ramasser du bois de cet arbre."
+            elif tag_type == "aureus":
+                txt = "Cliquez sur un ouvrier pour ramasser de l'or (Aureus)."
+            elif tag_type == "roche":
+                txt = "Cliquez sur un ouvrier pour ramasser de la pierre."
+            elif tag_type == "baie":
+                txt = "Cliquez sur un ouvrier pour ramasser de la nourriture (baies)."
+            elif tag_type == "eau":
+                txt = "Cliquez sur un ouvrier pour ramasser de la nourriture."
+            elif tag_type == "daim":
+                txt = "Cliquez sur un ouvrier pour chasser ce daim."
+            elif tag_type == "perso":
+                txt = "Personnage\nCliquez pour sélectionner"
+
+            self.update_action_text(txt)
+
+        def clear_tag_info(event):
+            self.update_action_text("")
+
+        for tag in ["arbre", "aureus", "roche", "baie", "eau", "daim", "perso"]:
+            self.canevas.tag_bind(tag, "<Enter>", lambda e, t=tag: show_tag_info(e, t))
+            self.canevas.tag_bind(tag, "<Leave>", clear_tag_info)
+
 
     def OnMouseWheel(self, evt):
         print(evt.keysym)
@@ -1283,11 +1385,212 @@ class Vue():
         # self.centrer_maison()
 
     def creer_cadre_ouvrier(self, coul, artefacts):
-        self.cadreouvrier = Frame(self.canevasaction)
-        for i in artefacts:
-            btn = Button(self.cadreouvrier, text=i, image=self.images[coul + i])
+        self.cadreouvrier = Frame(self.canevasaction, bg="goldenrod3", bd=2, relief="ridge")
+        font = ("arial", 20, "bold")
+        cols = 2
+
+        img_width = 80
+        img_height = 80
+
+        for idx, i in enumerate(artefacts):
+            vals = self.parent.trouver_valeurs()
+            prix = vals.get(i, {})
+            prix_texte = "\n".join(f"{k.capitalize()}: {v}" for k, v in prix.items()) if prix else ""
+
+            row = idx // cols
+            col = idx % cols
+
+            cell = Frame(self.cadreouvrier, bg="goldenrod3", bd=3, relief="solid")
+            cell.grid(row=row, column=col, padx=8, pady=8, sticky="nsew")
+
+            img_key = coul + i
+            try:
+                pil_img = Image.open(os.path.join(os.path.dirname(__file__), "images", img_key + ".png"))
+                pil_img = pil_img.resize((img_width, img_height), Image.Resampling.LANCZOS)
+                tk_img = ImageTk.PhotoImage(pil_img)
+            except Exception:
+                tk_img = self.images[img_key]
+
+            img_label = Label(cell, image=tk_img, bg="goldenrod3", width=img_width, height=img_height)
+            img_label.image = tk_img
+            img_label.grid(row=0, column=0, columnspan=2, pady=(2, 4), sticky="ew")
+
+            btn = Button(cell, text=i, bg="goldenrod3", font=font, anchor="w")
+            btn.grid(row=1, column=0, columnspan=2, sticky="ew")
             btn.bind("<Button>", self.batir_artefact)
-            btn.pack()
+
+            def on_enter(e, artefact=i, prix_texte=prix_texte):
+                txt = f"{artefact}\n{prix_texte}" if prix_texte else artefact
+                self.update_action_text(txt)
+            def on_leave(e):
+                self.update_action_text("")
+
+            btn.bind("<Enter>", on_enter)
+            btn.bind("<Leave>", on_leave)
+
+        for c in range(cols):
+            self.cadreouvrier.grid_columnconfigure(c, weight=1)
+
+    def show_batiment_info(self, event):
+
+
+
+        tags = self.canevas.gettags(CURRENT)
+        if not tags:
+            return
+
+        owner = tags[1] if len(tags) > 1 else ""
+        bat_id = tags[2] if len(tags) > 2 else ""
+        montype = tags[4] if len(tags) > 4 else ""
+
+        bat = None
+        try:
+            if owner in self.modele.joueurs:
+                for ttype, d in self.modele.joueurs[owner].batiments.items():
+                    if bat_id in d:
+                        bat = d[bat_id]
+                        break
+        except Exception:
+            bat = None
+
+        try:
+            if hasattr(self, "cadrebatimentinfo") and self.cadrebatimentinfo:
+                self.cadrebatimentinfo.destroy()
+        except Exception:
+            pass
+
+        # create a frame that will fill the entire canevasaction area
+        self.cadrebatimentinfo = Frame(self.canevasinfo, bg="lightyellow", bd=2, relief="ridge")
+        self.canevasinfo.update_idletasks()
+        cw = max(1, int(self.canevasinfo.winfo_width()))
+        ch = max(1, int(self.canevasinfo.winfo_height()))
+        if cw < 10:
+            cw = max(200, self.screen_width // 6)
+        if ch < 10:
+            ch = max(120, self.screen_height // 8)
+        # reduce a little to account for padding/borders
+        self.cadrebatimentinfo.configure(width=cw - 8, height=ch - 8)
+        # prevent children from resizing the frame so it keeps the intended size
+        self.cadrebatimentinfo.pack_propagate(False)
+        # pack so the frame is ready if used directly, content labels will expand horizontally
+        self.cadrebatimentinfo.pack(fill=BOTH, expand=True, padx=6, pady=6)
+
+        Label(self.cadrebatimentinfo, text=f"{montype.capitalize()}", bg="lightyellow", font=("Arial", 30, "bold")).pack(anchor="w", fill=X, pady=4, padx=6)
+        Label(self.cadrebatimentinfo, text=f"Propriétaire : {owner or 'N/A'}", bg="lightyellow" , font=("Arial", 24, "bold")).pack(anchor="w", fill=X, padx=6 , pady=(0,20))
+
+        fontInfo = ("Arial", 20, "normal")
+        if bat is not None:
+            info_lines = []
+            if hasattr(bat, "etat"):
+                info_lines.append(f"État : {getattr(bat, 'etat')}")
+            if hasattr(bat, "niveau"):
+                info_lines.append(f"Niveau : {getattr(bat, 'niveau')}")
+            if hasattr(bat, "pv"):
+                info_lines.append(f"PV : {getattr(bat, 'pv')}")
+            if hasattr(bat, "x") and hasattr(bat, "y"):
+                info_lines.append(f"Position : ({getattr(bat, 'x')}, {getattr(bat, 'y')})")
+
+            if info_lines:
+                for l in info_lines:
+                    Label(self.cadrebatimentinfo, text=l, bg="lightyellow" , font=fontInfo).pack(anchor="w", padx=6)
+            else:
+                Label(self.cadrebatimentinfo, text="Aucune donnée objet disponible", bg="lightyellow").pack(anchor="w", padx=6, pady=4)
+        else:
+            Label(self.cadrebatimentinfo, text="Aucune donnée objet disponible", bg="lightyellow").pack(anchor="w", padx=6, pady=4)
+
+        # cadre pour les boutons : Créer unité, Améliorer, Supprimer
+        btn_frame = Frame(self.cadrebatimentinfo, bg="lightyellow")
+        btn_frame.pack(fill=X, pady=8, padx=6)
+
+        # mapping simple: type de bâtiment -> type d'unité à créer
+        type_unit_map = {
+            "maison": "ouvrier",
+            "caserne": "soldat",
+            "abri": "druide",
+            "usineballiste": "ballista"
+        }
+
+        def create_unit(unit_type):
+            if owner != self.parent.nom_joueur_local or not unit_type:
+                return
+            if bat is not None and hasattr(bat, "x") and hasattr(bat, "y"):
+                pos = (getattr(bat, "x"), getattr(bat, "y"))
+            else:
+                cx = int(self.canevas.canvasx(self.canevas.winfo_width() // 2))
+                cy = int(self.canevas.canvasy(self.canevas.winfo_height() // 2))
+                pos = (cx, cy)
+
+            action = [self.parent.nom_joueur_local, "creerperso", [unit_type, montype, bat_id, pos]]
+            try:
+                self.parent.actions_requises.append(action)
+            except Exception:
+                self.parent.actions_requises = [action]
+
+        def upgrade_batiment():
+            pass
+
+
+        def delete_batiment():
+            pass
+
+        # déterminer si ce type de bâtiment permet de créer une unité
+        unit_type = type_unit_map.get(montype)
+        if unit_type:
+            btn_text = f"Créer {unit_type.capitalize()}"
+            state_create = NORMAL if owner == self.parent.nom_joueur_local else DISABLED
+        else:
+            btn_text = "Aucune unité disponible"
+            state_create = DISABLED
+
+        # Use grid for equal spacing and expansion
+        btn_frame.columnconfigure(0, weight=1)
+        btn_frame.columnconfigure(1, weight=1)
+        btn_frame.columnconfigure(2, weight=1)
+
+        create_btn = Button(
+            btn_frame,
+            text=btn_text,
+            command=(lambda t=unit_type: create_unit(t) if t else None),
+            state=state_create,
+            bg="#d9edf7",
+            fg="black",
+            font=("Arial", 18, "bold"),
+            height=4
+        )
+        create_btn.grid(row=0, column=0, padx=(0, 8), sticky="ew")
+
+        # Upgrade button (only for owner and if an ID exists)
+        state_upgrade = NORMAL if owner == self.parent.nom_joueur_local and bat_id else DISABLED
+        upgrade_btn = Button(
+            btn_frame,
+            text="Améliorer",
+            command=upgrade_batiment,
+            state=state_upgrade,
+            bg="#60b140",
+            fg="black",
+            font=("Arial", 18, "bold"),
+            height=4
+        )
+        upgrade_btn.grid(row=0, column=1, padx=8, sticky="ew")
+
+        # Delete button (only for owner and if an ID exists)
+        state_delete = NORMAL if owner == self.parent.nom_joueur_local and bat_id else DISABLED
+        delete_btn = Button(
+            btn_frame,
+            text="Supprimer",
+            command=delete_batiment,
+            state=state_delete,
+            bg="#C31A1A",
+            fg="black",
+            font=("Arial", 18, "bold"),
+            height=4
+        )
+        delete_btn.grid(row=0, column=2, padx=(8, 0), sticky="ew")
+
+        # remplacer le contenu de la zone d'actions par ce cadre
+        self.canevasaction.delete("ALL")
+        self.canevasaction.create_window(10, 10, anchor=NW, window=self.cadrebatimentinfo)
+
 
     ##FONCTIONS D'AFFICHAGES##################################
     def afficher_depart(self, chargement=False):
@@ -1977,19 +2280,41 @@ class Action():
         self.parent.parent.actions_requises.append(action)
 
     def afficher_commande_perso(self):
-        # center the worker command panel in the action canvas
-        w = max(1, self.parent.canevasaction.winfo_width())
-        h = max(1, self.parent.canevasaction.winfo_height())
-        cx, cy = w // 2, h // 2
-        self.widgetsactifs = self.parent.canevasaction.create_window(cx, cy,
-                                                                     window=self.parent.cadreouvrier,
-                                                                     anchor=CENTER)
-        self.parent.root.update()
-        fh = self.parent.cadreouvrier.winfo_height()
-        ch = int(self.parent.canevasaction.cget("height"))
-        if fh + 60 > ch:
-            cl = int(self.parent.canevasaction.cget("width"))
-            self.parent.canevasaction.config(scrollregion=(0, 0, cl, fh + 60))
+        # Met à jour la géométrie pour obtenir les bonnes tailles
+        self.parent.root.update_idletasks()
+
+        # On retire tout pack éventuel (normalement inutile car grid est utilisé)
+        for child in self.parent.cadreouvrier.winfo_children():
+            child.pack_forget()
+        # Ne pas utiliser pack ici, car grid est utilisé dans creer_cadre_ouvrier
+
+        # Mise à jour forcée de la géométrie
+        self.parent.cadreouvrier.update_idletasks()
+        self.parent.canevasaction.update_idletasks()
+
+        # Supprime la fenêtre précédente si elle existe
+        try:
+            if self.widgetsactifs:
+                self.parent.canevasaction.delete(self.widgetsactifs)
+        except Exception:
+            pass
+
+        # On ajuste la taille du cadre ouvrier pour qu'il prenne toute la place
+        largeur = self.parent.canevasaction.winfo_width()
+        hauteur = self.parent.canevasaction.winfo_height()
+        self.parent.cadreouvrier.config(width=largeur, height=hauteur)
+        self.parent.cadreouvrier.update_idletasks()
+
+        # On crée la fenêtre centrée et qui occupe tout l'espace
+        self.widgetsactifs = self.parent.canevasaction.create_window(
+            0, 0,
+            window=self.parent.cadreouvrier,
+            anchor=NW,
+            width=largeur,
+            height=hauteur
+        )
+
+        self.parent.canevasaction.update_idletasks()
 
     def envoyer_chat(self, evt):
         txt = self.parent.entreechat.get()
