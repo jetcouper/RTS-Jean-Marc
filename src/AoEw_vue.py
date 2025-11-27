@@ -59,9 +59,9 @@ class Vue():
                 if nom_cadre_actif == "jeu":
                     self.changer_topblack("blackgame")
                     self.changer_toplevel("gameescape")
-                elif nom_cadre_actif in ("mainlobby"):
-                    #self.changer_toplevel("useroption")
-                    pass
+                elif nom_cadre_actif == ("gamemenu"):
+                    self.changer_topblack("blackgame")
+                    self.changer_toplevel("option")               
 
 
         # bind sur tous les widgets (fonctionne même quand le toplevel a le focus)
@@ -199,6 +199,7 @@ class Vue():
 
     def creer_toplevel(self,):
         self.toplevel["gameescape"] = self.creer_top_escape()
+        self.toplevel["option"] = self.creer_top_option()
         self.toplevel["useroption"] = self.creer_top_user()
         self.topblack["blackgame"] = self.creer_topblack()
 
@@ -767,6 +768,7 @@ class Vue():
         self.root.attributes('-fullscreen', True)
 
         print("Connecté en tant qu'invité")
+        
     def creer_top_escape(self):
         # le cadre escape, qui apparait en toplevel lorsque le joueur presse echap
         size_x = 480
@@ -827,6 +829,135 @@ class Vue():
             btn.pack(pady=5)
 
         return self.cadreescape
+    
+    def creer_top_option(self):
+        # cadre d'options (toplevel distinct pour éviter les collisions de noms)
+        opt_size_x = 480
+        opt_size_y = 600
+        opt_x = (self.screen_width - opt_size_x) // 2
+        opt_y = (self.screen_height - opt_size_y) // 2
+
+        self.top_option = Toplevel(self.root)
+        self.top_option.title("Options")
+        self.top_option.geometry(f"{opt_size_x}x{opt_size_y}+{opt_x}+{opt_y}")
+        self.top_option.withdraw()  # caché initialement
+
+        # fond spécifique pour la fenêtre d'options
+        opt_bg_path = os.path.join(os.path.dirname(__file__), "images/scroll.jpg")
+        self.opt_tk_bg = ImageTk.PhotoImage(Image.open(opt_bg_path).resize((opt_size_x, opt_size_y), Image.Resampling.LANCZOS))
+        self.opt_label_bg = Label(self.top_option, image=self.opt_tk_bg)
+        self.opt_label_bg.place(x=0, y=0, relwidth=1, relheight=1)
+
+        # création d'un helper de bouton local à cette toplevel (noms locaux pour éviter recouvrement)
+        def make_option_button(text, command=None, padding=60):
+            frame_w = 250
+            frame = Frame(self.top_option, bg="#4a1d1d", width=frame_w, height=50, highlightthickness=2, highlightbackground="goldenrod2")
+            frame.pack_propagate(False)
+            frame.pack(pady=padding)
+
+            lbl = Label(frame, text=text, font=("Times New Roman", 14, "bold"), bg="#4a1d1d", fg="#D4AF37")
+            lbl.pack(side=TOP, fill=BOTH, expand=True)
+
+            def _on_enter(e):
+                frame.config(bg="#7a3c3c")
+                lbl.config(bg="#7a3c3c")
+            def _on_leave(e):
+                frame.config(bg="#4a1d1d")
+                lbl.config(bg="#4a1d1d")
+            def _on_click(e):
+                if command:
+                    command()
+
+            for w in (frame, lbl):
+                w.bind("<Enter>", _on_enter)
+                w.bind("<Leave>", _on_leave)
+                w.bind("<Button-1>", _on_click)
+
+            return frame
+
+        # boutons pour la fenêtre d'options
+        opt_btn_resume = make_option_button(
+            "Reprendre",
+            command=lambda: (self.top_option.withdraw(), self.changer_topblack(None), self.changer_toplevel(None))
+        )
+
+        # affichage (empilement) des boutons
+        opt_btn_resume.pack(pady=5)
+
+        # --- Section : changer la seed de génération ---
+        # Sauvegarde de la seed originale si possible
+        self._option_original_seed = getattr(self.parent, "default_seed", None)
+
+        seed_frame = Frame(self.top_option, bg="goldenrod2")
+        seed_frame.pack(pady=10)
+
+        Label(seed_frame, text="Seed de génération :", font=("Arial", 12, "bold"), bg="#4a1d1d", fg="#D4AF37").pack(pady=(8,4))
+
+        self.seed_var = StringVar()
+        if self._option_original_seed is not None:
+            self.seed_var.set(str(self._option_original_seed))
+        else:
+            self.seed_var.set("")
+
+        seed_entry = Entry(seed_frame, textvariable=self.seed_var, width=20, font=("Arial", 12))
+        seed_entry.pack(pady=4)
+
+        # callbacks apply / reset
+        def apply_seed():
+            val = self.seed_var.get().strip()
+            if val == "":
+                messagebox.showerror("Erreur", "Veuillez entrer une valeur pour la seed.")
+                return
+            try:
+                seed = int(val)
+            except Exception:
+                messagebox.showerror("Erreur", "La seed doit être un entier.")
+                return
+
+            # preferer une méthode publique si elle existe
+            if hasattr(self.parent, "set_seed") and callable(self.parent.set_seed):
+                try:
+                    self.parent.set_seed(seed)
+                except Exception as e:
+                    messagebox.showerror("Erreur", f"Impossible d'appliquer la seed:\n{e}")
+                    return
+            else:
+                setattr(self.parent, "seed", seed)
+
+            messagebox.showinfo("Ok", f"Seed définie à {seed}")
+
+        def reset_seed_to_default():
+            default = getattr(self.parent, "default_seed", self._option_original_seed)
+            if default is None:
+                messagebox.showinfo("Info", "Aucune seed par défaut disponible.")
+                return
+
+            if hasattr(self.parent, "set_seed") and callable(self.parent.set_seed):
+                try:
+                    self.parent.set_seed(default)
+                except Exception as e:
+                    messagebox.showerror("Erreur", f"Impossible de réinitialiser la seed:\n{e}")
+                    return
+            else:
+                setattr(self.parent, "seed", default)
+
+            self.seed_var.set(str(default))
+            
+            
+            messagebox.showinfo("Ok", "Seed réinitialisée à la valeur par défaut.")
+
+        # bouton apply / reset
+        btns_frame = Frame(seed_frame, bg="goldenrod2")
+        btns_frame.pack(pady=8)
+
+        apply_btn = Button(btns_frame, text="Appliquer", command=apply_seed, width=12)
+        reset_btn = Button(btns_frame, text="Réinitialiser (défaut)", command=reset_seed_to_default, width=18)
+
+        apply_btn.grid(row=0, column=0, padx=6)
+        reset_btn.grid(row=0, column=1, padx=6)
+
+        return self.top_option
+    
 
     def arreter_boucle(self):
         self.parent.arreter_boucle_jeu()
@@ -1574,6 +1705,8 @@ class Vue():
         self.canevas.delete("mobile")  # Supprime daims, persos, etc.
         self.canevas.delete("biotope")  # Supprime les biotopes
         self.canevas.delete("batiment")  # Supprime les bâtiments
+        self.canevas.delete("fog") 
+
 
         # Afficher les biotopes (arbres, roches, etc.)
         if chargement:
@@ -1782,6 +1915,8 @@ class Vue():
         self.fog_overlay.update()
         self.minimap_renderer.update()
         self.minicarte.itemconfigure(self.minicarte_img, image=self.minimap_renderer.tk)
+        
+    
 
 
     def centrer_maison(self):

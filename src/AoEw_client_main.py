@@ -29,6 +29,8 @@ class Controleur():
         self.delai_de_boucle_de_jeu = 40
         self.info_ia = [] 
         self.mode_de_jeu = "paix"  # solo ou multi
+        self.default_seed = 14777
+        self.seed = 12473  # valeur de random pour la partie
         # frequence des appels vers le serveur
         #MORT self.modulo_appeler_serveur = 4
         # adresses du URL du serveur de jeu, adresse 127.0.0.1 est pour des tests avec un serveur local... utile pour tester
@@ -98,7 +100,8 @@ class Controleur():
         # random ALEATOIRE fourni par le serveur
         # random.seed(int(initaleatoire))
         # random FIXE pour test
-        random.seed(12473)
+            
+        random.seed(self.seed)
         # # on recoit la derniere liste des joueurs pour la partie
         # listejoueurs = []
         # for i in self.joueurs:
@@ -195,6 +198,7 @@ class Controleur():
         # appel ulterieur de la meme fonction jusqu'a l'arret de la partie
         if self.vue and self.vue.root:
             self.after_id = self.vue.root.after(self.delai_de_boucle_de_jeu, self.boucler_sur_jeu)
+            
     def detruire_partie(self):
         self.partie = None
 
