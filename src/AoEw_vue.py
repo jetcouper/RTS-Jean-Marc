@@ -1682,8 +1682,8 @@ class Vue():
         delete_btn.grid(row=0, column=2, padx=(8, 0), sticky="ew")
 
         # remplacer le contenu de la zone d'actions par ce cadre
-        self.canevasaction.delete("ALL")
-        self.canevasaction.create_window(10, 10, anchor=NW, window=self.cadrebatimentinfo)
+        self.canevasinfo.delete("ALL")
+        self.canevasinfo.create_window(10, 10, anchor=NW, window=self.cadrebatimentinfo)
         
 
     ##FONCTIONS D'AFFICHAGES##################################
