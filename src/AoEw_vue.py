@@ -1668,8 +1668,7 @@ class Vue():
         life_ratio = obj.mana / obj.mana_max
         current_width = largeur * life_ratio    
         color_liferange = "green" if life_ratio > 0.5 else "orange" if life_ratio > 0.2 else "red"
-        self.canevas.create_rectangle(obj.x - largeur/2, obj.y - offset_y, obj.x + largeur/2 + current_width, obj.y - offset_y - 5, fill=color_liferange, tags=tagged)
-                                                     
+        barre = self.canevas.create_rectangle(obj.x - largeur/2, obj.y - offset_y, obj.x + largeur/2 + current_width, obj.y - offset_y - 5, fill=color_liferange, tags=tagged, state = "disabled")                         
 
 
     def afficher_jeu(self):
