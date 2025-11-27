@@ -520,7 +520,7 @@ class Vue():
             "Option Partie",
             color="#4a1d1d",
             hover="#7a3c3c",
-            command=lambda: print("Option Partie clicker")
+            command=lambda: (self.changer_topblack("blackgame"), self.changer_toplevel("option"))
         ).place(relx=0.53, rely=0.5, anchor="center")
 
         # === DROITE (Charger Partie + Table de jeu) ===
