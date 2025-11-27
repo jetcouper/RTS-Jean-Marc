@@ -1977,25 +1977,26 @@ class Vue():
     def creer_entite(self, evt):
         x, y = evt.x, evt.y
         mestags = self.canevas.gettags(CURRENT)
-        if self.parent.nom_joueur_local in mestags:
+        if self.parent.nom_joueur_local in mestags and mestags[1] == self.nom_joueur_local:
             if "batiment" in mestags:
                 if "maison" in mestags:
                     pos = (self.canevas.canvasx(evt.x), self.canevas.canvasy(evt.y))
                     action = [self.parent.nom_joueur_local, "creerperso", ["ouvrier", mestags[4], mestags[2], pos]]
-                if "caserne" in mestags:
+                elif "caserne" in mestags:
                     pos = (self.canevas.canvasx(evt.x), self.canevas.canvasy(evt.y))
                     action = [self.parent.nom_joueur_local, "creerperso", ["soldat", mestags[4], mestags[2], pos]]
-                if "abri" in mestags:
+                elif "abri" in mestags:
                     pos = (self.canevas.canvasx(evt.x), self.canevas.canvasy(evt.y))
                     action = [self.parent.nom_joueur_local, "creerperso", ["druide", mestags[4], mestags[2], pos]]
-                if "usineballiste" in mestags:
+                elif "usineballiste" in mestags:
                     pos = (self.canevas.canvasx(evt.x), self.canevas.canvasy(evt.y))
                     action = [self.parent.nom_joueur_local, "creerperso", ["ballista", mestags[4], mestags[2], pos]]
                 self.parent.actions_requises.append(action)
+            else:
+                return
         elif self.action.persochoisi != []:
             self.action.ciblechoisi = mestags
             self.action.attaquer()
-
 
 # Singleton (mais pas automatique) sert a conserver les manipulations du joueur
 # pour demander une action
