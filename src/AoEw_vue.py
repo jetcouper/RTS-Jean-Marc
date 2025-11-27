@@ -1759,10 +1759,10 @@ class Vue():
 
     def indiquer_position(self, evt):
         tag = self.canevas.gettags(CURRENT)
-        if not tag:
-            x, y = (self.canevas.canvasx(evt.x), self.canevas.canvasy(evt.y))
-            self.action.position = [x, y]
-            self.action.deplacer()
+        #if not tag:
+        x, y = (self.canevas.canvasx(evt.x), self.canevas.canvasy(evt.y))
+        self.action.position = [x, y]
+        self.action.deplacer()
 
     # Cette fonction permet se se deplacer via un click sur la minicarte
     def deplacer_carte(self, evt):
