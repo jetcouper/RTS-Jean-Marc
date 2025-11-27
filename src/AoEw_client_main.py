@@ -6,7 +6,7 @@ from AoEw_modele import *
 import Users as us
 import pickle
 from pathlib import Path
-
+from AoEw_divers import reset_prochain_id
 
 class Controleur():
     def __init__(self):
@@ -101,7 +101,10 @@ class Controleur():
         # random ALEATOIRE fourni par le serveur
         # random.seed(int(initaleatoire))
         # random FIXE pour test
-            
+        self.jeu_en_pause = False
+        reset_prochain_id()
+        self.iteration_boucle_jeu = 0
+
         random.seed(self.seed)
         # # on recoit la derniere liste des joueurs pour la partie
         # listejoueurs = []
