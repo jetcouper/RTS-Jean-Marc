@@ -113,7 +113,7 @@ class Perso():
         self.mana = 100
         self.force = 5
         self.champvision = 100
-        self.vitesse = 5
+        self.vitesse = 30
         self.angle = None
         self.javelots = []
         self.portee_attaque = 40
@@ -515,7 +515,7 @@ class Ballista(Perso):
 
         self.dir = "DH"
         self.image = couleur[0] + "_" + montype + self.dir
-        self.force = 30
+        self.force = 45  # plus puissant que l'ouvrier
         self.portee_attaque = 260
         self.projectile_portee = 320
         self.delai_attaque = 40
