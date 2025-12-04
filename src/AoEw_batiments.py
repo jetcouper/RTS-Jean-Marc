@@ -35,7 +35,9 @@ class Batiment():
         if self.mana < 1:
             print("MORTS")
             self.etat = "mort"
-            self.parent.annoncer_mort_batiment(self)
+            # parent devrait être Joueur; on garde un garde-fou
+            if hasattr(self.parent, "annoncer_mort_batiment"):
+                self.parent.annoncer_mort_batiment(self)
             return 1
 
 class Usineballiste(Batiment):
