@@ -150,6 +150,7 @@ class Partie():
         self.creer_biotope("eau", "eau", Eau)
         self.creer_biotope("marais", "marais", Marais)
         self.creer_biotope("aureus", "aureus", Aureus)
+        self.creer_baies_initiales(50)
 
     def creer_biotope(self, region, ressource, typeclasse):  # creation des forets
         typeressource = typeclasse.typeressource
@@ -176,6 +177,23 @@ class Partie():
                 self.biotopes[ressource][id] = (objet)
                 self.listebiotopes.append(objet)
                 nressource -= 1
+
+    def creer_baies_initiales(self, nombre):
+        """Crée toutes les baies en une seule fois au début du jeu"""
+        typeressource = Baie.typeressource
+        n = nombre
+        while n > 0:
+            x = random.randrange(self.aireX)
+            y = random.randrange(self.aireY)
+            case = self.trouver_case(x, y)
+            if case.montype == "plaine":
+                id = get_prochain_id()
+                img = random.choice(typeressource)
+                baie = Baie(self, id, img, x, y, "baie")
+                self.biotopes["baie"][id] = baie
+                self.listebiotopes.append(baie)
+                n -= 1
+
 
     def creer_regions(self):
         for reg in self.regionstypes:
@@ -351,19 +369,20 @@ class Partie():
             self.delaiprochaineaction -= 1
 
     def produire_action(self):
-        typeressource = Baie.typeressource
-        n = 1
-        while n:
-            x = random.randrange(self.aireX)
-            y = random.randrange(self.aireY)
-            case = self.trouver_case(x, y)
-            if case.montype == "plaine":
-                id = get_prochain_id()
-                img = random.choice(typeressource)
-                baie = Baie(self, id, img, x, y, "baie")
-                self.biotopes["baie"][id] = baie
-                n -= 1
-                self.parent.afficher_bio(baie)
+        #typeressource = Baie.typeressource
+        #n = 1
+        #while n:
+        #    x = random.randrange(self.aireX)
+        #    y = random.randrange(self.aireY)
+        #    case = self.trouver_case(x, y)
+        #    if case.montype == "plaine":
+        #        id = get_prochain_id()
+        #        img = random.choice(typeressource)
+        #        baie = Baie(self, id, img, x, y, "baie")
+        #        self.biotopes["baie"][id] = baie
+        #        n -= 1
+        #        self.parent.afficher_bio(baie)
+        pass
 
     # VERIFIER CES FONCTIONS SUR LA CARTECASE
 
