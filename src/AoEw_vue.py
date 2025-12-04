@@ -1144,7 +1144,8 @@ class Vue():
 
     def connecter_event(self):
         # on attache (bind) desF événements soit aux objets eux même
-        self.canevas.bind("<Button-1>", self.annuler_action)
+        # clic gauche : déplacement si sélection, sinon reset action
+        self.canevas.bind("<Button-1>", self.clic_jeu)
         self.canevas.bind("<Button-3>", self.construire_batiment)
         # faire une multiselection
         self.canevas.bind("<Shift-Button-1>", self.debuter_selection)
@@ -1844,6 +1845,16 @@ class Vue():
             if self.action.btnactif:
                 self.action.btnactif.config(bg="SystemButtonFace")
             self.action = Action(self)
+
+    def clic_jeu(self, evt):
+        # Déplacement: toujours prendre les coordonnées du clic, même sur une tuile eau/bois/etc.
+        x, y = (self.canevas.canvasx(evt.x), self.canevas.canvasy(evt.y))
+        if self.action.persochoisi:
+            self.action.position = [x, y]
+            self.action.deplacer()
+        else:
+            # si aucune sélection, on nettoie l'action courante
+            self.annuler_action(evt)
 
     def fermer_chat(self):
         self.textchat = None

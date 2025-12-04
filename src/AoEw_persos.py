@@ -100,6 +100,10 @@ class Perso():
         self.javelots = []
         self.chemin_planifie = []
         self.chemin_restant = []
+        self.destination_finale = None
+        self.replans_restants = 0
+        self.stuck_frames = 0
+        self.derniere_pos = (self.x, self.y)
         self.etats_et_actions = {"bouger": self.bouger,
                                  "ciblerennemi": self.cibler_ennemi,
                                  "attaquerennemi": self.attaquer_ennemi,
@@ -223,14 +227,56 @@ class Perso():
         if self.actioncourante:
             reponse = self.etats_et_actions[self.actioncourante]()
 
-    def deplacer(self, pos):
+    def planifier_chemin(self, pos, preserve_action=False):
+        """Utilise A* pour créer un chemin, sans ou avec changement d'état."""
         pathfinder = self.parent.parent.pathfinder
+        cible = tuple(pos)
+        # si on a déjà un chemin vers cette cible, ne pas recalculer inutilement
+        if self.destination_finale == cible and self.chemin_restant:
+            return True
         chemin = pathfinder.trouver_chemin((self.x, self.y), pos)
-        self.chemin_planifie = chemin
-        # copie mutable pour avancer de point en point sans perdre l'affichage complet
-        self.chemin_restant = chemin[1:] if len(chemin) > 1 else []
+        if not chemin or len(chemin) == 1:
+            # aucun chemin utilisable -> on ne part pas en ligne droite au travers des obstacles
+            self.chemin_planifie = []
+            self.chemin_restant = []
+            self.position_visee = None
+            if not preserve_action:
+                self.actioncourante = None
+            return False
+        # évite un "snap" : ignore le premier point trop proche de la position courante
+        remaining = chemin
+        if chemin and Helper.calcDistance(self.x, self.y, chemin[0][0], chemin[0][1]) < self.vitesse * 0.5:
+            remaining = chemin[1:]
+        self.chemin_planifie = [(self.x, self.y)] + remaining
+        self.chemin_restant = remaining
         self.position_visee = self.chemin_restant[0] if self.chemin_restant else pos
-        self.actioncourante = "bouger"
+        self.destination_finale = cible
+        self.replans_restants = 3
+        self.stuck_frames = 0
+        self.derniere_pos = (self.x, self.y)
+        if not preserve_action:
+            self.actioncourante = "bouger"
+        return True
+
+    def deplacer(self, pos):
+        self.planifier_chemin(pos, preserve_action=False)
+
+    def replan_path(self):
+        """Recalcule un chemin vers la destination finale si possible."""
+        if not self.destination_finale or self.replans_restants <= 0:
+            return False
+        self.replans_restants -= 1
+        pathfinder = self.parent.parent.pathfinder
+        nouveau = pathfinder.trouver_chemin((self.x, self.y), self.destination_finale)
+        if not nouveau or len(nouveau) < 2:
+            return False
+        remaining = nouveau
+        if Helper.calcDistance(self.x, self.y, nouveau[0][0], nouveau[0][1]) < self.vitesse * 0.5:
+            remaining = nouveau[1:]
+        self.chemin_planifie = [(self.x, self.y)] + remaining
+        self.chemin_restant = remaining
+        self.position_visee = self.chemin_restant[0] if self.chemin_restant else self.destination_finale
+        return True
 
     def bouger(self):
         if self.position_visee:
@@ -240,15 +286,40 @@ class Perso():
             x = cible[0]
             y = cible[1]
             ang = Helper.calcAngle(self.x, self.y, x, y)
-            x1, y1 = Helper.getAngledPoint(ang, self.vitesse, self.x, self.y)
+            vit_pas = self.get_vitesse_locale(x, y)
+            x1, y1 = Helper.getAngledPoint(ang, vit_pas, self.x, self.y)
             ######## ICI METTRE TEST PROCHAIN PAS POUR VOIR SI ON PEUT AVANCER
-            self.test_etat_du_sol(x1, y1)
+            if not self.test_etat_du_sol(x1, y1):
+                # on bloque le mouvement si le prochain pas est sur un obstacle
+                if not self.replan_path():
+                    self.position_visee = None
+                    self.chemin_restant = []
+                    self.actioncourante = None
+                    self.destination_finale = None
+                    return
+                # après replanification, reprendre sur le nouveau chemin
+                return self.bouger()
             ######## FIN DE TEST POUR SURFACE MARCHEE
             # si tout ba bien on continue avec la nouvelle valeur
             self.x, self.y = x1, y1
+            # détection de blocage : si on ne progresse pas assez, on replannifie
+            dist_step = Helper.calcDistance(self.x, self.y, *self.derniere_pos)
+            if dist_step < 0.1:
+                self.stuck_frames += 1
+            else:
+                self.stuck_frames = 0
+                self.derniere_pos = (self.x, self.y)
+            if self.stuck_frames >= 3:
+                if not self.replan_path():
+                    self.position_visee = None
+                    self.chemin_restant = []
+                    self.actioncourante = None
+                    self.destination_finale = None
+                    return
+                return self.bouger()
             # ici on test pour vori si nous rendu a la cible (en deca de la longueur de notre pas)
             dist = Helper.calcDistance(self.x, self.y, x, y)
-            if dist <= self.vitesse:
+            if dist <= vit_pas:
                 if self.chemin_restant:
                     # on enlève l'étape atteinte et vise la prochaine
                     self.chemin_restant.pop(0)
@@ -260,8 +331,12 @@ class Perso():
                     self.actioncourante = None
                 self.position_visee = None
                 self.chemin_restant = []
+                self.destination_finale = None
                 return "rendu"
             else:
+                # si on est coincé mais qu'il reste du chemin/destination, tenter un replanning
+                if self.destination_finale and self.replan_path():
+                    return self.bouger()
                 return dist
             
     def cibler_ennemi(self): 
@@ -311,28 +386,27 @@ class Perso():
             else:
                 self.dir = "G"
             self.image = self.image[:-1] + self.dir
+            # planifie un chemin sans casser l'action courante (attaque/construction)
+            self.planifier_chemin(self.position_visee, preserve_action=True)
         else:
             self.position_visee = None
 
     def test_etat_du_sol(self, x1, y1):
         ######## SINON TROUVER VOIE DE CONTOURNEMENT
-        # ici oncalcule sur quelle case on circule
-        casex = x1 / self.parent.parent.taillecase
-        if casex != int(casex):
-            casex = int(casex) + 1
-        casey = y1 / self.parent.parent.taillecase
-        if casey != int(casey):
-            casey = int(casey) + 1
-        #####AJOUTER TEST DE LIMITE
-        case = self.parent.parent.trouver_case(x1, y1)
-        #
-        # test si different de 0 (0=plaine), voir Partie pour attribution des valeurs
-        # if case.montype != "plaine":
-        #     # test pour être sur que de n'est 9 (9=batiment)
-        #     if case.montype != "batiment":
-        #         print("marche dans ", case.montype)
-        #     else:
-        #         print("marche dans batiment")
+        pf = self.parent.parent.pathfinder
+        cx, cy = pf.pixel_to_case(x1, y1)
+        return pf.est_traversable(cx, cy)
+
+    def get_vitesse_locale(self, cible_x, cible_y):
+        """Renvoie la vitesse ajustée selon le terrain de la case visée."""
+        pf = self.parent.parent.pathfinder
+        cx, cy = pf.pixel_to_case(cible_x, cible_y)
+        case = self.parent.parent.cartecase[cy][cx]
+        if getattr(case, "montype", None) in getattr(pf, "RALENTIS", ()):
+            return self.vitesse * 0.5
+        return self.vitesse
+
+    
 
     def test_etat_du_sol1(self, x1, y1):
         ######## SINON TROUVER VOIE DE CONTOURNEMENT
@@ -454,9 +528,24 @@ class Ouvrier(Perso):
         self.cible = objetcible
         self.typeressource = sontype
         self.position_visee = [self.cible.x, self.cible.y]
+        # planifie un chemin vers la ressource (redirigé par le pathfinder si bloquante)
+        self.planifier_chemin(self.position_visee, preserve_action=True)
         self.actioncourante = actiontype
 
     def retour_batiment_mere(self):
+        # cible la maison la plus proche
+        maisons = self.parent.batiments.get("maison", {})
+        if maisons:
+            best = None
+            best_dist = float("inf")
+            for m in maisons.values():
+                d = Helper.calcDistance(self.x, self.y, m.x, m.y)
+                if d < best_dist:
+                    best_dist = d
+                    best = m
+            cible_tuple = (best.x, best.y) if best else None
+            if best and (not self.chemin_restant or self.destination_finale != cible_tuple):
+                self.planifier_chemin(cible_tuple, preserve_action=True)
         reponse = self.bouger()
         if reponse == "rendu":
             if self.cible:
@@ -480,22 +569,28 @@ class Ouvrier(Perso):
             pass
 
     def cibler_ressource(self):
+        if self.cible and not self.chemin_restant:
+            self.planifier_chemin((self.cible.x, self.cible.y), preserve_action=True)
         reponse = self.bouger()
         if reponse == "rendu":
             self.actioncourante = "ramasserressource"
 
     def cibler_site_construction(self):
+        if self.cible and not self.chemin_restant:
+            self.planifier_chemin((self.cible.x, self.cible.y), preserve_action=True)
         reponse = self.bouger()
         if reponse == "rendu":
             self.actioncourante = "construirebatiment"
 
     def cibler_proie(self):
         self.position_visee = [self.cible.x, self.cible.y]
+        if self.cible and not self.chemin_restant:
+            self.planifier_chemin(self.position_visee, preserve_action=True)
         reponse = self.bouger()
         if reponse == "rendu":
             if self.typeressource == "daim" or self.typeressource == "eau":
                 self.actioncourante = "ramasserressource"
-        elif reponse <= self.champchasse and self.cible.etat == "vivant":
+        elif isinstance(reponse, (int, float)) and reponse <= self.champchasse and getattr(self.cible, "etat", None) == "vivant":
             self.actioncourante = "validerjavelot"
 
     def valider_javelot(self):
@@ -599,65 +694,31 @@ class Ouvrier(Perso):
             self.javelots.append(Javelot(self, id, proie))
 
     def chercher_nouvelle_ressource(self, typ, idreg):
-
-        # Types à régions (arbre/roche/eau/marais/aureus) → même région
-        if typ in self.parent.parent.regions:
-            reg = self.parent.parent.regions[typ]
-            if idreg in reg:
-                regspec = reg[idreg]
-                n = len(regspec.dicocases)
-                while n > 0:
-                    clecase = list(regspec.dicocases.keys())
-                    case = regspec.dicocases[random.choice(clecase)]
-                    n -= 1
-                    if case.ressources:
-                        clecase2 = list(case.ressources.keys())
-                        newress = case.ressources[random.choice(clecase2)]
-                        if newress.montype == typ:
-                            return newress
-            return None
+        """Ressource la plus proche de la ressource initiale, dans un rayon de 20 cases."""
+        candidates = []
+        if typ in self.parent.parent.regions and idreg in self.parent.parent.regions[typ]:
+            regspec = self.parent.parent.regions[typ][idreg]
+            for case in regspec.dicocases.values():
+                candidates.extend(case.ressources.values())
         else:
-            # Pas de régions (ex.: daim, baie) → choisir dans les biotopes de ce type
-            candidats = self.parent.parent.biotopes.get(typ, {})
-            if not candidats:
-                return None
-            meilleur = None
-            best = 10**9
-            for obj in candidats.values():
-                if obj is self.cible:
-                    continue
-                dist = Helper.calcDistance(self.x, self.y, obj.x, obj.y)
-                if dist < best and dist <= self.champvision:
-                    meilleur, best = obj, dist
-            return meilleur
-        
-        # print("Je cherche nouvelle ressource")
-        # #if typ != "baie" and typ != "daim":
-        # reg = self.parent.parent.regions[typ]
-        # if idreg in reg:
-        #     regspec = self.parent.parent.regions[typ][idreg]
-        #     n = len(regspec.dicocases)
-        #     while n > 0:
-        #         clecase = list(regspec.dicocases.keys())
-        #         case = regspec.dicocases[random.choice(clecase)]
-        #         n -= 1
-        #         if case.ressources:
-        #             clecase2 = list(case.ressources.keys())
-        #             newress = case.ressources[random.choice(clecase2)]
-        #             if newress.montype == typ:
-        #                 return newress
-        #     return None
-        # else:
-        #    nb = len(self.parent.parent.biotopes[typ])
-        #    for i in range(nb):
-        #        rep = random.choice(list(self.parent.parent.biotopes[typ].keys()))
-        #        obj = self.parent.parent.biotopes[typ][rep]
-        #        if obj != self.cible:
-        #            distance = Helper.calcDistance(self.x, self.y, obj.x, obj.y)
-        #            if distance <= self.champvision:
-        #                return obj
-        #    return None
+            candidates = list(self.parent.parent.biotopes.get(typ, {}).values())
 
+        # point de référence : l'ancienne cible si dispo, sinon la position de l'ouvrier
+        ref_x, ref_y = (self.cible.x, self.cible.y) if self.cible else (self.x, self.y)
+        rayon_px = 20 * self.parent.parent.taillecase
+
+        best = None
+        best_dist = float("inf")
+        for obj in candidates:
+            if obj is self.cible:
+                continue
+            dist = Helper.calcDistance(ref_x, ref_y, obj.x, obj.y)
+            if dist > rayon_px:
+                continue
+            if dist < best_dist:
+                best_dist = dist
+                best = obj
+        return best
     # def deplacer(self,pos):
     #     self.position_visee = pos
     #     self.actioncourante = "bouger"
@@ -704,11 +765,25 @@ class Ouvrier(Perso):
 
     def abandonner_ressource(self, ressource):
         if ressource == self.cible:
-            if self.actioncourante == "ciblerressource" or self.actioncourante == "retourbatimentmere" or self.actioncourante == "ramasserresource":
-                self.actioncourante = "retourbatimentmere"
-            else:
+            # si on transporte déjà quelque chose, on retourne déposer
+            if self.ramassage > 0:
                 self.actioncourante = "retourbatimentmere"
                 self.position_visee = [self.batimentmere.x, self.batimentmere.y]
+                self.destination_finale = tuple(self.position_visee)
+            else:
+                # sinon on tente une nouvelle ressource proche, sans passer par la maison
+                rep = self.chercher_nouvelle_ressource(ressource.montype, getattr(ressource, "idregion", None))
+                if rep:
+                    self.cible = rep
+                    self.position_visee = [self.cible.x, self.cible.y]
+                    if getattr(self.cible, "montype", "") == "daim":
+                        self.actioncourante = "ciblerproie"
+                    else:
+                        self.actioncourante = "ciblerressource"
+                    self.planifier_chemin(self.position_visee, preserve_action=True)
+                else:
+                    self.cible = None
+                    self.actioncourante = None
 
     ## PAS UTILISER POUR LE MOMENT
     def scanner_alentour(self):

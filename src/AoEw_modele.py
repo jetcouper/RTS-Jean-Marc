@@ -110,6 +110,7 @@ class Partie():
                              ["aureus", 12, 3, 4, "gold2"], ]
         self.creer_regions()
         self.creer_biotopes()
+        self.nettoyer_cases_arbre_vides()
         self.creer_population(ia_info)
         #self.ia_info = ia_info
 
@@ -172,6 +173,13 @@ class Partie():
                 self.biotopes[ressource][id] = (objet)
                 self.listebiotopes.append(objet)
                 nressource -= 1
+
+    def nettoyer_cases_arbre_vides(self):
+        """Rebascule en plaine les cases marquées 'arbre' sans ressource arbre."""
+        for ligne in self.cartecase:
+            for case in ligne:
+                if case.montype == "arbre" and not case.ressources:
+                    case.montype = "plaine"
 
     def creer_regions(self):
         for reg in self.regionstypes:
@@ -540,6 +548,9 @@ class Partie():
             cr = self.regions[ress.montype][ress.idregion].dicocases[ress.idcaseregion]
             if ress.id in cr.ressources.keys():
                 cr.ressources.pop(ress.id)
+                # si plus d'arbre dans la case, on redevient plaine
+                if type == "arbre" and not cr.ressources:
+                    cr.montype = "plaine"
 
         if ress.id in self.biotopes[type]:
             self.biotopes[type].pop(ress.id)
