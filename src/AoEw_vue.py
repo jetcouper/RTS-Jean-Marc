@@ -868,9 +868,6 @@ class Vue():
 
         # multi-line, auto-sizing message box (adapts to message length)
         msg_str = str(msg)
-        # estimate lines from characters (approx 40 chars per line)
-        est_lines = max(1, int(len(msg_str) / 40) + 1)
-        height = min(10, max(3, est_lines))  # clamp between 3 and 10 lines
 
         self.txt_victoire = Text(
             self.top_gagner,
@@ -879,12 +876,12 @@ class Vue():
             bg="#4a1d1d",
             fg="#D4AF37",
             bd=0,
-            height=height,
+            height=400,
             width=50
         )
         self.txt_victoire.insert("1.0", msg_str)
         self.txt_victoire.config(state=DISABLED)
-        self.txt_victoire.pack(fill=X, padx=20, pady=20)
+        self.txt_victoire.pack(fill=BOTH , padx=20, pady=20)
 
         # helper local pour créer des boutons stylés dans ce toplevel
         def make_button_gagner(text, command=None, padding=60):
