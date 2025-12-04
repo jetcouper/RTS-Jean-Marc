@@ -2357,9 +2357,9 @@ class Vue():
 
     def construire_batiment(self, evt):
         mestags = self.canevas.gettags(CURRENT)
-        if not mestags:
-            pos = (self.canevas.canvasx(evt.x), self.canevas.canvasy(evt.y))
-            self.action.construire_batiment(pos)
+        #if not mestags:
+        pos = (self.canevas.canvasx(evt.x), self.canevas.canvasy(evt.y))
+        self.action.construire_batiment(pos)
 
     def creer_entite(self, evt):
         x, y = evt.x, evt.y
