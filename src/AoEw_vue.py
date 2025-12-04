@@ -11,7 +11,7 @@ from vue.minimap import MiniMapRenderer
 
 from PIL import Image, ImageTk  # Pour redimensionner l’image
 
-
+#Commentaire de push
 class Vue():
     def __init__(self, parent, nom_joueur_local): #, testdispo):
         self.parent = parent
