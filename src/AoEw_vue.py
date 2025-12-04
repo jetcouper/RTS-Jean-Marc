@@ -1429,10 +1429,14 @@ class Vue():
                         all_tags=("mobile", j, p, "perso", type(i).__name__, "persochoisi")
                         self.dessiner_barre_vie(i, all_tags)
 
-                    if p == "ouvrier":
+                    # dessiner javelots des unitÉs À projectiles
+                    if getattr(self.modele.joueurs[j].persos[p][k], "javelots", None):
                         for b in self.modele.joueurs[j].persos[p][k].javelots:
-                            self.canevas.create_image(b.x, b.y, image=self.images.get(b.image, self.images.get("mort")),
-                                                      tags=("mobile", j, b.id, "", type(b).__name__, ""))
+                            self.canevas.create_image(
+                                b.x,
+                                b.y,
+                                image=self.images.get(b.image, self.images.get("mort")),
+                                tags=("mobile", j, b.id, "", type(b).__name__, ""))
 
         # ajuster les choses vivantes dependantes de la partie (mais pas des joueurs)
         for j in self.modele.biotopes["daim"].keys():
