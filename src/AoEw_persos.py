@@ -375,7 +375,7 @@ class Perso():
             self.x, self.y = x1, y1
             # détection de blocage : si on ne progresse pas assez, on replannifie
             dist_step = Helper.calcDistance(self.x, self.y, *self.derniere_pos)
-            if dist_step < 0.1:
+            if dist_step < 0.05:
                 self.stuck_frames += 1
             else:
                 self.stuck_frames = 0

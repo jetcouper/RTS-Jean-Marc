@@ -147,6 +147,7 @@ class Partie():
         self.creer_biotope("eau", "eau", Eau)
         self.creer_biotope("marais", "marais", Marais)
         self.creer_biotope("aureus", "aureus", Aureus)
+        self._fog_tick = 0
 
     def creer_biotope(self, region, ressource, typeclasse):  # creation des forets
         typeressource = typeclasse.typeressource
@@ -332,9 +333,11 @@ class Partie():
         for i in self.joueurs.keys():
             self.joueurs[i].jouer_prochain_coup()
         
-        # Gestion du fog of war
-        self.maj_fog_pour_joueur(self.nom_joueur)
-        self.fog_memory.memoriser_visible(self.nom_joueur)
+        # Gestion du fog of war (échantillonné pour réduire la charge)
+        self._fog_tick = (self._fog_tick + 1) % 3
+        if self._fog_tick == 0:
+            self.maj_fog_pour_joueur(self.nom_joueur)
+            self.fog_memory.memoriser_visible(self.nom_joueur)
 
 
         if self.msggeneral:
