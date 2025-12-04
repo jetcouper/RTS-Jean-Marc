@@ -1403,7 +1403,7 @@ class Vue():
         # soit aux dessins, en vertu de leur tag (propriétés des objets dessinés)
         # ALL va réagir à n'importe quel dessin
         # sinon on spécifie un tag particulier, exemple avec divers tag, attaché par divers événements
-        self.canevas.tag_bind("batiment", "<Button-1>", self.show_batiment_info)
+        self.canevas.tag_bind("batiment", "<Button-1>", self.handle_batiment_click)
 
         self.canevas.tag_bind("perso", "<Button-1>", self.ajouter_selection)
         self.canevas.tag_bind("arbre", "<Button-1>", self.ramasser_ressource)
@@ -1636,6 +1636,20 @@ class Vue():
         for c in range(cols):
             self.cadreouvrier.grid_columnconfigure(c, weight=1)
             
+    def handle_batiment_click(self, event):
+        tags = self.canevas.gettags(CURRENT)
+        if not tags:
+            return
+
+        owner = tags[1] if len(tags) > 1 else ""
+
+        # If we have selected units and this is an enemy building, issue an attack before showing info
+        if self.action.persochoisi and owner and owner != self.parent.nom_joueur_local:
+            self.action.ciblechoisi = tags
+            self.action.attaquer()
+
+        self.show_batiment_info(event)
+
     def show_batiment_info(self, event):
 
 
