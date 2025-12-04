@@ -202,6 +202,7 @@ class Vue():
         self.toplevel["option"] = self.creer_top_option()
         self.toplevel["useroption"] = self.creer_top_user()
         self.topblack["blackgame"] = self.creer_topblack()
+        self.toplevel["gagner"] = self.creer_top_gagner()
 
 
     def creer_cadre_mainlobby(self) -> Frame:
@@ -500,7 +501,7 @@ class Vue():
         Label(left_frame, text="Mode de jeu", font=("Times New Roman", 20, "bold"), fg="white", bg="#2e1f1f").pack(pady=5)
         # Mode de jeu - radio buttons on one line
         self.mode_jeu = StringVar(value="paix")
-        modes = [("Paix mondial", "paix"), ("Conquête", "conquete"), ("Achèvement", "achevement")]
+        modes = [("Paix mondial", "paix"), ("Commerce", "commerce"), ("Achèvement", "achevement")]
         rb_frame = Frame(left_frame, bg="#2e1f2f")
         rb_frame.pack(pady=5, fill=X)
         for text, val in modes:
@@ -829,6 +830,107 @@ class Vue():
             btn.pack(pady=5)
 
         return self.cadreescape
+    
+    def maj_message_victoire(self, nouveau_msg: str):
+        if hasattr(self, "txt_victoire"):
+            # Mettre à jour le contenu du widget Text correctement
+            self.txt_victoire.config(state=NORMAL)
+            self.txt_victoire.delete("1.0", END)
+            self.txt_victoire.insert("1.0", str(nouveau_msg))
+            # Ajuster la hauteur en fonction du contenu (approx. 40 chars/ligne déjà utilisé à la création)
+            lines = int(self.txt_victoire.index('end-1c').split('.')[0])
+            new_height = min(10, max(3, lines))
+            self.txt_victoire.config(height=new_height)
+            self.txt_victoire.config(state=DISABLED)
+            self.txt_victoire.update_idletasks()
+
+    
+    def creer_top_gagner(self):
+        # toplevel pour l'écran "gagner" (noms de variables distincts pour éviter les collisions)
+        size_x = 480
+        size_y = 600
+        x = (self.screen_width - size_x) // 2
+        y = (self.screen_height - size_y) // 2
+
+        self.top_gagner = Toplevel(self.root)
+        self.top_gagner.title("Victoire")
+        self.top_gagner.geometry(f"{size_x}x{size_y}+{x}+{y}")
+        self.top_gagner.withdraw()  # caché initialement
+
+        # fond spécifique (variables distinctes)
+        bg_path_gagner = os.path.join(os.path.dirname(__file__), "images/scroll.jpg")
+        self.tk_bg_gagner = ImageTk.PhotoImage(Image.open(bg_path_gagner).resize((size_x, size_y), Image.Resampling.LANCZOS))
+        self.label_bg_gagner = Label(self.top_gagner, image=self.tk_bg_gagner)
+        self.label_bg_gagner.place(x=0, y=0, relwidth=1, relheight=1)
+        
+        # utiliser le message de victoire fourni par le parent (fallback si absent)
+        msg = getattr(self.parent, "victoire_msg", "Partie finie !")
+
+        # multi-line, auto-sizing message box (adapts to message length)
+        msg_str = str(msg)
+        # estimate lines from characters (approx 40 chars per line)
+        est_lines = max(1, int(len(msg_str) / 40) + 1)
+        height = min(10, max(3, est_lines))  # clamp between 3 and 10 lines
+
+        self.txt_victoire = Text(
+            self.top_gagner,
+            wrap=WORD,
+            font=("Times New Roman", 18, "bold"),
+            bg="#4a1d1d",
+            fg="#D4AF37",
+            bd=0,
+            height=height,
+            width=50
+        )
+        self.txt_victoire.insert("1.0", msg_str)
+        self.txt_victoire.config(state=DISABLED)
+        self.txt_victoire.pack(fill=X, padx=20, pady=20)
+
+        # helper local pour créer des boutons stylés dans ce toplevel
+        def make_button_gagner(text, command=None, padding=60):
+            frame_w = 250
+            f = Frame(self.top_gagner, bg="#4a1d1d", width=frame_w, height=50, highlightthickness=2, highlightbackground="goldenrod2")
+            f.pack_propagate(False)
+            f.pack(pady=padding)
+
+            lbl = Label(f, text=text, font=("Times New Roman", 14, "bold"), bg="#4a1d1d", fg="#D4AF37")
+            lbl.pack(side=TOP, fill=BOTH, expand=True)
+
+            def _on_enter(e):
+                f.config(bg="#7a3c3c")
+                lbl.config(bg="#7a3c3c")
+
+            def _on_leave(e):
+                f.config(bg="#4a1d1d")
+                lbl.config(bg="#4a1d1d")
+
+            def _on_click(e):
+                if command:
+                    command()
+
+            for w in (f, lbl):
+                w.bind("<Enter>", _on_enter)
+                w.bind("<Leave>", _on_leave)
+                w.bind("<Button-1>", _on_click)
+
+            return f
+
+        # Boutons spécifiques à l'écran "gagner"
+        btn_quitter_gagner = make_button_gagner(
+            "Quitter la partie",
+            command=lambda: (
+                self.changer_cadre("mainlobby"),
+                self.arreter_boucle(),
+                self.top_gagner.withdraw(),
+                self.changer_topblack(None),
+                self.changer_toplevel(None)
+            )
+        )
+
+        # affichage (le helper a déjà packé les frames, on peut ajuster marge si besoin)
+        btn_quitter_gagner.pack(pady=5)
+
+        return self.top_gagner
     
     def creer_top_option(self):
         # cadre d'options (toplevel distinct pour éviter les collisions de noms)
