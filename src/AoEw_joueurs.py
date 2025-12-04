@@ -84,18 +84,28 @@ class Joueur():
         self.creer_point_origine(x, y)
 
     def annoncer_mort(self, perso):
-        self.persos[perso.montype].pop(perso.id)
+        if perso.id in self.persos[perso.montype]:
+            self.persos[perso.montype].pop(perso.id)
 
     def annoncer_mort_batiment(self, perso):
-        self.batiments[perso.montype].pop(perso.id)
+        if perso.id in self.batiments[perso.montype]:
+            self.batiments[perso.montype].pop(perso.id)
 
     def attaquer(self, param):
         attaquants, attaque = param
         nomjoueur, idperso, sorte = attaque
 
-        if sorte in self.persos: 
-            cible = self.parent.joueurs[nomjoueur].persos[sorte][idperso]
-        else:
+        cible = None
+        ciblejoueur = self.parent.joueurs.get(nomjoueur)
+        if not ciblejoueur:
+            return
+
+        if sorte in ciblejoueur.persos:
+            cible = ciblejoueur.persos[sorte].get(idperso)
+        elif sorte in ciblejoueur.batiments:
+            cible = ciblejoueur.batiments[sorte].get(idperso)
+
+        if not cible:
             return
 
         for i in self.persos.keys():
@@ -163,8 +173,15 @@ class Joueur():
         siteconstruction = SiteConstruction(self, id, pos[0], pos[1], sorte,
                                             Joueur.valeurs[sorte]["delai"])
         self.batiments["siteconstruction"][id] = siteconstruction
+        ouvriers_valides = 0
         for i in perso:
-            self.persos["ouvrier"][i].construire_site_construction(siteconstruction)
+            ouvrier = self.persos["ouvrier"].get(i)
+            if ouvrier:
+                ouvriers_valides += 1
+                ouvrier.construire_site_construction(siteconstruction)
+        if ouvriers_valides == 0:
+            # Aucun ouvrier valide : on annule le site de construction
+            self.batiments["siteconstruction"].pop(id, None)
 
     def installer_batiment(self, batiment):
         self.parent.installer_batiment(self.nom, batiment)
@@ -172,7 +189,7 @@ class Joueur():
     # transmet à tous ses persos de jouer
     def jouer_prochain_coup(self):
         for j in self.persos.keys():
-            for i in self.persos[j].keys():
+            for i in list(self.persos[j].keys()):
                 self.persos[j][i].jouer_prochain_coup()
 
     def creer_perso(self, param):

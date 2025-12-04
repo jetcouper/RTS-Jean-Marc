@@ -27,12 +27,14 @@ class Batiment():
         self.mana_max = 200 
         self.mana = 200
         self.champvision = 150
+        self.etat = "vivant"
 
     def recevoir_coup(self, force):
         self.mana -= force
         print("Ouch Batiment")
         if self.mana < 1:
             print("MORTS")
+            self.etat = "mort"
             self.parent.annoncer_mort_batiment(self)
             return 1
 

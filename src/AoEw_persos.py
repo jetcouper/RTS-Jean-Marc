@@ -1,5 +1,6 @@
 import random
 import math
+import time
 from helper import Helper
 from AoEw_divers import *
 from vue.fog import FogState
@@ -37,16 +38,18 @@ class Fleche():
             return self
 
 class Javelot():
-    def __init__(self, parent, id, proie):
+    def __init__(self, parent, id, proie, force=None, distance=None):
         self.parent = parent
         self.id = id
         self.vitesse = 18
-        self.distance = 150
+        self.distance_max = distance if distance is not None else getattr(parent, "portee_attaque", 150)
+        self.distance_parcourue = 0
         self.taille = 20
         self.demitaille = 10
+        self.force = force if force is not None else getattr(parent, "force", 10)
         self.proie = proie
-        self.proiex = self.proie.x
-        self.proiey = self.proie.y
+        self.proiex = getattr(self.proie, "x", 0)
+        self.proiey = getattr(self.proie, "y", 0)
         self.x = self.parent.x
         self.y = self.parent.y
         self.ang = Helper.calcAngle(self.x, self.y, self.proiex, self.proiey)
@@ -62,19 +65,31 @@ class Javelot():
             dir = "GH"
         self.image = "javelot" + dir
 
-    def bouger(self):
-        self.x, self.y, = Helper.getAngledPoint(self.ang, self.vitesse, self.x, self.y)
-        dist = Helper.calcDistance(self.x, self.y, self.proie.x, self.proie.y)
-        if dist <= self.demitaille:
-            # tue daim
-            self.parent.actioncourante = "ciblerressource"
+    def retirer(self):
+        try:
             self.parent.javelots.remove(self)
-            self.proie.mourir()
-        else:
-            dist = Helper.calcDistance(self.x, self.y, self.proiex, self.proiey)
-            if dist < self.vitesse:
-                self.parent.javelots.remove(self)
-                self.parent.actioncourante = "ciblerproie"
+        except (ValueError, AttributeError):
+            pass
+
+    def bouger(self):
+        if not self.proie or getattr(self.proie, "etat", "vivant") == "mort":
+            self.retirer()
+            return
+
+        self.x, self.y = Helper.getAngledPoint(self.ang, self.vitesse, self.x, self.y)
+        self.distance_parcourue += self.vitesse
+
+        dist_cible = Helper.calcDistance(self.x, self.y, self.proie.x, self.proie.y)
+        if dist_cible <= self.demitaille:
+            if hasattr(self.proie, "recevoir_coup"):
+                self.proie.recevoir_coup(self.force)
+            elif hasattr(self.proie, "mourir"):
+                self.proie.mourir()
+            self.retirer()
+            return
+
+        if self.distance_parcourue >= self.distance_max:
+            self.retirer()
 
 class Perso():
     def __init__(self, parent, id, batiment, couleur, x, y, montype):
@@ -91,6 +106,9 @@ class Perso():
         self.position_visee = None
         self.cibleennemi = None
         self.ciblebatiment = None
+        self.etat = "vivant"
+        self.temps_mort = None
+        self.temps_mort_delai = 5
         self.mana_max = 100
         self.mana = 100
         self.force = 5
@@ -98,6 +116,12 @@ class Perso():
         self.vitesse = 5
         self.angle = None
         self.javelots = []
+        self.portee_attaque = 40
+        self.delai_attaque = 25
+        self.cooldown_attaque = 0
+        self.utilise_projectile = False
+        self.projectile_portee = 180
+        self.image_mort = "mort"
         self.chemin_planifie = []
         self.chemin_restant = []
         self.destination_finale = None
@@ -107,8 +131,8 @@ class Perso():
         self.etats_et_actions = {"bouger": self.bouger,
                                  "ciblerennemi": self.cibler_ennemi,
                                  "attaquerennemi": self.attaquer_ennemi,
-                                 "retourbatimentmere": None, #à vérifier car fct ds ouvrier
-                                 "attaquerbatiment": self.attaquer_batiment, 
+                                 "retourbatimentmere": None,
+                                 "attaquerbatiment": self.attaquer_ennemi,
                                  "validerjavelot": self.valider_javelot,
                                  }
         self.vision = {
@@ -116,7 +140,7 @@ class Perso():
             "persos_ennemis": {},
             "batiments_amis": {},
             "batiments_ennemis": {},
-            "ressources": {}  # par type: {"daim": {...}, "arbre": {...}, ...} 
+            "ressources": {}
             }
     
 
@@ -161,74 +185,118 @@ class Perso():
     ##################################################################################################
 
     def attaquer(self, ennemi):
-
-        if not ennemi:
-            return 
-        # self.cibleennemi = ennemi
-        # x = self.cibleennemi.x
-        # y = self.cibleennemi.y
+        if not ennemi or getattr(ennemi, "etat", "vivant") == "mort":
+            return
         self.cibler(ennemi)
-
-        # dist = Helper.calcDistance(self.x, self.y, x, y)
-        # if dist <= self.vitesse:
-        #     self.actioncourante = "attaquerennemi"
-        # else:
         self.actioncourante = "ciblerennemi"
 
     def attaquer_ennemi(self):
-
-        if not self.cible:
+        cible = self.cible
+        if not cible or getattr(cible, "etat", "vivant") == "mort":
+            self.cible = None
             self.actioncourante = None
-            return 
-        
-        if not hasattr(self.cible, "recevoir_coup"): #si on ne peut pas attaquer, cancelled
-            self.cible = None
-            self.actioncourante = None 
-
-        rep = self.cibleennemi.recevoir_coup(self.force)
-        if rep == 1:
-            self.cibleennemi = None
-            self.cible = None
-        elif self.cibleennemi.etat == "vivant": 
-            self.actioncourante = "validerjavelot"
-            print("attaque ennemi")
-        #   gestion delai compteur attaque? 
-    
-    def attaquer_batiment(self, batiment):
-        self.ciblebatiment = batiment 
-        x = self.ciblebatiment.x
-        y = self.ciblebatiment.y 
-        self.cibler(batiment)
-
-        dist = Helper.calcDistance(self.x, self.y, x, y)
-        if dist <= self.vitesse:
-            self.actioncourante = "attaquerbatiment"
-            print("attaquer bâtiment")
-        else:
+            return
+        dist = Helper.calcDistance(self.x, self.y, cible.x, cible.y)
+        if dist > self.portee_attaque:
             self.actioncourante = "ciblerennemi"
-    
+            return
+        if self.cooldown_attaque > 0:
+            return
+        self.cooldown_attaque = self.delai_attaque
+        if self.utilise_projectile:
+            self.lancer_javelot(cible)
+        else:
+            if hasattr(cible, "recevoir_coup"):
+                cible.recevoir_coup(self.force)
+
+    def attaquer_batiment(self, batiment):
+        self.attaquer(batiment)
+
     def valider_javelot(self):
-        self.lancer_javelot(self.cible)
-        for i in self.javelots:
-            i.bouger()
-    
+        if not self.cible or getattr(self.cible, "etat", "vivant") == "mort":
+            self.actioncourante = None
+            return
+        if not self.javelots:
+            self.lancer_javelot(self.cible)
+        self.mettre_a_jour_projectiles()
+
     def lancer_javelot(self, ennemi):
-        if self.javelots == []:
-            id = get_prochain_id()
-            self.javelots.append(Javelot(self, id, ennemi))
-            print("lancer javelot")
+        if self.javelots:
+            return
+        id = get_prochain_id()
+        self.javelots.append(Javelot(self, id, ennemi, force=self.force, distance=self.projectile_portee))
+
+    def mettre_a_jour_projectiles(self):
+        for proj in list(self.javelots):
+            proj.bouger()
 
     def recevoir_coup(self, force):
-        self.mana -= force
-        print("Ouch")
-        if self.mana < 1:
-            print("MORTS")
-            self.parent.annoncer_mort(self)
+        if self.etat == "mort":
             return 1
+        self.mana -= force
+        if self.mana <= 0:
+            self.mourir()
+            return 1
+        return 0
+
+    def mourir(self):
+        if self.etat == "mort":
+            return
+        self.etat = "mort"
+        self.mana = 0
+        self.temps_mort = time.time()
+        self.actioncourante = None
+        self.position_visee = None
+        self.cible = None
+        self.javelots.clear()
+        self.image = self.image_mort
+
+    def preparer_tour(self):
+        if self.cooldown_attaque > 0:
+            self.cooldown_attaque -= 1
+        self.mettre_a_jour_projectiles()
+        if self.etat == "mort":
+            if self.temps_mort and (time.time() - self.temps_mort) >= self.temps_mort_delai:
+                self.parent.annoncer_mort(self)
+            return False
+        return True
 
     def jouer_prochain_coup(self):
+        if not self.preparer_tour():
+            return
         if self.actioncourante:
-            reponse = self.etats_et_actions[self.actioncourante]()
+            self.etats_et_actions[self.actioncourante]()
+
+    def planifier_chemin(self, pos, preserve_action=False):
+        """Utilise A* pour créer un chemin, sans ou avec changement d'état."""
+        pathfinder = self.parent.parent.pathfinder
+        cible = tuple(pos)
+        # si on a déjà un chemin vers cette cible, ne pas recalculer inutilement
+        if self.destination_finale == cible and self.chemin_restant:
+            return True
+        chemin = pathfinder.trouver_chemin((self.x, self.y), pos)
+        if not chemin or len(chemin) == 1:
+            # aucun chemin utilisable -> on ne part pas en ligne droite au travers des obstacles
+            self.chemin_planifie = []
+            self.chemin_restant = []
+            self.position_visee = None
+            if not preserve_action:
+                self.actioncourante = None
+            return False
+        # évite un "snap" : ignore le premier point trop proche de la position courante
+        remaining = chemin
+        if chemin and Helper.calcDistance(self.x, self.y, chemin[0][0], chemin[0][1]) < self.vitesse * 0.5:
+            remaining = chemin[1:]
+        self.chemin_planifie = [(self.x, self.y)] + remaining
+        self.chemin_restant = remaining
+        self.position_visee = self.chemin_restant[0] if self.chemin_restant else pos
+        self.destination_finale = cible
+        self.replans_restants = 3
+        self.stuck_frames = 0
+        self.derniere_pos = (self.x, self.y)
+        if not preserve_action:
+            self.actioncourante = "bouger"
+        return True
 
     def planifier_chemin(self, pos, preserve_action=False):
         """Utilise A* pour créer un chemin, sans ou avec changement d'état."""
@@ -344,41 +412,30 @@ class Perso():
             
     def cibler_ennemi(self): 
 
-        if not self.cible: # si pas de cible, ne rien faire
+        if not self.cible or getattr(self.cible, "etat", "vivant") == "mort":
+            self.cible = None
             self.actioncourante = None
             return
 
-        if getattr(self.cible, "etat", None) == "mort": #si l'objet est mort, ne rien faire 
-            self.cible = None
-            self.actioncourante = None
-            return 
-        
-        try:  
+        try:
             self.position_visee = [self.cible.x, self.cible.y]
-        except AttributeError: #si erreur, ne fait rien 
+        except AttributeError:
             self.cible = None
             self.actioncourante = None
-            return 
+            return
+
+        dist = Helper.calcDistance(self.x, self.y, self.position_visee[0], self.position_visee[1])
+
+        if dist <= self.portee_attaque:
+            self.actioncourante = "attaquerennemi"
+            return
 
         reponse = self.bouger()
 
         if reponse == "rendu":
-            if any(obj is self.cible for obj in self.vision.get("persos_ennemis", {}).values()):
-                self.actioncourante = "attaquerennemi"
-            elif any(obj is self.cible for obj in self.vision.get("batiments_ennemis", {}).values()):
-                self.actioncourante = "attaquerbatiment"
-            else:
-                self.actioncourante = None 
-
-        else:
-            if isinstance(reponse, (int, float)):
-                dist = reponse
-            if dist <= self.vitesse:
-                if getattr(self.cible, "montype", None) == "daim":
-                    self.actioncourante = "validerjavelot"
-                else:
-                    self.actioncourante = "attaquerennemi"
-
+            self.actioncourante = "attaquerennemi"
+        elif isinstance(reponse, (int, float)) and reponse <= self.portee_attaque:
+            self.actioncourante = "attaquerennemi"
 
     def cibler(self, obj):
         self.cible = obj
@@ -433,6 +490,8 @@ class Soldat(Perso):
     def __init__(self, parent, id, maison, couleur, x, y, montype):
         Perso.__init__(self, parent, id, maison, couleur, x, y, montype)
         self.force = 20
+        self.portee_attaque = 25
+        self.delai_attaque = 15
 
 class Archer(Perso):
     def __init__(self, parent, id, maison, couleur, x, y, montype):
@@ -456,22 +515,22 @@ class Ballista(Perso):
 
         self.dir = "DH"
         self.image = couleur[0] + "_" + montype + self.dir
-        self.cible = None
-        self.angle = None
-        self.distancefeumax = 30
-        self.distancefeu = 30
-        self.fleches = []
-        self.cibleennemi = None
-        # self.nomimg="ballista"
+        self.force = 30
+        self.portee_attaque = 260
+        self.projectile_portee = 320
+        self.delai_attaque = 40
+        self.utilise_projectile = True
+        self.javelots = []
 
-    def cibler(self, pos):
-        self.position_visee = pos
+    def cibler(self, cible):
+        if hasattr(cible, "x"):
+            self.cible = cible
+            self.position_visee = [cible.x, cible.y]
+        else:
+            self.position_visee = cible
 
         self.angle = Helper.calcAngle(self.x, self.y, self.position_visee[0], self.position_visee[1])
-        if self.x < self.position_visee[0]:
-            self.dir = "D"
-        else:
-            self.dir = "G"
+        self.dir = "D" if self.x < self.position_visee[0] else "G"
         if self.y < self.position_visee[1]:
             self.dir = self.dir + "B"
         else:
@@ -480,30 +539,16 @@ class Ballista(Perso):
         self.image = self.image[:-2] + self.dir
 
     def attaquer(self, ennemi):
-        self.cibleennemi = ennemi
-        x = self.cibleennemi.x
-        y = self.cibleennemi.y
-        self.position_visee = [x, y]
-        dist = Helper.calcDistance(self.x, self.y, x, y)
-        if dist <= self.distancefeu:
-            self.actioncourante = "attaquerennemi"
-        else:
-            self.actioncourante = "ciblerennemi"
-
-    def attaquerennemi(self):
-        if self.delaifeu == 0:
-            id = get_prochain_id()
-            fleche = Fleche(self, id, self.ciblennemi)
-            self.delaifeu = self.delaifeumax
-        for i in self.fleches:
-            rep = i.bouger()
-        if rep:
-            rep = self.cibleennemi.recevoir_coup(self.force)
-            self.fleches.remove(rep)
+        super().attaquer(ennemi)
 
 class Ouvrier(Perso):
     def __init__(self, parent, id, maison, couleur, x, y, montype):
         Perso.__init__(self, parent, id, maison, couleur, x, y, montype)
+        self.force = 8
+        self.portee_attaque = 160
+        self.projectile_portee = 200
+        self.delai_attaque = 30
+        self.utilise_projectile = True
         self.activite = None  # sedeplacer, cueillir, chasser, pecher, construire, reparer, attaquer, fuir, promener,explorer,chercher
         self.typeressource = None
         self.quota = 20
@@ -519,7 +564,7 @@ class Ouvrier(Perso):
                                  "ciblerproie": self.cibler_proie,
                                  "ciblerennemi": self.cibler_ennemi,
                                  "attaquerennemi": self.attaquer_ennemi,
-                                 "attaquerbatiment": self.attaquer_batiment, 
+                                 "attaquerbatiment": self.attaquer_ennemi, 
                                  "construirebatiment": self.construire_batiment,
                                  "ramasserressource": self.ramasser,
                                  "ciblerressource": self.cibler_ressource,
@@ -597,9 +642,15 @@ class Ouvrier(Perso):
             self.actioncourante = "validerjavelot"
 
     def valider_javelot(self):
-        self.lancer_javelot(self.cible)
-        for i in self.javelots:
-            i.bouger()
+        if not self.cible or getattr(self.cible, "etat", "vivant") == "mort":
+            if getattr(self.cible, "montype", None) in ("daim", "eau"):
+                self.actioncourante = "ramasserressource"
+            else:
+                self.actioncourante = None
+            return
+        if not self.javelots:
+            self.lancer_javelot(self.cible)
+        self.mettre_a_jour_projectiles()
 
     def ramasser(self):
         self.ramassage += 1
@@ -675,26 +726,29 @@ class Ouvrier(Perso):
         # pass #monte le batiment par etapes on pourrait montrer l'anavancement de la construciton
 
     def jouer_prochain_coup(self):
+        if not self.preparer_tour():
+            return
+
         if self.actioncourante:
-            # VÉRIFIER LA COHÉRENCE DES CONSTRUCTIONS
+            # V?rifier la coh?rence des constructions
             if self.actioncourante in ["construirebatiment", "ciblersiteconstruction"]:
                 if self.cible is None:
                     print(f"{self.id}: Aucune cible de construction - retour au repos")
                     self.actioncourante = None
                     return
 
-                # Vérifier que le site existe toujours
                 if hasattr(self.cible, 'id') and self.cible.id not in self.parent.batiments.get('siteconstruction', {}):
                     print(f"{self.id}: Site de construction {self.cible.id} introuvable - abandon")
                     self.cible = None
                     self.actioncourante = None
                     return
-            reponse = self.etats_et_actions[self.actioncourante]()
+            self.etats_et_actions[self.actioncourante]()
 
     def lancer_javelot(self, proie):
-        if self.javelots == []:
-            id = get_prochain_id()
-            self.javelots.append(Javelot(self, id, proie))
+        if self.javelots:
+            return
+        id = get_prochain_id()
+        self.javelots.append(Javelot(self, id, proie, force=self.force, distance=self.projectile_portee))
 
     def chercher_nouvelle_ressource(self, typ, idreg):
         """Ressource la plus proche de la ressource initiale, dans un rayon de 20 cases."""

@@ -287,10 +287,14 @@ class Partie():
         for j in self.joueurs.values():
             for dico_persos in j.persos.values():
                 for p in dico_persos.values():
+                    if getattr(p, "etat", "vivant") != "vivant":
+                        continue
                     if Helper.calcDistance(x, y, p.x, p.y) <= r:
                         persos.append(p)
             for dico_bats in j.batiments.values():
                 for b in dico_bats.values():
+                    if getattr(b, "etat", "vivant") != "vivant":
+                        continue
                     # Pour les bâtiments on prend leur centre; leur emprise est déjà marquée sur la carte au placement
                     # via installer_batiment, mais pas besoin d'aller jusqu'aux cases ici.
                     if Helper.calcDistance(x, y, b.x, b.y) <= r:
