@@ -677,7 +677,8 @@ class Ouvrier(Perso):
         
         self.cible.decremente_delai()
         if self.cible.delai < 1:
-            batiment = self.parent.parent.classesbatiments[self.cible.sorte](self, self.cible.id, self.parent.couleur,
+            # Crée le bâtiment en liant le Joueur comme parent (pas l'ouvrier)
+            batiment = self.parent.parent.classesbatiments[self.cible.sorte](self.parent, self.cible.id, self.parent.couleur,
                                                                              self.cible.x, self.cible.y,
                                                                              self.cible.sorte)
             self.parent.batiments[self.cible.sorte][self.cible.id] = batiment
