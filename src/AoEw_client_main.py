@@ -31,6 +31,7 @@ class Controleur():
         self.mode_de_jeu = "paix"  # solo ou multi
         self.default_seed = 14777
         self.seed = 12473  # valeur de random pour la partie
+        self.victoire_msg = "Partie finie."
         # frequence des appels vers le serveur
         #MORT self.modulo_appeler_serveur = 4
         # adresses du URL du serveur de jeu, adresse 127.0.0.1 est pour des tests avec un serveur local... utile pour tester
@@ -118,70 +119,36 @@ class Controleur():
         # on lance la boucle de jeu
         self.boucler_sur_jeu()
 
-    # MORT
-    # APRES AVOIR OBTENU UNE CONNECTION AU SERVEUR
-    # def initialiser_splash_post_connection(self,url_serveur):
-    #     self.session = requests.Session()
-    #     self.url_serveur = url_serveur
-    #     self.boucler_sur_splash()
-
-    # MORT
-    # boucle de communication initiale avec le serveur pour creer ou s'inscrire a la partie
-    # def boucler_sur_splash(self):
-    #     url = self.url_serveur + "/tester_jeu"
-    #     params = {"nom": self.nom_joueur_local}
-    #     mondict = self.appeler_serveur(url, params)
-    #     #print(self.nom_joueur_local, mondict)
-    #     if mondict:
-    #         self.vue.update_splash(mondict[0])
-    #     self.prochain_splash = self.vue.root.after(50, self.boucler_sur_splash)
-
-    # MORT
-    # on boucle sur le lobby en attendant l'inscription de tous les joueurs attendus
-    # def boucler_sur_lobby(self):
-    #     url = self.url_serveur + "/boucler_sur_lobby"
-    #     params = {"nom": self.nom_joueur_local}
-    #     mondict = self.appeler_serveur(url, params, "POST")
-    #     # si l'etat est courant, c'est que la partie vient d'etre lancer
-    #     if "courante" in mondict[0]:
-    #         self.initialiser_partie(mondict)
-    #     else:
-    #         self.joueurs = mondict
-    #         self.vue.update_lobby(mondict)
-    #         self.vue.root.after(50, self.boucler_sur_lobby)
 
     # La boucle principale pour jouer une partie
     def boucler_sur_jeu(self):
         self.iteration_boucle_jeu += 1
-        # MORT
-        # test pour communiquer avec le serveur periodiquement
-        # if self.iteration_boucle_jeu % self.modulo_appeler_serveur == 0:
-        #     actions = []
-        #     if self.actions_requises:
-        #         actions = self.actions_requises
-        #         self.actions_requises = []
-        #     url = self.url_serveur + "/boucler_sur_jeu"
-        #     if actions == []:
-        #         actions = ''
-        #     data = {"nom": self.nom_joueur_local,
-        #               "iteration_boucle_jeu": self.iteration_boucle_jeu,
-        #               "actions_requises": actions}
-        #     try:
-        #         mondict = self.appeler_serveur(url, data, method = "POST")
-        #         # verifie pour requete d'attente d'un joueur plus lent
-        #         if "ATTENTION" in mondict:
-        #             print("SAUTER TOUR")
-        #             self.on_joue = 0
-        #         elif mondict:
-        #             self.partie.ajouter_actions_a_faire(self.iteration_boucle_jeu,mondict)
-        #
-        #     except requests.exceptions.RequestException as e:
-        #         print("An error occurred:", e)
-        #         self.on_joue = 0
+
         # Précaution supplémentaire
         if not self.partie:
             print("⚠️ Partie inexistante, arrêt de la boucle")
             return
+        
+        if (self.mode_de_jeu == "commerce") :
+        
+            try:
+                for jnom, joueur in self.partie.joueurs.items():
+                    bois = 0
+                    if hasattr(joueur, "ressources") and isinstance(joueur.ressources, dict):
+                        bois = joueur.ressources.get("arbre", 0)
+                    if bois >= 210:
+                        self.victoire_msg = f"Victoire : le joueur '{jnom}' a atteint {bois} bois. Arrêt de la partie."
+                        self.vue.maj_message_victoire(self.victoire_msg)
+                        print(self.victoire_msg)
+                        self.arreter_boucle_jeu()
+                        self.detruire_partie()
+                        self.vue.changer_topblack("blackgame")
+                        self.vue.changer_toplevel("gagner")
+                        return
+            except Exception as e:
+                # Ne doit pas planter la boucle ; log si nécessaire
+                print(f"Erreur lors de la vérification de victoire : {e}")
+            
 
         if self.actions_requises:
             self.actions_requises.insert(0, self.iteration_boucle_jeu + 1)
