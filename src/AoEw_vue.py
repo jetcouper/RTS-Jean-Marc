@@ -112,6 +112,18 @@ class Vue():
         # # images des assets, definies dans le modue loadeurimages
         self.images = charger_images()
         self.gifs = charger_gifs()
+        self._ajouter_sprite_mort()
+
+    def _ajouter_sprite_mort(self):
+        if "mort" in self.images:
+            return
+        sprite = PhotoImage(width=24, height=24)
+        sprite.put("#2b1b1b", to=(0, 0, 23, 23))
+        for i in range(24):
+            sprite.put("#8b0000", to=(i, i))
+            sprite.put("#8b0000", to=(23 - i, i))
+        self.images["mort"] = sprite
+
 
     ####### INTERFACES GRAPHIQUES
 
@@ -1406,24 +1418,21 @@ class Vue():
                     i = self.modele.joueurs[j].persos[p][k]
                     if self.modele.case_fog(i.x, i.y) != FogState.VISIBLE:
                         continue
-                    coul = self.modele.joueurs[j].couleur[0]
-                    self.canevas.create_image(i.x, i.y, anchor=S, image=self.images[i.image],
-                                              tags=("mobile", j, k, "perso", p, ""))
-                    # tags=(j,k,"artefact","mobile","perso",p))
+                    img_key = i.image if i.image in self.images else "mort"
+                    tags = ["mobile", j, k, "perso", p]
+                    if getattr(i, "etat", "vivant") != "vivant":
+                        tags.append("mort")
+                    self.canevas.create_image(i.x, i.y, anchor=S, image=self.images.get(img_key, self.images["mort"]),
+                                              tags=tuple(tags))
 
-            
-                    if k in self.action.persochoisi:
+                    if getattr(i, "etat", "vivant") == "vivant" and k in self.action.persochoisi:
                         all_tags=("mobile", j, p, "perso", type(i).__name__, "persochoisi")
                         self.dessiner_barre_vie(i, all_tags)
-                      
-                        # tags=(j,k,"artefact","mobile","persochoisi"))
 
-                    # dessiner javelot de l'ouvrier
                     if p == "ouvrier":
                         for b in self.modele.joueurs[j].persos[p][k].javelots:
-                            self.canevas.create_image(b.x, b.y, image=self.images[b.image],
+                            self.canevas.create_image(b.x, b.y, image=self.images.get(b.image, self.images.get("mort")),
                                                       tags=("mobile", j, b.id, "", type(b).__name__, ""))
-                            # tags=(j,b.id,"artefact","mobile","javelot"))
 
         # ajuster les choses vivantes dependantes de la partie (mais pas des joueurs)
         for j in self.modele.biotopes["daim"].keys():
@@ -1534,6 +1543,8 @@ class Vue():
 
     def ajouter_selection(self, evt):
         mestags = self.canevas.gettags(CURRENT)
+        if not mestags or "mort" in mestags:
+            return
         if self.parent.nom_joueur_local == mestags[1]:
             if "ouvrier" == mestags[4]:
                 self.action.persochoisi.append(mestags[2])
@@ -1565,10 +1576,10 @@ class Vue():
             self.debutselect = []
             objchoisi = (list(self.canevas.find_enclosed(x1, y1, x2, y2)))
             for i in objchoisi:
-                if self.parent.nom_joueur_local not in self.canevas.gettags(i):
-                    objchoisi.remove(i)
-                else:
-                    self.action.persochoisi.append(self.canevas.gettags(i)[2])
+                tags = self.canevas.gettags(i)
+                if self.parent.nom_joueur_local not in tags or "mort" in tags:
+                    continue
+                self.action.persochoisi.append(tags[2])
 
             if self.action.persochoisi:
                 self.action.afficher_commande_perso()

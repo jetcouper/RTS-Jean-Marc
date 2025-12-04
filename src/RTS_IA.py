@@ -85,7 +85,7 @@ class IA(Joueur):
         #Enovyer plus d'ouvriers quand on est low en une ressource (<300)
 
         for typ, dico in self.persos.items():
-            for p in dico.values():
+            for p in list(dico.values()):
                 p.mettre_a_jour_vision()
                 p.jouer_prochain_coup()
 
