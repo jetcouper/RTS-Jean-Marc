@@ -93,6 +93,7 @@ class Partie():
         self.msggeneralcompteur = 0
         self.listebiotopes = []
         self.biotopes = {"daim": {},
+                         "ours": {},
                          "arbre": {},
                          "roche": {},
                          "aureus": {},
@@ -137,6 +138,11 @@ class Partie():
                 id = get_prochain_id()
                 mondaim = Daim(self, id, x, y)
                 self.biotopes["daim"][id] = mondaim
+                self.listebiotopes.append(mondaim)
+                n -= 1
+                id = get_prochain_id()
+                mondaim = Ours(self, id, x, y)
+                self.biotopes["ours"][id] = mondaim
                 self.listebiotopes.append(mondaim)
                 n -= 1
         self.creer_biotope("arbre", "arbre", Arbre)
@@ -310,6 +316,9 @@ class Partie():
         # demander aux objets de s'activer
         for i in self.biotopes["daim"].keys():
             self.biotopes["daim"][i].deplacer()
+
+        for i in self.biotopes["ours"].keys():
+            self.biotopes["ours"][i].deplacer()
 
         for i in self.biotopes["eau"].keys():
             self.biotopes["eau"][i].jouer_prochain_coup()

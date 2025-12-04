@@ -1301,6 +1301,7 @@ class Vue():
         self.canevas.tag_bind("baie", "<Button-1>", self.ramasser_ressource)
         self.canevas.tag_bind("eau", "<Button-1>", self.ramasser_ressource)
         self.canevas.tag_bind("daim", "<Button-1>", self.chasser_ressource)
+        self.canevas.tag_bind("ours", "<Button-1>", self.chasser_ressource)
         
         # Hover/leave for each tag to show contextual info
         def show_tag_info(event, tag_type):
@@ -1317,6 +1318,8 @@ class Vue():
                 txt = "Cliquez sur un ouvrier pour ramasser de la nourriture."
             elif tag_type == "daim":
                 txt = "Cliquez sur un ouvrier pour chasser ce daim."
+            elif tag_type == "ours":
+                txt = "Cliquez sur un ouvrier pour chasser cet ours."
             elif tag_type == "perso":
                 txt = "Personnage\nCliquez pour sélectionner"
 
@@ -1325,7 +1328,7 @@ class Vue():
         def clear_tag_info(event):
             self.update_action_text("")
         
-        for tag in ["arbre", "aureus", "roche", "baie", "eau", "daim", "perso"]:
+        for tag in ["arbre", "aureus", "roche", "baie", "eau", "daim", "perso", "ours"]:
             self.canevas.tag_bind(tag, "<Enter>", lambda e, t=tag: show_tag_info(e, t))
             self.canevas.tag_bind(tag, "<Leave>", clear_tag_info)
             
@@ -1701,7 +1704,7 @@ class Vue():
             for type_bio in self.modele.biotopes:
                 for id_bio, bio in self.modele.biotopes[type_bio].items():
                     # Les daims sont mobiles, les autres sont statiques
-                    if bio.montype == "daim":
+                    if bio.montype == "daim" or bio.montype == "ours":
                         self.canevas.create_image(bio.x, bio.y, image=self.images[bio.img], anchor=S,
                                                   tags=("mobile", "", bio.id, "biotope", bio.montype, ""))
                     else:
@@ -1712,7 +1715,7 @@ class Vue():
             self.modele.listebiotopes.sort(key=lambda c: c.y)
             self.modele.listebiotopes.sort(key=lambda c: c.y)
         for i in self.modele.listebiotopes:
-            if i.montype == "daim":
+            if i.montype == "daim" or i.montype == "ours":
                 self.canevas.create_image(i.x, i.y, image=self.images[i.img], anchor=S,
                                         tags=("mobile", "", i.id, "biotope", i.montype, ""))
             else:
@@ -1861,7 +1864,19 @@ class Vue():
                 self.canevas.create_image(i.x, i.y, image=self.images[i.img],
                                           tags=("mobile", "", i.id, "biotope", i.montype, ""))
                 # tags=("",i.id,"artefact","daim","mobile"))
+        for j in self.modele.biotopes["ours"].keys():
+            i = self.modele.biotopes["ours"][j]
+            if self.modele.case_fog(i.x, i.y) != FogState.VISIBLE:
+                continue
+            if i.etat == "mort":
+                self.canevas.create_image(i.x, i.y, image=self.images["oursMORT"],
+                                          tags=("mobile", "", i.id, "biotope", i.montype, ""))
+                # tags=("",i.id,"artefact","daim","mobile"))
 
+            else:
+                self.canevas.create_image(i.x, i.y, image=self.images[i.img],
+                                          tags=("mobile", "", i.id, "biotope", i.montype, ""))
+                # tags=("",i.id,"artefact","daim","mobile"))
         # ajuster les choses vivantes dependantes de la partie (mais pas des joueurs)
         for j in self.modele.biotopes["eau"].keys():
             i = self.modele.biotopes["eau"][j]
@@ -2008,7 +2023,7 @@ class Vue():
 
     def chasser_ressource(self, evt):
         tag = self.canevas.gettags(CURRENT)
-        if tag[1] == "" and self.action.persochoisi and tag[4] == "daim":
+        if tag[1] == "" and self.action.persochoisi and (tag[4] == "daim" or tag[4] == "ours"):
             self.action.chasser_ressource(tag)
         else:
             print(tag[3])

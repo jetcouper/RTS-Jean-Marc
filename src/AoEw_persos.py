@@ -364,7 +364,7 @@ class Ouvrier(Perso):
         reponse = self.bouger()
         if reponse == "rendu":
             if self.cible:
-                if self.typeressource == "baie" or self.typeressource == "daim" or self.typeressource == "eau":
+                if self.typeressource == "baie" or self.typeressource == "daim" or self.typeressource == "eau" or self.typeressource == "ours":
                     self.parent.ressources["nourriture"] += self.ramassage
                 else:
                     self.parent.ressources[self.typeressource] += self.ramassage
@@ -375,6 +375,8 @@ class Ouvrier(Perso):
                 if self.cible:
                     self.cibler(self.cible)
                     if self.cible.montype == "daim":
+                        self.actioncourante = "ciblerproie"
+                    if self.cible.montype == "ours":
                         self.actioncourante = "ciblerproie"
                     else:
                         self.actioncourante = "ciblerressource"
@@ -397,7 +399,7 @@ class Ouvrier(Perso):
         self.position_visee = [self.cible.x, self.cible.y]
         reponse = self.bouger()
         if reponse == "rendu":
-            if self.typeressource == "daim" or self.typeressource == "eau":
+            if self.typeressource == "daim" or self.typeressource == "eau" or self.typeressource == "ours":
                 self.actioncourante = "ramasserressource"
         elif reponse <= self.champchasse and self.cible.etat == "vivant":
             self.actioncourante = "validerjavelot"
