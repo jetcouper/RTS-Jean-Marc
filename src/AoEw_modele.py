@@ -61,6 +61,7 @@ class Partie():
                }
 
     def __init__(self, parent, nom_joueur_local, ia_info , mode_de_jeu):
+        self.en_cours = True
         self.parent = parent
         self.nom_joueur = nom_joueur_local
         self.actions_a_faire = {}
@@ -296,12 +297,30 @@ class Partie():
     
     #############################################################################
 
+    def fin_de_la_partie(self, joueurs_restants):
+        if not joueurs_restants:
+            print("Match nul – tous les joueurs sont morts.")
+        else:
+            gagnant = joueurs_restants[0]
+            print(f"Le joueur {gagnant.nom} a gagné !")
+        self.en_cours = False
+
     def deplacer(self):
         for i in self.joueurs:
             self.joueurs[i].deplacer()
 
     def jouer_prochain_coup(self, cadrecourant):
-        self.ressourcemorte = []
+
+        for joueur in self.joueurs.values():
+            joueur.jouer_prochain_coup()
+
+        # vérifier la fin :
+        joueurs_vivants = [j for j in self.joueurs.values() if j.est_vivant()]
+
+        if len(joueurs_vivants) <= 1:
+            self.fin_de_la_partie(joueurs_vivants)
+
+            self.ressourcemorte = []
         ##################################################################
         # faire nouvelle action recu du serveur si on est au bon cadrecourant
         # ATTENTION : NE PAS TOUCHER 

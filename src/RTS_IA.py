@@ -7,8 +7,8 @@ class IA(Joueur):
     def __init__(self, parent, id, nom, couleur, x, y, info_ia):
         super().__init__(parent, id, nom, couleur, x, y)
 
-        self.cibles_unites = {"ouvrier": 3, "soldat": 4, "archer": 2}
-
+        self.cibles_unites = {"ouvrier": 1, "soldat": 1, "archer": 1}
+        
         self.diff = info_ia["difficulte"]
         self.type = info_ia["type"]
 

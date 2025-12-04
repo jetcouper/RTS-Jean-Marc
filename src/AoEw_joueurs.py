@@ -114,6 +114,13 @@ class Joueur():
                     self.persos[i][j].attaquer(cible)
                     # j.attaquer(ennemi
     
+    def est_vivant(self):
+        for categorie in self.persos.values():
+            for perso in categorie.values():
+                if perso.etat == "vivant":
+                    return True
+        return False
+
 
     def abandonner(self, param):
         # ajouter parametre nom de l'Abandonneux, et si c'est moi, envoyer une action
