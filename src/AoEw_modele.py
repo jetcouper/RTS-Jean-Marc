@@ -57,7 +57,12 @@ class Partie():
                                  "arbre": 10,
                                  "roche": 5,
                                  "aureus": 1,
-                                 "delai": 80}
+                                 "delai": 80},
+               "moulin": {"nourriture": 10,
+                                 "arbre": 15,
+                                 "roche": 10,
+                                 "aureus": 2,
+                                 "delai": 60}
                }
 
     def __init__(self, parent, nom_joueur_local, ia_info , mode_de_jeu):
@@ -81,7 +86,8 @@ class Partie():
         self.classesbatiments = {"maison": Maison,
                                  "caserne": Caserne,
                                  "abri": Abri,
-                                 "usineballiste": Usineballiste}
+                                 "usineballiste": Usineballiste,
+                                 "moulin": Moulin}
         self.classespersos = {"ouvrier": Ouvrier,
                               "soldat": Soldat,
                               "archer": Archer,

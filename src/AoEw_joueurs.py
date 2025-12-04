@@ -25,7 +25,12 @@ class Joueur():
                                  "arbre": 10,
                                  "roche": 5,
                                  "aureus": 1,
-                                 "delai": 80}
+                                 "delai": 80},
+               "moulin": {"nourriture": 10,
+                                 "arbre": 15,
+                                 "roche": 10,
+                                 "aureus": 2,
+                                 "delai": 60}
                }
     classespersos = {"ouvrier": Ouvrier,
                      "soldat": Soldat,
@@ -70,7 +75,8 @@ class Joueur():
                           "abri": {},
                           "caserne": {},
                           "usineballiste": {},
-                          "siteconstruction": {}}
+                          "siteconstruction": {},
+                          "moulin": {}}
 
         self.actions = {"creerperso": self.creer_perso,
                         "deplacer": self.deplacer,

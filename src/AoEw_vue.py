@@ -1499,7 +1499,7 @@ class Vue():
         coul = self.modele.joueurs[self.parent.nom_joueur_local].couleur
         self.cadrejeuinfo.config(bg=coul[1])
         self.creer_aide()
-        self.creer_cadre_ouvrier(coul[0] + "_", ["maison", "caserne", "abri", "usineballiste"])
+        self.creer_cadre_ouvrier(coul[0] + "_", ["maison", "caserne", "abri", "usineballiste","moulin"])
         self.creer_chatter()
         # on affiche les maisons, point de depart des divers joueurs
 
@@ -1517,12 +1517,45 @@ class Vue():
         # self.centrer_maison()
 
     def creer_cadre_ouvrier(self, coul, artefacts):
+        # Cadre principal qui contiendra le canvas scrollable
         self.cadreouvrier = Frame(self.canevasaction, bg="goldenrod3", bd=2, relief="ridge")
-        font = ("arial", 20, "bold")
+
+        # Canvas pour le scroll - IMPORTANT: définir une taille minimale
+        self.canvas_ouvrier = Canvas(
+            self.cadreouvrier,
+            bg="goldenrod3",
+            highlightthickness=0,
+            width=200,  # Largeur minimale
+            height=200  # Hauteur minimale
+        )
+
+        # Scrollbar verticale
+        self.scrollbar_ouvrier = Scrollbar(
+            self.cadreouvrier,
+            orient=VERTICAL,
+            command=self.canvas_ouvrier.yview
+        )
+        self.canvas_ouvrier.configure(yscrollcommand=self.scrollbar_ouvrier.set)
+
+        # Frame intérieur qui contiendra les boutons
+        self.frame_interieur_ouvrier = Frame(self.canvas_ouvrier, bg="goldenrod3")
+
+        # Placement du canvas et de la scrollbar
+        self.canvas_ouvrier.pack(side=LEFT, fill=BOTH, expand=True)
+        self.scrollbar_ouvrier.pack(side=RIGHT, fill=Y)
+
+        # Créer une fenêtre dans le canvas pour le frame intérieur
+        self.canvas_window_ouvrier = self.canvas_ouvrier.create_window(
+            0, 0,
+            window=self.frame_interieur_ouvrier,
+            anchor=NW
+        )
+
+        font = ("arial", 16, "bold")  # Police légèrement réduite pour mieux rentrer
         cols = 2
 
-        img_width = 80
-        img_height = 80
+        img_width = 70
+        img_height = 70
 
         for idx, i in enumerate(artefacts):
             vals = self.parent.trouver_valeurs()
@@ -1532,8 +1565,8 @@ class Vue():
             row = idx // cols
             col = idx % cols
 
-            cell = Frame(self.cadreouvrier, bg="goldenrod3", bd=3, relief="solid")
-            cell.grid(row=row, column=col, padx=8, pady=8, sticky="nsew")
+            cell = Frame(self.frame_interieur_ouvrier, bg="goldenrod3", bd=2, relief="solid")
+            cell.grid(row=row, column=col, padx=4, pady=4, sticky="nsew")
 
             img_key = coul + i
             try:
@@ -1541,27 +1574,62 @@ class Vue():
                 pil_img = pil_img.resize((img_width, img_height), Image.Resampling.LANCZOS)
                 tk_img = ImageTk.PhotoImage(pil_img)
             except Exception:
-                tk_img = self.images[img_key]
+                tk_img = self.images.get(img_key)
 
-            img_label = Label(cell, image=tk_img, bg="goldenrod3", width=img_width, height=img_height)
-            img_label.image = tk_img
-            img_label.grid(row=0, column=0, columnspan=2, pady=(2, 4), sticky="ew")
+            if tk_img:
+                img_label = Label(cell, image=tk_img, bg="goldenrod3")
+                img_label.image = tk_img  # Garder une référence
+                img_label.grid(row=0, column=0, pady=(2, 2), sticky="ew")
 
-            btn = Button(cell, text=i, bg="goldenrod3", font=font, anchor="w")
-            btn.grid(row=1, column=0, columnspan=2, sticky="ew")
+            btn = Button(cell, text=i, bg="goldenrod3", font=font, anchor="center")
+            btn.grid(row=1, column=0, sticky="ew", padx=2, pady=2)
             btn.bind("<Button>", self.batir_artefact)
 
             def on_enter(e, artefact=i, prix_texte=prix_texte):
                 txt = f"{artefact}\n{prix_texte}" if prix_texte else artefact
                 self.update_action_text(txt)
+
             def on_leave(e):
                 self.update_action_text("")
 
             btn.bind("<Enter>", on_enter)
             btn.bind("<Leave>", on_leave)
 
+        # Configuration des colonnes pour qu'elles s'étendent uniformément
         for c in range(cols):
-            self.cadreouvrier.grid_columnconfigure(c, weight=1)
+            self.frame_interieur_ouvrier.grid_columnconfigure(c, weight=1)
+
+        # Forcer la mise à jour de la géométrie
+        self.frame_interieur_ouvrier.update_idletasks()
+
+        # Configurer la région scrollable
+        def update_scrollregion(event=None):
+            self.canvas_ouvrier.configure(scrollregion=self.canvas_ouvrier.bbox("all"))
+
+        def on_canvas_configure(event):
+            # Ajuster la largeur du frame intérieur à celle du canvas
+            canvas_width = event.width
+            self.canvas_ouvrier.itemconfig(self.canvas_window_ouvrier, width=canvas_width)
+
+        self.frame_interieur_ouvrier.bind("<Configure>", update_scrollregion)
+        self.canvas_ouvrier.bind("<Configure>", on_canvas_configure)
+
+        # Appeler une première fois pour initialiser
+        self.cadreouvrier.after(100, update_scrollregion)
+
+        # Permettre le scroll avec la molette de la souris
+        def on_mousewheel(event):
+            self.canvas_ouvrier.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+        # Activer/désactiver le scroll selon la position de la souris
+        def bind_mousewheel(event):
+            self.canvas_ouvrier.bind_all("<MouseWheel>", on_mousewheel)
+
+        def unbind_mousewheel(event):
+            self.canvas_ouvrier.unbind_all("<MouseWheel>")
+
+        self.cadreouvrier.bind("<Enter>", bind_mousewheel)
+        self.cadreouvrier.bind("<Leave>", unbind_mousewheel)
 
     def show_batiment_info(self, event):
 
@@ -1639,7 +1707,8 @@ class Vue():
             "maison": "ouvrier",
             "caserne": "soldat",
             "abri": "druide",
-            "usineballiste": "ballista"
+            "usineballiste": "ballista",
+            "moulin": "moulin"
         }
 
         def create_unit(unit_type):
@@ -2378,6 +2447,9 @@ class Vue():
                 if "usineballiste" in mestags:
                     pos = (self.canevas.canvasx(evt.x), self.canevas.canvasy(evt.y))
                     action = [self.parent.nom_joueur_local, "creerperso", ["ballista", mestags[4], mestags[2], pos]]
+                if "moulin" in mestags:
+                    pos = (self.canevas.canvasx(evt.x), self.canevas.canvasy(evt.y))
+                    action = [self.parent.nom_joueur_local, "creerperso", ["moulin", mestags[4], mestags[2], pos]]
                 self.parent.actions_requises.append(action)
         elif self.action.persochoisi != []:
             self.action.ciblechoisi = mestags
@@ -2422,38 +2494,52 @@ class Action():
             self.parent.parent.actions_requises.append(action)
 
     def construire_batiment(self, pos):
+        """
+        Construit un bâtiment à la position donnée.
+        VERSION CORRIGÉE : Vérifie que btnactif et prochaineaction existent
+        """
+        # Vérifier qu'un bâtiment a été sélectionné pour construction
+        if self.btnactif is None or self.prochaineaction is None:
+            print("Aucun bâtiment sélectionné pour la construction")
+            return
+
+        # Vérifier qu'un ouvrier est sélectionné
+        if not self.persochoisi:
+            print("Aucun ouvrier sélectionné pour construire")
+            return
+
+        # Réinitialiser le bouton
         self.btnactif.config(bg="SystemButtonFace")
         self.btnactif = None
+
+        # Créer l'action de construction
         action = [self.parent.nom_joueur_local, "construirebatiment", [self.persochoisi, self.prochaineaction, pos]]
         self.parent.parent.actions_requises.append(action)
 
+        # Réinitialiser la prochaine action
+        self.prochaineaction = None
+
     def afficher_commande_perso(self):
-        # Met à jour la géométrie pour obtenir les bonnes tailles
         self.parent.root.update_idletasks()
 
-        # On retire tout pack éventuel (normalement inutile car grid est utilisé)
-        for child in self.parent.cadreouvrier.winfo_children():
-            child.pack_forget()
-        # Ne pas utiliser pack ici, car grid est utilisé dans creer_cadre_ouvrier
+        # NE PAS FAIRE pack_forget sur les enfants !
 
-        # Mise à jour forcée de la géométrie
-        self.parent.cadreouvrier.update_idletasks()
         self.parent.canevasaction.update_idletasks()
 
-        # Supprime la fenêtre précédente si elle existe
         try:
             if self.widgetsactifs:
                 self.parent.canevasaction.delete(self.widgetsactifs)
         except Exception:
             pass
 
-        # On ajuste la taille du cadre ouvrier pour qu'il prenne toute la place
         largeur = self.parent.canevasaction.winfo_width()
         hauteur = self.parent.canevasaction.winfo_height()
-        self.parent.cadreouvrier.config(width=largeur, height=hauteur)
-        self.parent.cadreouvrier.update_idletasks()
 
-        # On crée la fenêtre centrée et qui occupe tout l'espace
+        if largeur < 10:
+            largeur = 250
+        if hauteur < 10:
+            hauteur = 200
+
         self.widgetsactifs = self.parent.canevasaction.create_window(
             0, 0,
             window=self.parent.cadreouvrier,
@@ -2462,7 +2548,9 @@ class Action():
             height=hauteur
         )
 
-        self.parent.canevasaction.update_idletasks()
+        self.parent.root.after(50, lambda: self.parent.canvas_ouvrier.configure(
+            scrollregion=self.parent.canvas_ouvrier.bbox("all")
+        ))
 
     def envoyer_chat(self, evt):
         txt = self.parent.entreechat.get()
