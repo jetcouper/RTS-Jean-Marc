@@ -32,6 +32,8 @@ class Controleur():
         self.default_seed = 14777
         self.seed = 12473  # valeur de random pour la partie
         self.victoire_msg = "Partie finie."
+        self.conditions_victoire = {}
+        
         # frequence des appels vers le serveur
         #MORT self.modulo_appeler_serveur = 4
         # adresses du URL du serveur de jeu, adresse 127.0.0.1 est pour des tests avec un serveur local... utile pour tester
@@ -129,26 +131,135 @@ class Controleur():
             print("⚠️ Partie inexistante, arrêt de la boucle")
             return
         
-        if (self.mode_de_jeu == "commerce") :
-        
+        if self.mode_de_jeu == "commerce":
+            self.conditions_victoire = {"bois": 220 , "aureus": 200 , "nourriture": 200 , "roche": 200}
+
             try:
-                for jnom, joueur in self.partie.joueurs.items():
-                    bois = 0
-                    if hasattr(joueur, "ressources") and isinstance(joueur.ressources, dict):
-                        bois = joueur.ressources.get("arbre", 0)
-                    if bois >= 210:
-                        self.victoire_msg = f"Victoire : le joueur '{jnom}' a atteint {bois} bois. Arrêt de la partie."
-                        self.vue.maj_message_victoire(self.victoire_msg)
+                joueurs = getattr(self.partie, "joueurs", {})
+
+                # Préparer un itérateur générique : supporte dict (nom->joueur) ou liste/iterable de joueurs
+                if isinstance(joueurs, dict):
+                    iterator = joueurs.items()
+                else:
+                    try:
+                        iterator = [(getattr(j, "nom", str(i)), j) for i, j in enumerate(joueurs)]
+                    except Exception:
+                        # structure inconnue, rien à faire
+                        return
+
+                # Fonction utilitaire pour lire une ressource depuis différentes structures
+                def get_res(ressources, cle, joueur=None):
+                    # ressources peut être un dict
+                    if isinstance(ressources, dict):
+                        return ressources.get(cle, 0)
+                    # si ressources a une méthode get (ex: mapping custom)
+                    if hasattr(ressources, "get"):
+                        try:
+                            return ressources.get(cle, 0)
+                        except Exception:
+                            pass
+                    # sinon, tenter de lire via attributs du joueur (ex: joueur.bois)
+                    if joueur is not None:
+                        # d'abord si le joueur a un attribut 'ressources' qui est un dict
+                        r = getattr(joueur, "ressources", None)
+                        if isinstance(r, dict):
+                            return r.get(cle, 0)
+                        # tenter attribut direct
+                        if hasattr(joueur, cle):
+                            try:
+                                val = getattr(joueur, cle)
+                                if val is None:
+                                    return 0
+                                return val
+                            except Exception:
+                                pass
+                    return 0
+
+                for jnom, joueur in iterator:
+
+                    # Essayer plusieurs façons de récupérer les ressources du joueur
+                    if isinstance(joueur, dict):
+                        ressources = joueur.get("ressources", joueur)
+                    else:
+                        ressources = getattr(joueur, "ressources", None)
+
+                    # Si on n'a pas de dict, construire un dict minimal en lisant les clés requises
+                    if not isinstance(ressources, dict):
+                        constructed = {}
+                        for k in self.conditions_victoire.keys():
+                            constructed[k] = get_res(ressources, k, joueur)
+                        ressources = constructed
+
+                    # Si toujours non dict (sécurité), on saute ce joueur
+                    if not isinstance(ressources, dict):
+                        continue
+
+                    victoire = True
+                    details = []
+
+                    # vérifier chaque condition (ne pas s'arrêter au premier échec)
+                    # gérer le cas où la partie utilise 'arbre' au lieu de 'bois' (ou autres variantes)
+                    synonyms = {
+                        'bois': ['arbre'],
+                        'nourriture': ['nourriture'],
+                        'roche': ['roche'],
+                        'aureus': ['aureus' ]
+                    }
+
+                    for cle, seuil in self.conditions_victoire.items():
+                        # tenter d'abord la clé telle quelle
+                        valeur_raw = None
+                        if isinstance(ressources, dict) and cle in ressources:
+                            valeur_raw = ressources.get(cle, 0)
+                        else:
+                            valeur_raw = get_res(ressources, cle, joueur)
+
+                        # si absent / nul et qu'il existe des synonymes, essayer-les
+                        if (valeur_raw is None or valeur_raw == 0) and cle in synonyms:
+                            for alt in synonyms[cle]:
+                                if isinstance(ressources, dict) and alt in ressources:
+                                    valeur_raw = ressources.get(alt, 0)
+                                    break
+                                val_alt = get_res(ressources, alt, joueur)
+                                if val_alt:
+                                    valeur_raw = val_alt
+                                    break
+
+                        try:
+                            valeur_num = int(valeur_raw)
+                        except Exception:
+                            valeur_num = valeur_raw if isinstance(valeur_raw, (int, float)) else 0
+
+                        details.append(f"{cle} = {valeur_num}/{seuil}")
+
+                        if valeur_num < seuil:
+                            victoire = False
+
+                    # Si toutes les conditions sont remplies → victoire
+                    if victoire:
+                        details_str = "\n".join(details)
+                        self.victoire_msg = (
+                            f"'{jnom}' a atteint les conditions de victoire \n"
+                            f"{details_str}. \nArrêt de la partie."
+                        )
+
                         print(self.victoire_msg)
+                        self.vue.maj_message_victoire(self.victoire_msg)
+
+                        # Arrêt propre
                         self.arreter_boucle_jeu()
                         self.detruire_partie()
+
+                        # Mise à jour interface
                         self.vue.changer_topblack("blackgame")
                         self.vue.changer_toplevel("gagner")
                         return
+
             except Exception as e:
-                # Ne doit pas planter la boucle ; log si nécessaire
                 print(f"Erreur lors de la vérification de victoire : {e}")
-            
+                return
+
+        
 
         if self.actions_requises:
             self.actions_requises.insert(0, self.iteration_boucle_jeu + 1)
