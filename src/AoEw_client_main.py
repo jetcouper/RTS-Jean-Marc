@@ -132,7 +132,8 @@ class Controleur():
             return
         
         if self.mode_de_jeu == "commerce":
-            self.conditions_victoire = {"bois": 220 , "aureus": 200 , "nourriture": 200 , "roche": 200}
+            self.conditions_victoire = {"bois": 220 , "aureus": 200 , "nourriture": 200 , "roche": 210}
+            self.vue.update_conditions_victoire_display()
 
             try:
                 joueurs = getattr(self.partie, "joueurs", {})

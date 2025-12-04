@@ -862,6 +862,17 @@ class Vue():
         self.tk_bg_gagner = ImageTk.PhotoImage(Image.open(bg_path_gagner).resize((size_x, size_y), Image.Resampling.LANCZOS))
         self.label_bg_gagner = Label(self.top_gagner, image=self.tk_bg_gagner)
         self.label_bg_gagner.place(x=0, y=0, relwidth=1, relheight=1)
+
+        # Titre centré pour l'écran de victoire
+        self.lbl_victoire_title = Label(
+            self.top_gagner,
+            text="Parte finie !",
+            font=("Times New Roman", 42, "bold"),
+            bg="#4a1d1d",
+            fg="#D4AF37"
+        )
+        # placer en haut, centré
+        self.lbl_victoire_title.pack(pady=10)
         
         # utiliser le message de victoire fourni par le parent (fallback si absent)
         msg = getattr(self.parent, "victoire_msg", "Partie finie !")
@@ -1281,6 +1292,150 @@ class Vue():
             self.cadre_action_text.update_idletasks()
 
         self.update_action_text = update_action_text
+        
+        # ============================
+        #  Cadre condition
+        # ============================
+        overlay_width_victoire = self.screen_width // 6
+
+        self.cadre_condition = Frame(
+            self.cadrecanevas,
+            bg="#222",
+            width=overlay_width_victoire,
+            bd=2,
+            relief="ridge"
+        )
+        
+
+        self.cadre_condition.place(
+            relx=1 - (overlay_width_victoire / self.screen_width) - 0.15,
+            rely=0.01,
+            anchor="nw"
+        )
+        
+        # Widget Text dynamique qui s'étend verticalement selon le texte
+        # Récupère la condition de victoire depuis le parent si disponible,
+        # sinon on utilise une valeur par défaut.
+        self.conditions_victoire = getattr(self.parent, "conditions_victoire", {
+            "bois": 220,
+            "aureus": 200,
+            "nourriture": 200,
+            "roche": 200
+        })
+
+        self.condition_widget = Text(
+            self.cadre_condition,
+            bg="#222",
+            fg="white",
+            font=("Arial", 24, "bold"),
+            wrap="word",
+            width=overlay_width_action // 10,  # largeur similaire à avant
+            height=2,  # hauteur initiale, ajustée ensuite
+            relief="flat"
+        )
+        self.condition_widget.pack(fill=BOTH, expand=True, padx=8, pady=10)
+
+        def _format_conditions(d):
+            if isinstance(d, dict):
+                return "\n".join(f"{k.capitalize()} : {v}" for k, v in d.items())
+            return str(d)
+
+        def update_conditions_victoire_display():
+            # récupère la valeur la plus à jour depuis le parent si elle existe
+            latest = getattr(self.parent, "conditions_victoire", None)
+            if latest is not None:
+                self.conditions_victoire = latest
+
+            # calcule ce qu'il manque au joueur courant (si disponible)
+            def _compute_missing():
+                missing = {}
+                nom = getattr(self.parent, "nom_joueur_local", None)
+                if not nom:
+                    return missing
+                modele = getattr(self, "modele", None)
+                if not modele:
+                    return missing
+                joueur = modele.joueurs.get(nom)
+                if not joueur:
+                    return missing
+                ressources_raw = getattr(joueur, "ressources", {}) or {}
+                # Normaliser les clés pour accepter variantes (ex: "arbre" -> "bois", "or"/"gold" -> "aureus", etc.)
+                ressources = {}
+                synonymes = {
+                    "bois": {"bois", "arbre", "wood"},
+                    "nourriture": {"nourriture", "food", "baie", "berries", "berry"},
+                    "roche": {"roche", "stone", "pierre"},
+                    "aureus": {"aureus", "or", "gold"}
+                }
+                for k, v in ressources_raw.items():
+                    kl = str(k).lower()
+                    placed = False
+                    for canon, forms in synonymes.items():
+                        if kl in forms or kl == canon:
+                            try:
+                                ressources[canon] = int(v)
+                            except Exception:
+                                ressources[canon] = v
+                            placed = True
+                            break
+                    if not placed:
+                        # garder les autres clés en minuscules
+                        try:
+                            ressources[kl] = int(v)
+                        except Exception:
+                            ressources[kl] = v
+
+                conds = self.conditions_victoire if isinstance(self.conditions_victoire, dict) else {}
+                for k, req in conds.items():
+                    try:
+                        need = int(req)
+                    except Exception:
+                        # ignorer valeurs non numériques
+                        continue
+                    key_lower = k.lower()
+                    cur = int(ressources.get(key_lower, ressources.get(k, 0) or 0))
+                    missing_amt = max(0, need - cur)
+                    # n'ajouter que si réellement manquant (pour afficher "Bois : 20" quand il manque 20)
+                    if missing_amt > 0:
+                        missing[key_lower] = missing_amt
+
+                return missing
+
+            missing = _compute_missing()
+
+            # met à jour le widget de condition
+            self.condition_widget.config(state=NORMAL)
+            self.condition_widget.delete("1.0", END)
+            self.condition_widget.insert("1.0", "Conditions de Victoire:\n")
+            self.condition_widget.insert("2.0", _format_conditions(self.conditions_victoire))
+
+            # si on a des informations sur ce qui manque, les afficher
+            if missing:
+                self.condition_widget.insert(END, "\n\nManquant pour atteindre la condition :\n")
+                for k, v in missing.items():
+                    self.condition_widget.insert(END, f"- {k.capitalize()} : {v}\n")
+
+                all_met = all(val == 0 for val in missing.values())
+                status = "Conditions atteintes !" if all_met else "Encore des ressources nécessaires."
+                self.condition_widget.insert(END, f"\nStatut : {status}\n")
+
+            # ajuster la hauteur selon le contenu (limiter entre 2 et 12 lignes)
+            try:
+                lines = int(self.condition_widget.index('end-1c').split('.')[0])
+                self.condition_widget.config(height=max(2, min(12, lines)))
+            except Exception:
+                pass
+            
+            self.condition_widget.config(state=DISABLED)
+            self.cadre_condition.update_idletasks()
+
+        # Exposition d'une méthode utile pour rafraîchir l'affichage depuis l'extérieur
+        self.update_conditions_victoire_display = update_conditions_victoire_display
+
+        # texte initial demandé
+        update_conditions_victoire_display()
+
+
     
     
         # ============================
