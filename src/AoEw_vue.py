@@ -481,9 +481,30 @@ class Vue():
         top_bar = Frame(left_frame, bg="#3c2f2f")
         top_bar.pack(fill=X, pady=10)
         Label(top_bar, text="Créer partie", font=("Times New Roman", 22, "bold"), bg="#4a1d1d", fg="gold", width=15, height=2, bd=2, relief="raised").pack(side=LEFT, expand=True, padx=10)
-        make_button(top_bar, "Commencer", "#2d6a2d", hover="#3fa63f",
-                command=lambda: self.lancer_partie()
-               ).pack(side=LEFT, expand=True, padx=10)
+
+        def on_commencer():
+            # récupérer le mode courant (StringVar si présent, sinon fallback sur parent)
+            current_mode = None
+            if hasattr(self, "mode_jeu"):
+                try:
+                    current_mode = self.mode_jeu.get()
+                except Exception:
+                    current_mode = None
+            if current_mode is None:
+                current_mode = getattr(self.parent, "mode_de_jeu", None)
+
+            # nombre d'IA configurées (fallback safe sur liste vide)
+            nb_ia = len(getattr(self.parent, "info_ia", []) or [])
+
+            # Bloquer le lancement si mode Conquete et aucune IA
+            if current_mode == "conquete" and nb_ia == 0:
+                messagebox.showerror("Erreur", "Veuillez ajouter au moins une IA pour le mode Conquête.")
+                return
+
+            # sinon lancer la partie
+            self.lancer_partie()
+
+        make_button(top_bar, "Commencer", "#2d6a2d", hover="#3fa63f", command=on_commencer).pack(side=LEFT, expand=True, padx=10)
 
         # === Liste IA avec Scroll
         ia_frame = Frame(left_frame, bg="#3c2f2f")
