@@ -104,6 +104,12 @@ class Controleur():
         # random ALEATOIRE fourni par le serveur
         # random.seed(int(initaleatoire))
         # random FIXE pour test
+        self.vue.changer_cadre("loading")
+        if hasattr(self.vue, 'demarrer_animation_loading'):
+            self.vue.demarrer_animation_loading()
+        if hasattr(self.vue, 'loading_progress_var'):
+            self.vue.loading_progress_var.set("Initialisation de la partie...")
+        self.vue.root.update()
         self.jeu_en_pause = False
         reset_prochain_id()
         self.iteration_boucle_jeu = 0
