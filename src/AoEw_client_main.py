@@ -261,6 +261,7 @@ class Controleur():
                         )
                         self.fin_de_partie(msg)
                         print(self.victoire_msg)
+                        self.vue.maj_message_victoire(msg)
                         #self.vue.maj_message_victoire(self.victoire_msg)
 
                         # Arrêt propre

@@ -8,9 +8,9 @@ class Fleche():
     def __init__(self, parent, id, proie):
         self.parent = parent
         self.id = id
-        self.vitesse = 18
+        self.vitesse = 20
         self.taille = 20
-        self.force = 10
+        self.force = 15
         self.proie = proie
         self.proiex = self.proie.x
         self.proiey = self.proie.y
@@ -112,7 +112,7 @@ class Perso():
         self.mana = 100
         self.force = 5
         self.champvision = 100
-        self.vitesse = 5
+        self.vitesse = 10
         self.angle = None
         self.javelots = []
         self.portee_attaque = 40

@@ -598,7 +598,7 @@ class Partie():
         try:
             if hasattr(self.parent, "partie_terminee"):
                 # envoie une copie simple (éviter d'exposer tout l'objet gagnant si inutile)
-                self.parent.partie_terminee(resultat)
+                self.parent.fin_de_partie(resultat)
         except Exception as e:
             # ne pas planter le modèle si la vue a un bug
             print("Erreur lors de l'appel partie_terminee du parent:", e)
