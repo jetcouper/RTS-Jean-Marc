@@ -848,6 +848,11 @@ class Vue():
 
         return self.cadreescape
 
+    def afficher_fin_partie(self, message):
+        self.maj_message_victoire(message)
+        self.changer_topblack("blackgame")
+        self.changer_toplevel("gagner")
+
     def maj_message_victoire(self, nouveau_msg: str):
         if hasattr(self, "txt_victoire"):
             # Mettre à jour le contenu du widget Text correctement
@@ -1099,6 +1104,7 @@ class Vue():
             print("Interface : Jeu repris")
     def arreter_boucle(self):
         self.parent.arreter_boucle_jeu()
+        self.nettoyer_interface_jeu()
 
         if hasattr(self, 'canevas'):
             self.canevas.delete("ALL")
@@ -1180,6 +1186,24 @@ class Vue():
             # Affiche ton message d'erreur (à adapter selon ton interface)
             messagebox.showerror("Erreur", "L'utilisateur n'existe pas ou erreur de saisi du mot de passe.")
 
+    def nettoyer_interface_jeu(self):
+        """Nettoie le canevas, le HUD et l'état local pour préparer une nouvelle partie."""
+        # nettoyer le canevas
+        if hasattr(self, 'canevas'):
+            self.canevas.delete("all")
+
+        # reset action panel
+        if hasattr(self, 'action'):
+            self.action.persochoisi = []
+            self.action.ciblechoisi = None
+            self.action.prochaineaction = None
+            self.action.position = []
+            self.action.widgetsactifs = []
+            self.action.btnactif = None
+
+        # reset selectors, minimap, autres widgets
+        self.debut_selection = []
+        self.selecteuractif = None
 
     def creer_cadre_jeu(self):
         # le cadre principal du jeu, remplace le Lobby

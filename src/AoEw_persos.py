@@ -8,9 +8,9 @@ class Fleche():
     def __init__(self, parent, id, proie):
         self.parent = parent
         self.id = id
-        self.vitesse = 18
+        self.vitesse = 20
         self.taille = 20
-        self.force = 10
+        self.force = 15
         self.proie = proie
         self.proiex = self.proie.x
         self.proiey = self.proie.y
@@ -435,7 +435,7 @@ class Ouvrier(Perso):
         self.champvision = random.randrange(100) + 300
         self.champchasse = 120
         self.javelots = []
-        self.vitesse = random.randrange(5) + 5
+        self.vitesse = random.randrange(5) + 10
         self.etats_et_actions = {"bouger": self.bouger,
                                  "ciblersiteconstruction": self.cibler_site_construction,
                                  "ciblerproie": self.cibler_proie,

@@ -589,6 +589,17 @@ class Partie():
             except Exception as e:
                 print(f'Erreur en d?clarant la victoire : {e}')
         self.en_cours = False
+        # nettoyage / chronologie éventuelle
+        self.ressourcemorte = []
+
+        try:
+            if hasattr(self.parent, "partie_terminee"):
+                # envoie une copie simple (éviter d'exposer tout l'objet gagnant si inutile)
+                self.parent.fin_de_partie(resultat)
+        except Exception as e:
+            # ne pas planter le modèle si la vue a un bug
+            print("Erreur lors de l'appel partie_terminee du parent:", e)
+
 
     def deplacer(self):
         for i in self.joueurs:
