@@ -29,7 +29,7 @@ class Controleur():
         self.on_joue = 1 # si 0, indique qu'on saute un tour dans la boucle de jeu
         self.delai_de_boucle_de_jeu = 40
         self.info_ia = [] 
-        self.mode_de_jeu = "paix"  # solo ou multi
+        self.mode_de_jeu = "commerce"  # solo ou multi
         self.default_seed = 14777
         self.seed = 12473  # valeur de random pour la partie
         self.victoire_msg = "Partie finie."
@@ -86,6 +86,18 @@ class Controleur():
     #     self.vue.root.title("je suis " + self.nom_joueur_local)
     #     self.vue.changer_cadre("lobby")
     #     self.boucler_sur_lobby()
+
+
+    def fin_de_partie(self, message):
+        self.victoire_msg = message
+        print(self.victoire_msg)
+
+        self.arreter_boucle_jeu()
+        # self.detruire_partie()
+        self.vue.nettoyer_interface_jeu()
+        self.vue.maj_message_victoire(message)
+        self.vue.changer_topblack("blackgame")
+        self.vue.changer_toplevel("gagner")
 
 
     def lancer_partie(self):
@@ -253,17 +265,9 @@ class Controleur():
                             f"'{jnom}' a atteint les conditions de victoire \n"
                             f"{details_str}. \nArrêt de la partie."
                         )
-
+                        self.fin_de_partie(self.victoire_msg)
                         print(self.victoire_msg)
-                        self.vue.maj_message_victoire(self.victoire_msg)
-
-                        # Arrêt propre
-                        self.arreter_boucle_jeu()
-                        self.detruire_partie()
-
-                        # Mise à jour interface
-                        self.vue.changer_topblack("blackgame")
-                        self.vue.changer_toplevel("gagner")
+                        self.declencher_victoire(self.victoire_msg)
                         return
 
             except Exception as e:
@@ -315,6 +319,18 @@ class Controleur():
         #NETTOYER TOUTES LES ACTIONS EN ATTENTE
         self.actions_requises = []
         print("Actions en attente vidées.")
+
+    def declencher_victoire(self, message: str):
+        """Centralise l'envoi du message de victoire vers la vue puis arrête la partie proprement."""
+        self.victoire_msg = message
+        try:
+            self.vue.maj_message_victoire(message)
+        except Exception as e:
+            print(f"Erreur maj message victoire : {e}")
+        self.arreter_boucle_jeu()
+        self.detruire_partie()
+        self.vue.changer_topblack("blackgame")
+        self.vue.changer_toplevel("gagner")
     ###################################################################
     # MORT
     # # fonction qui fait les appels au serveur

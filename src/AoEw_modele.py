@@ -67,7 +67,9 @@ class Partie():
                }
 
     def __init__(self, parent, nom_joueur_local, ia_info , mode_de_jeu):
+        self.en_cours = True
         self.parent = parent
+        self.mode_de_jeu = mode_de_jeu
         self.nom_joueur = nom_joueur_local
         self.actions_a_faire = {}
         self.debut = int(time.time())
@@ -589,12 +591,50 @@ class Partie():
     
     #############################################################################
 
+    def fin_de_la_partie(self, joueurs_restants):
+        if not self.en_cours:
+            return
+        if not joueurs_restants:
+            message = 'Match nul : tous les joueurs sont morts.'
+        else:
+            gagnant = joueurs_restants[0]
+            message = f'Le joueur {gagnant.nom} a gagn? !'
+        print(message)
+        if getattr(self.parent, 'declencher_victoire', None):
+            try:
+                self.parent.declencher_victoire(message)
+            except Exception as e:
+                print(f'Erreur en d?clarant la victoire : {e}')
+        self.en_cours = False
+        # nettoyage / chronologie éventuelle
+        self.ressourcemorte = []
+        try:
+            if hasattr(self.parent, "partie_terminee"):
+                # envoie une copie simple (éviter d'exposer tout l'objet gagnant si inutile)
+                resultat = "Un joueur a gagnner"
+                self.parent.fin_de_partie(resultat)
+        except Exception as e:
+            # ne pas planter le modèle si la vue a un bug
+            print("Erreur lors de l'appel partie_terminee du parent:", e)
+
+
     def deplacer(self):
         for i in self.joueurs:
             self.joueurs[i].deplacer()
 
     def jouer_prochain_coup(self, cadrecourant):
-        self.ressourcemorte = []
+
+        for joueur in self.joueurs.values():
+            joueur.jouer_prochain_coup()
+
+        # vérifier la fin :
+        joueurs_vivants = [j for j in self.joueurs.values() if j.est_vivant()]
+
+        if self.parent.mode_de_jeu == "conquete":
+            if len(joueurs_vivants) <= 1:
+                self.fin_de_la_partie(joueurs_vivants)
+
+                self.ressourcemorte = []
         ##################################################################
         # faire nouvelle action recu du serveur si on est au bon cadrecourant
         # ATTENTION : NE PAS TOUCHER 
@@ -874,3 +914,4 @@ class Partie():
                     for j in action:
                         self.actions_a_faire[iteration_cle].append(j)
     ##############################################################################
+
