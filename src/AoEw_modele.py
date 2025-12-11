@@ -575,10 +575,34 @@ class Partie():
     def fin_de_la_partie(self, joueurs_restants):
         if not joueurs_restants:
             print("Match nul – tous les joueurs sont morts.")
+            resultat = {
+                "type": "draw",
+                "message": "Match nul – tous les joueurs sont morts.",
+                "gagnant": None,
+                "timestamp": int(time.time())
+            }
         else:
             gagnant = joueurs_restants[0]
             print(f"Le joueur {gagnant.nom} a gagné !")
+            resultat = {
+                "type": "win",
+                "message": f"Le joueur {gagnant.nom} a gagné !",
+                "gagnant": gagnant,
+                "timestamp": int(time.time())
+            }
+        self.resultat = resultat
         self.en_cours = False
+        # nettoyage / chronologie éventuelle
+        self.ressourcemorte = []
+
+        try:
+            if hasattr(self.parent, "partie_terminee"):
+                # envoie une copie simple (éviter d'exposer tout l'objet gagnant si inutile)
+                self.parent.partie_terminee(resultat)
+        except Exception as e:
+            # ne pas planter le modèle si la vue a un bug
+            print("Erreur lors de l'appel partie_terminee du parent:", e)
+
 
     def deplacer(self):
         for i in self.joueurs:

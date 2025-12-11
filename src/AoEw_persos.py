@@ -112,7 +112,7 @@ class Perso():
         self.mana = 100
         self.force = 5
         self.champvision = 100
-        self.vitesse = 10
+        self.vitesse = 5
         self.angle = None
         self.javelots = []
         self.portee_attaque = 40

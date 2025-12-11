@@ -88,6 +88,18 @@ class Controleur():
     #     self.boucler_sur_lobby()
 
 
+    def fin_de_partie(self, message):
+        self.victoire_msg = message
+        print(self.victoire_msg)
+
+        self.arreter_boucle_jeu()
+        # self.detruire_partie()
+        self.vue.nettoyer_interface_jeu()
+        self.vue.maj_message_victoire(message)
+        self.vue.changer_topblack("blackgame")
+        self.vue.changer_toplevel("gagner")
+
+
     def lancer_partie(self):
         self.initialiser_partie()
     # MORT
@@ -243,13 +255,13 @@ class Controleur():
                     # Si toutes les conditions sont remplies → victoire
                     if victoire:
                         details_str = "\n".join(details)
-                        self.victoire_msg = (
+                        msg = ( #self.victoire_msg
                             f"'{jnom}' a atteint les conditions de victoire \n"
                             f"{details_str}. \nArrêt de la partie."
                         )
-
+                        self.fin_de_partie(msg)
                         print(self.victoire_msg)
-                        self.vue.maj_message_victoire(self.victoire_msg)
+                        #self.vue.maj_message_victoire(self.victoire_msg)
 
                         # Arrêt propre
                         self.arreter_boucle_jeu()
