@@ -152,9 +152,61 @@ class Controleur():
         if not self.partie:
             print("⚠️ Partie inexistante, arrêt de la boucle")
             return
-        
+
+        if self.mode_de_jeu == "conquete":
+            joueurs = getattr(self.partie, "joueurs", {})
+
+            def extract(j):
+                # support dict or object
+                if isinstance(j, dict):
+                    nom = j.get("nom") or j.get("name")
+                    couleur = j.get("couleur") or j.get("color")
+                    difficulte = j.get("difficulte") or j.get("diff")
+                    typ = j.get("type")
+                else:
+                    nom = getattr(j, "nom", None)
+                    couleur = getattr(j, "couleur", None)
+                    difficulte = getattr(j, "diff", None) or getattr(j, "difficulte", None)
+                    typ = getattr(j, "type", None)
+                return nom, couleur, difficulte, typ
+
+            conds = {}
+            if isinstance(joueurs, dict):
+                iterator = joueurs.values()
+            else:
+                try:
+                    iterator = list(joueurs)
+                except Exception:
+                    iterator = []
+
+            for pj in iterator:
+                nom, couleur, difficulte, typ = extract(pj)
+                if not nom or nom == self.nom_joueur_local:
+                    continue
+                conds[nom] = {"couleur": couleur}
+                #conds[nom] = {"couleur": couleur, "difficulte": difficulte, "type": typ}
+                #print(f"{nom} — couleur: {couleur}, difficulte: {difficulte}, type: {typ}")
+
+            if conds:
+                parts = []
+                for nom, info in conds.items():
+                    if isinstance(info, dict):
+                        couleur = info.get("couleur")
+                    else:
+                        couleur = info
+                    couleur_str = str(couleur) if couleur else "inconnue"
+                    parts.append(f"{nom} ({couleur_str})")
+                noms = " \n".join(parts)
+                self.conditions_victoire = "Tous les conquérir \n" + noms
+            else:
+                self.conditions_victoire = "Tous les conquérir"
+            try:
+                self.vue.update_conditions_victoire_display()
+            except Exception:
+                pass
+
         if self.mode_de_jeu == "commerce":
-            self.conditions_victoire = {"bois": 220 , "aureus": 200 , "nourriture": 200 , "roche": 210}
+            self.conditions_victoire = {"bois": 500 , "aureus": 350 , "nourriture": 300 , "roche": 450}
             self.vue.update_conditions_victoire_display()
 
             try:
