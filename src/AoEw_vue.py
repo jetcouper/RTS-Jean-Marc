@@ -2374,12 +2374,24 @@ class Vue():
         return [x0, y0, x2, y2]
 
 
-    def dessiner_barre_vie(self, obj, tagged, offset_y = 10, largeur=20):
-
-        life_ratio = obj.mana / obj.mana_max
+    def dessiner_barre_vie(self, obj, tagged, offset_x=0, offset_y=-10, largeur=40):
+        # offset_x added to shift the health bar horizontally
+        life_ratio = getattr(obj, "mana", 0) / max(1, getattr(obj, "mana_max", 1))
+        life_ratio = max(0.0, min(1.0, life_ratio))
         current_width = largeur * life_ratio
         color_liferange = "green" if life_ratio > 0.5 else "orange" if life_ratio > 0.2 else "red"
-        barre = self.canevas.create_rectangle(obj.x - largeur/2, obj.y - offset_y, obj.x + largeur/2 + current_width, obj.y - offset_y - 5, fill=color_liferange, tags=tagged, state = "disabled")
+
+        x_center = obj.x + offset_x
+        x_left = x_center - largeur / 2
+        x_right = x_center + largeur / 2
+        x_fill = x_left + current_width
+
+        y_bottom = obj.y - offset_y
+        y_top = y_bottom - 5
+
+        # background bar (gray) then filled portion (colored)
+        self.canevas.create_rectangle(x_left, y_top, x_right, y_bottom, fill="gray", tags=tagged, state="disabled")
+        self.canevas.create_rectangle(x_left, y_top, x_fill, y_bottom, fill=color_liferange, tags=tagged, state="disabled")
 
 
     def afficher_jeu(self):
