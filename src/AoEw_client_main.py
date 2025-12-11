@@ -255,14 +255,14 @@ class Controleur():
                     # Si toutes les conditions sont remplies → victoire
                     if victoire:
                         details_str = "\n".join(details)
-                        msg = ( #self.victoire_msg
+                        self.victoire_msg = (
                             f"'{jnom}' a atteint les conditions de victoire \n"
                             f"{details_str}. \nArrêt de la partie."
                         )
-                        self.fin_de_partie(msg)
+                        self.fin_de_partie(self.victoire_msg)
                         print(self.victoire_msg)
-                        self.vue.maj_message_victoire(msg)
-                        #self.vue.maj_message_victoire(self.victoire_msg)
+                        self.vue.maj_message_victoire(self.victoire_msg)
+                     
 
                         # Arrêt propre
                         self.arreter_boucle_jeu()
