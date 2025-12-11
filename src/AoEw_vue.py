@@ -11,7 +11,7 @@ from vue.minimap import MiniMapRenderer
 
 from PIL import Image, ImageTk  # Pour redimensionner l’image
 
-
+#Commentaire de push
 class Vue():
     def __init__(self, parent, nom_joueur_local): #, testdispo):
         self.parent = parent
@@ -44,8 +44,23 @@ class Vue():
 
         self.root.bind_all("<F11>", lambda e: switch_fullscreen())  
 
+        def deselectionner_tout(event=None):
+            # Désélectionner uniquement quand on est dans le jeu
+            if hasattr(self, 'action') and hasattr(self, 'canevasaction'):
+                if self.action.widgetsactifs:
+                    if isinstance(self.action.widgetsactifs, list):
+                        for widget_id in self.action.widgetsactifs:
+                            self.canevasaction.delete(widget_id)
+                    else:
+                        self.canevasaction.delete(self.action.widgetsactifs)
+
+                if self.action.btnactif:
+                    self.action.btnactif.config(bg="SystemButtonFace")
+                self.action = Action(self)
+                print("élection annulée")
         def toggle_escape(event=None):
             if self.toplevelactif:
+                self.reprendre_partie()
                 self.changer_toplevel(None)
                 self.changer_topblack(None)
             else:
@@ -57,19 +72,21 @@ class Vue():
                         break
 
                 if nom_cadre_actif == "jeu":
+                    self.mettre_en_pause_partie()
                     self.changer_topblack("blackgame")
                     self.changer_toplevel("gameescape")
                 elif nom_cadre_actif == ("gamemenu"):
                     self.changer_topblack("blackgame")
-                    self.changer_toplevel("option")               
+                    self.changer_toplevel("option")
 
 
         # bind sur tous les widgets (fonctionne même quand le toplevel a le focus)
         self.root.bind_all("<Escape>", toggle_escape)
-
-
+        self.root.bind_all("<d>", deselectionner_tout)
+        self.root.bind_all("<D>", deselectionner_tout)
         # Interrupteur pour le mode plein écran avec les touches Échap et F11
         self.fullscreen = False
+
         def switch_fullscreen(event=None):
             self.fullscreen = not self.fullscreen
             self.root.attributes('-fullscreen', self.fullscreen)
@@ -96,12 +113,10 @@ class Vue():
         self.toplevel = {}
         self.topblack = {}
 
-
         self.creer_cadres()
         self.creer_toplevel()
 
         self.changer_cadre("login")
-
 
         # self.root.protocol("WM_DELETE_WINDOW", self.demanderabandon)
         # # sera charge apres l'initialisation de la partie, contient les donnees pour mettre l'interface a jour
@@ -159,7 +174,6 @@ class Vue():
         self.toplevelactif.lift()
         self.toplevelactif.focus_force()
 
-
     def changer_topblack(self, nomcadre: str):
         # suprrime le toplevel si 
         if nomcadre is None:
@@ -186,9 +200,6 @@ class Vue():
         self.topblackactif.lift()
         self.topblackactif.focus_force()
 
-
-        
-
     ###### LES CADRES ############################################################################################
     # Appel de la création des divers cadre
     def creer_cadres(self):
@@ -203,7 +214,6 @@ class Vue():
         self.toplevel["useroption"] = self.creer_top_user()
         self.topblack["blackgame"] = self.creer_topblack()
         self.toplevel["gagner"] = self.creer_top_gagner()
-
 
     def creer_cadre_mainlobby(self) -> Frame:
         # === Cadre principal ===
@@ -250,6 +260,7 @@ class Vue():
             move_x = (event.x - self.screen_width // 2) / self.vitesse_background
             move_y = (event.y - self.screen_height // 2) / self.vitesse_background
             self.background.coords(self.splash_screen, -diffx + move_x, -diffy + move_y)
+
         self.background.bind("<Motion>", animate_background)
 
         # === MENU GAUCHE ===
@@ -285,9 +296,11 @@ class Vue():
             def on_enter(e):
                 frame.config(bg="#7a3c3c")
                 label_text.config(bg="#7a3c3c")
+
             def on_leave(e):
                 frame.config(bg="#4a1d1d")
                 label_text.config(bg="#4a1d1d")
+
             def on_click(e):
                 if command:
                     command()
@@ -336,7 +349,7 @@ class Vue():
             .pack(side=BOTTOM, pady=5)
 
         return self.cadremain
-    
+
     def creer_cadre_gamemenu(self) -> Frame:
         # === Cadre principal ===
         self.cadre_lobby_partie = Frame(self.cadreapp, bg="black", width=self.screen_width, height=self.screen_height)
@@ -362,15 +375,19 @@ class Vue():
             move_x = (event.x - self.screen_width // 2) / self.vitesse_background
             move_y = (event.y - self.screen_height // 2) / self.vitesse_background
             self.background2.coords(self.splash_screen, -diffx + move_x, -diffy + move_y)
+
         self.background2.bind("<Motion>", animate_background)
 
         # === FONCTION POUR FAIRE DES BOUTONS JOLIS ===
         def make_button(parent, text, color="#3c2f2f", hover="#7a3c3c", command=None):
             btn = Label(parent, text=text, font=("Times New Roman", 22, "bold"), bg=color, fg="gold", width=15, height=2, bd=2, relief="raised")
             def on_enter(e): btn.config(bg=hover)
+
             def on_leave(e): btn.config(bg=color)
+
             def on_click(e):
                 if command: command()
+
             btn.bind("<Enter>", on_enter)
             btn.bind("<Leave>", on_leave)
             btn.bind("<Button-1>", on_click)
@@ -407,6 +424,7 @@ class Vue():
         # Ajuster dynamiquement la largeur du contenu quand le canvas change
         def resize_scrollable(event):
             canvas.itemconfig(window_id, width=event.width)
+
         canvas.bind("<Configure>", resize_scrollable)
         
         canvas.configure(yscrollcommand=scrollbar.set)
@@ -569,7 +587,7 @@ class Vue():
                 if not os.path.exists(fichier):
                     return
 
-                # 🔴 CHARGER TOUTES LES SAUVEGARDES
+                # CHARGER TOUTES LES SAUVEGARDES
                 import pickle
                 with open(fichier, 'rb') as f:
                     sauvegardes_dict = pickle.load(f)
@@ -578,19 +596,19 @@ class Vue():
                 if not isinstance(sauvegardes_dict, dict):
                     return
 
-                # 🔴 RÉCUPÉRER LE NOM DU JOUEUR CONNECTÉ
+                # RÉCUPÉRER LE NOM DU JOUEUR CONNECTÉ
                 nom_joueur_actuel = self.parent.nom_joueur_local
 
                 if not nom_joueur_actuel:
                     print("⚠️ Aucun joueur connecté")
                     return
 
-                # 🔴 VÉRIFIER SI CE JOUEUR A UNE SAUVEGARDE
+                # VÉRIFIER SI CE JOUEUR A UNE SAUVEGARDE
                 if nom_joueur_actuel not in sauvegardes_dict:
                     print(f"Aucune sauvegarde trouvée pour '{nom_joueur_actuel}'")
                     return
 
-                # 🔴 AFFICHER LA SAUVEGARDE DU JOUEUR
+                # AFFICHER LA SAUVEGARDE DU JOUEUR
                 sauvegarde_data = sauvegardes_dict[nom_joueur_actuel]
 
                 try:
@@ -605,7 +623,7 @@ class Vue():
                     self.saves_tree.insert(
                         "",
                         "end",
-                        iid=nom_joueur_actuel,  # 🔴 Utiliser le nom du joueur comme ID
+                        iid=nom_joueur_actuel,  # Utiliser le nom du joueur comme ID
                         values=(nom_joueur_actuel, date_save, iteration)
                     )
 
@@ -643,12 +661,12 @@ class Vue():
             if not sel:
                 return
 
-            # 🔴 sel[0] contient le nom du joueur
+            # sel[0] contient le nom du joueur
             nom_joueur = sel[0]
 
             if messagebox.askyesno("Supprimer", f"Supprimer la sauvegarde de '{nom_joueur}' ?"):
                 try:
-                    # 🔴 APPELER LA MÉTHODE DE SUPPRESSION DU CONTRÔLEUR
+                    # APPELER LA MÉTHODE DE SUPPRESSION DU CONTRÔLEUR
                     success = self.parent.supprimer_sauvegarde(nom_joueur)
 
                     if success:
@@ -681,8 +699,6 @@ class Vue():
         make_button(self.cadre_lobby_partie, "<- Retourner", "#4a1d1d", command=lambda: self.changer_cadre("mainlobby")).place(relx=0.95, rely=0.02, anchor="center")
 
         return self.cadre_lobby_partie
-
-    
 
     # le login (ce qui 'login' à l'écran lors du démarrage)
     # sera le cadre visuel initial lors du lancement de l'application
@@ -751,7 +767,6 @@ class Vue():
         self.btn_connexion.bind("<Button-1>", lambda e: self.login_et_changer())
         self.label_invite.bind("<Button-1>", lambda e: self.connecter_invite())
 
-
         # on retourne ce cadre pour l'insérer dans le dictionnaires des cadres
         return self.cadrelobby
 
@@ -769,7 +784,7 @@ class Vue():
         self.root.attributes('-fullscreen', True)
 
         print("Connecté en tant qu'invité")
-        
+
     def creer_top_escape(self):
         # le cadre escape, qui apparait en toplevel lorsque le joueur presse echap
         size_x = 480
@@ -803,9 +818,11 @@ class Vue():
             def on_enter(e):
                 frame.config(bg="#7a3c3c")
                 label_text.config(bg="#7a3c3c")
+
             def on_leave(e):
                 frame.config(bg="#4a1d1d")
                 label_text.config(bg="#4a1d1d")
+
             def on_click(e):
                 if command:
                     command()
@@ -830,7 +847,7 @@ class Vue():
             btn.pack(pady=5)
 
         return self.cadreescape
-    
+
     def maj_message_victoire(self, nouveau_msg: str):
         if hasattr(self, "txt_victoire"):
             # Mettre à jour le contenu du widget Text correctement
@@ -844,7 +861,7 @@ class Vue():
             self.txt_victoire.config(state=DISABLED)
             self.txt_victoire.update_idletasks()
 
-    
+
     def creer_top_gagner(self):
         # toplevel pour l'écran "gagner" (noms de variables distincts pour éviter les collisions)
         size_x = 480
@@ -862,15 +879,23 @@ class Vue():
         self.tk_bg_gagner = ImageTk.PhotoImage(Image.open(bg_path_gagner).resize((size_x, size_y), Image.Resampling.LANCZOS))
         self.label_bg_gagner = Label(self.top_gagner, image=self.tk_bg_gagner)
         self.label_bg_gagner.place(x=0, y=0, relwidth=1, relheight=1)
-        
+
+        # Titre centré pour l'écran de victoire
+        self.lbl_victoire_title = Label(
+            self.top_gagner,
+            text="Parte finie !",
+            font=("Times New Roman", 42, "bold"),
+            bg="#4a1d1d",
+            fg="#D4AF37"
+        )
+        # placer en haut, centré
+        self.lbl_victoire_title.pack(pady=10)
+
         # utiliser le message de victoire fourni par le parent (fallback si absent)
         msg = getattr(self.parent, "victoire_msg", "Partie finie !")
 
         # multi-line, auto-sizing message box (adapts to message length)
         msg_str = str(msg)
-        # estimate lines from characters (approx 40 chars per line)
-        est_lines = max(1, int(len(msg_str) / 40) + 1)
-        height = min(10, max(3, est_lines))  # clamp between 3 and 10 lines
 
         self.txt_victoire = Text(
             self.top_gagner,
@@ -879,12 +904,12 @@ class Vue():
             bg="#4a1d1d",
             fg="#D4AF37",
             bd=0,
-            height=height,
+            height=400,
             width=50
         )
         self.txt_victoire.insert("1.0", msg_str)
         self.txt_victoire.config(state=DISABLED)
-        self.txt_victoire.pack(fill=X, padx=20, pady=20)
+        self.txt_victoire.pack(fill=BOTH , padx=20, pady=20)
 
         # helper local pour créer des boutons stylés dans ce toplevel
         def make_button_gagner(text, command=None, padding=60):
@@ -931,7 +956,7 @@ class Vue():
         btn_quitter_gagner.pack(pady=5)
 
         return self.top_gagner
-    
+
     def creer_top_option(self):
         # cadre d'options (toplevel distinct pour éviter les collisions de noms)
         opt_size_x = 480
@@ -1044,8 +1069,8 @@ class Vue():
                 setattr(self.parent, "seed", default)
 
             self.seed_var.set(str(default))
-            
-            
+
+
             messagebox.showinfo("Ok", "Seed réinitialisée à la valeur par défaut.")
 
         # bouton apply / reset
@@ -1059,8 +1084,19 @@ class Vue():
         reset_btn.grid(row=0, column=1, padx=6)
 
         return self.top_option
-    
 
+
+    def mettre_en_pause_partie(self):
+        """Met le jeu en pause via le contrôleur"""
+        if hasattr(self.parent, 'mettre_en_pause'):
+            self.parent.mettre_en_pause()
+            print("Interface : Jeu mis en pause")
+
+    def reprendre_partie(self):
+        """Reprend le jeu via le contrôleur"""
+        if hasattr(self.parent, 'reprendre_jeu'):
+            self.parent.reprendre_jeu()
+            print("Interface : Jeu repris")
     def arreter_boucle(self):
         self.parent.arreter_boucle_jeu()
 
@@ -1224,9 +1260,7 @@ class Vue():
         champmsg = Label(self.cadrejeuinfo, text="", font = fontinfo , bg="#4a1d1d", fg="#D4AF37" , highlightthickness=2, highlightbackground="goldenrod2")
         champmsg.pack(side=LEFT)
 
-        
         self.infohud["msggeneral"] = [champmsg]
-
 
         self.cadrejeuinfo.place(relx=0.0, rely=0.0)
 
@@ -1242,7 +1276,7 @@ class Vue():
         # Crée un cadre pour afficher le texte d'aide/contextuel au-dessus du panneau d'action
         overlay_width_action = self.screen_width // 6
         overlay_height = self.screen_height // 4
-    
+
         # ============================
         #  TEXTE CONTEXTUEL (au-dessus du panneau action)
         # ============================
@@ -1257,7 +1291,7 @@ class Vue():
             relx=0.01, rely=1 - (overlay_height / self.screen_height) - 0.02,
             anchor="sw"
         )
-    
+
         # Widget Text dynamique qui s'étend verticalement selon le texte
         self.action_text_var = StringVar()
         self.action_text_widget = Text(
@@ -1284,7 +1318,151 @@ class Vue():
             self.cadre_action_text.update_idletasks()
 
         self.update_action_text = update_action_text
-    
+
+        # ============================
+        #  Cadre condition
+        # ============================
+        overlay_width_victoire = self.screen_width // 6
+
+        self.cadre_condition = Frame(
+            self.cadrecanevas,
+            bg="#222",
+            width=overlay_width_victoire,
+            bd=2,
+            relief="ridge"
+        )
+
+
+        self.cadre_condition.place(
+            relx=1 - (overlay_width_victoire / self.screen_width) - 0.15,
+            rely=0.01,
+            anchor="nw"
+        )
+
+        # Widget Text dynamique qui s'étend verticalement selon le texte
+        # Récupère la condition de victoire depuis le parent si disponible,
+        # sinon on utilise une valeur par défaut.
+        self.conditions_victoire = getattr(self.parent, "conditions_victoire", {
+            "bois": 220,
+            "aureus": 200,
+            "nourriture": 200,
+            "roche": 200
+        })
+
+        self.condition_widget = Text(
+            self.cadre_condition,
+            bg="#222",
+            fg="white",
+            font=("Arial", 24, "bold"),
+            wrap="word",
+            width=overlay_width_action // 10,  # largeur similaire à avant
+            height=2,  # hauteur initiale, ajustée ensuite
+            relief="flat"
+        )
+        self.condition_widget.pack(fill=BOTH, expand=True, padx=8, pady=10)
+
+        def _format_conditions(d):
+            if isinstance(d, dict):
+                return "\n".join(f"{k.capitalize()} : {v}" for k, v in d.items())
+            return str(d)
+
+        def update_conditions_victoire_display():
+            # récupère la valeur la plus à jour depuis le parent si elle existe
+            latest = getattr(self.parent, "conditions_victoire", None)
+            if latest is not None:
+                self.conditions_victoire = latest
+
+            # calcule ce qu'il manque au joueur courant (si disponible)
+            def _compute_missing():
+                missing = {}
+                nom = getattr(self.parent, "nom_joueur_local", None)
+                if not nom:
+                    return missing
+                modele = getattr(self, "modele", None)
+                if not modele:
+                    return missing
+                joueur = modele.joueurs.get(nom)
+                if not joueur:
+                    return missing
+                ressources_raw = getattr(joueur, "ressources", {}) or {}
+                # Normaliser les clés pour accepter variantes (ex: "arbre" -> "bois", "or"/"gold" -> "aureus", etc.)
+                ressources = {}
+                synonymes = {
+                    "bois": {"bois", "arbre", "wood"},
+                    "nourriture": {"nourriture", "food", "baie", "berries", "berry"},
+                    "roche": {"roche", "stone", "pierre"},
+                    "aureus": {"aureus", "or", "gold"}
+                }
+                for k, v in ressources_raw.items():
+                    kl = str(k).lower()
+                    placed = False
+                    for canon, forms in synonymes.items():
+                        if kl in forms or kl == canon:
+                            try:
+                                ressources[canon] = int(v)
+                            except Exception:
+                                ressources[canon] = v
+                            placed = True
+                            break
+                    if not placed:
+                        # garder les autres clés en minuscules
+                        try:
+                            ressources[kl] = int(v)
+                        except Exception:
+                            ressources[kl] = v
+
+                conds = self.conditions_victoire if isinstance(self.conditions_victoire, dict) else {}
+                for k, req in conds.items():
+                    try:
+                        need = int(req)
+                    except Exception:
+                        # ignorer valeurs non numériques
+                        continue
+                    key_lower = k.lower()
+                    cur = int(ressources.get(key_lower, ressources.get(k, 0) or 0))
+                    missing_amt = max(0, need - cur)
+                    # n'ajouter que si réellement manquant (pour afficher "Bois : 20" quand il manque 20)
+                    if missing_amt > 0:
+                        missing[key_lower] = missing_amt
+
+                return missing
+
+            missing = _compute_missing()
+
+            # met à jour le widget de condition
+            self.condition_widget.config(state=NORMAL)
+            self.condition_widget.delete("1.0", END)
+            self.condition_widget.insert("1.0", "Conditions de Victoire:\n")
+            self.condition_widget.insert("2.0", _format_conditions(self.conditions_victoire))
+
+            # si on a des informations sur ce qui manque, les afficher
+            if missing:
+                self.condition_widget.insert(END, "\n\nManquant pour atteindre la condition :\n")
+                for k, v in missing.items():
+                    self.condition_widget.insert(END, f"- {k.capitalize()} : {v}\n")
+
+                all_met = all(val == 0 for val in missing.values())
+                status = "Conditions atteintes !" if all_met else "Encore des ressources nécessaires."
+                self.condition_widget.insert(END, f"\nStatut : {status}\n")
+
+            # ajuster la hauteur selon le contenu (limiter entre 2 et 12 lignes)
+            try:
+                lines = int(self.condition_widget.index('end-1c').split('.')[0])
+                self.condition_widget.config(height=max(2, min(12, lines)))
+            except Exception:
+                pass
+
+            self.condition_widget.config(state=DISABLED)
+            self.cadre_condition.update_idletasks()
+
+        # Exposition d'une méthode utile pour rafraîchir l'affichage depuis l'extérieur
+        self.update_conditions_victoire_display = update_conditions_victoire_display
+
+        # texte initial demandé
+        update_conditions_victoire_display()
+
+
+
     
         # ============================
         #  PANNEAU D'ACTION (gauche)
@@ -1301,7 +1479,7 @@ class Vue():
             relx=0.01, rely=0.99,
             anchor="sw"
         )
-    
+
         self.canevasaction = Canvas(
             self.cadreaction,
             width=overlay_width_action,
@@ -1310,12 +1488,12 @@ class Vue():
             highlightthickness=0
         )
         self.canevasaction.pack(fill="both", expand=True)
-    
+
         # ============================
         #  PANNEAU INFO (collé à droite)
         # ============================
         overlay_width_info = self.screen_width // 4
-    
+
         self.cadre_info = Frame(
             self.cadrecanevas,
             bg="#2e2e2e",
@@ -1330,7 +1508,7 @@ class Vue():
             rely=0.99,
             anchor="sw"
         )
-    
+
         self.canevasinfo = Canvas(
             self.cadre_info,
             width=overlay_width_info,
@@ -1339,12 +1517,12 @@ class Vue():
             highlightthickness=0
         )
         self.canevasinfo.pack(fill="both", expand=True)
-    
+
         # ============================
         #  INTERACTION : survol des boutons/action
         # ============================
         self.canevasaction.bind("<Leave>", lambda e: self.update_action_text(""))
-    
+
         # Pour afficher un texte par défaut au démarrage
         self.update_action_text("Survolez une action pour voir son description.")
 
@@ -1396,13 +1574,16 @@ class Vue():
         self.canevas.bind("<Shift-B1-Motion>", self.afficher_selection)
         self.canevas.bind("<Shift-ButtonRelease-1>", self.terminer_selection)
 
+        self.canevas.bind("<Button-1>", self.annuler_action)
+        self.canevas.tag_bind("fond", "<Button-1>", self.forcer_deselection)
+
         self.canevas.bind("<Button-2>", self.indiquer_position)
 
         self.canevas.bind("<MouseWheel>", self.OnMouseWheel)
         self.canevas.bind("<Control-MouseWheel>", self.OnCtrlMouseWheel)
         self.canevas.bind("<ButtonPress-1>", self.start_drag)
         self.canevas.bind("<B1-Motion>", self.do_drag)
-        
+
         # soit aux dessins, en vertu de leur tag (propriétés des objets dessinés)
         # ALL va réagir à n'importe quel dessin
         # sinon on spécifie un tag particulier, exemple avec divers tag, attaché par divers événements
@@ -1415,7 +1596,9 @@ class Vue():
         self.canevas.tag_bind("baie", "<Button-1>", self.ramasser_ressource)
         self.canevas.tag_bind("eau", "<Button-1>", self.ramasser_ressource)
         self.canevas.tag_bind("daim", "<Button-1>", self.chasser_ressource)
-        
+
+        self.canevas.tag_bind("ours", "<Button-1>", self.chasser_ressource)
+
         # Hover/leave for each tag to show contextual info
         def show_tag_info(event, tag_type):
             txt = ""
@@ -1431,6 +1614,8 @@ class Vue():
                 txt = "Cliquez sur un ouvrier pour ramasser de la nourriture."
             elif tag_type == "daim":
                 txt = "Cliquez sur un ouvrier pour chasser ce daim."
+            elif tag_type == "ours":
+                txt = "Cliquez sur un ouvrier pour chasser cet ours."
             elif tag_type == "perso":
                 txt = "Personnage\nCliquez pour sélectionner"
 
@@ -1439,10 +1624,10 @@ class Vue():
         def clear_tag_info(event):
             self.update_action_text("")
         
-        for tag in ["arbre", "aureus", "roche", "baie", "eau", "daim", "perso"]:
+        for tag in ["arbre", "aureus", "roche", "baie", "eau", "daim", "perso", "ours"]:
             self.canevas.tag_bind(tag, "<Enter>", lambda e, t=tag: show_tag_info(e, t))
             self.canevas.tag_bind(tag, "<Leave>", clear_tag_info)
-            
+
 
     def OnMouseWheel(self, evt):
         print(evt.keysym)
@@ -1472,16 +1657,13 @@ class Vue():
         # update minimap viewport immediately (in case nothing moves yet)
         self.update_minimap_viewport()
 
-
     def do_drag(self, event):
         # perform canvas panning
         self.canevas.scan_dragto(event.x, event.y, gain=1)
         # update the rectangle on the minimap that shows the visible area
         self.update_minimap_viewport()
 
-
     def update_minimap_viewport(self):
-
 
         x_left_frac, x_right_frac = self.canevas.xview()
         y_top_frac, y_bottom_frac = self.canevas.yview()
@@ -1568,14 +1750,22 @@ class Vue():
         # on ajuste la taille du canevas de jeu
         self.canevas.config(scrollregion=(0, 0, self.modele.aireX, self.modele.aireY))
         self.canevasaction.delete("nom")
-        self.canevasaction.create_text(100, 30, text=self.nom_joueur_local, font=("arial", 18, "bold"), anchor=S, tags=("nom"))
+        self.canevasaction.create_text(100, 30, text=self.nom_joueur_local, font=("arial", 18, "bold"), anchor=S,
+                                       tags=("nom"))
+
+
+        self.canevas.create_rectangle(0, 0, self.modele.aireX, self.modele.aireY,
+                                      fill="", outline="",
+                                      tags=("fond", "arriere_plan"))
+        self.canevas.tag_lower("fond")
+
 
         # on cree les cadres affichant les items d'actions du joueur
         # cadre apparaissant si on selectionne un ouvrier
         coul = self.modele.joueurs[self.parent.nom_joueur_local].couleur
         self.cadrejeuinfo.config(bg=coul[1])
         self.creer_aide()
-        self.creer_cadre_ouvrier(coul[0] + "_", ["maison", "caserne", "abri", "usineballiste"])
+        self.creer_cadre_ouvrier(coul[0] + "_", ["maison", "caserne", "abri", "usineballiste","moulin"])
         self.creer_chatter()
         # on affiche les maisons, point de depart des divers joueurs
 
@@ -1593,12 +1783,45 @@ class Vue():
         # self.centrer_maison()
 
     def creer_cadre_ouvrier(self, coul, artefacts):
+        # Cadre principal qui contiendra le canvas scrollable
         self.cadreouvrier = Frame(self.canevasaction, bg="goldenrod3", bd=2, relief="ridge")
-        font = ("arial", 20, "bold")
+
+        # Canvas pour le scroll - IMPORTANT: définir une taille minimale
+        self.canvas_ouvrier = Canvas(
+            self.cadreouvrier,
+            bg="goldenrod3",
+            highlightthickness=0,
+            width=200,  # Largeur minimale
+            height=200  # Hauteur minimale
+        )
+
+        # Scrollbar verticale
+        self.scrollbar_ouvrier = Scrollbar(
+            self.cadreouvrier,
+            orient=VERTICAL,
+            command=self.canvas_ouvrier.yview
+        )
+        self.canvas_ouvrier.configure(yscrollcommand=self.scrollbar_ouvrier.set)
+
+        # Frame intérieur qui contiendra les boutons
+        self.frame_interieur_ouvrier = Frame(self.canvas_ouvrier, bg="goldenrod3")
+
+        # Placement du canvas et de la scrollbar
+        self.canvas_ouvrier.pack(side=LEFT, fill=BOTH, expand=True)
+        self.scrollbar_ouvrier.pack(side=RIGHT, fill=Y)
+
+        # Créer une fenêtre dans le canvas pour le frame intérieur
+        self.canvas_window_ouvrier = self.canvas_ouvrier.create_window(
+            0, 0,
+            window=self.frame_interieur_ouvrier,
+            anchor=NW
+        )
+
+        font = ("arial", 16, "bold")  # Police légèrement réduite pour mieux rentrer
         cols = 2
 
-        img_width = 80
-        img_height = 80
+        img_width = 70
+        img_height = 70
 
         for idx, i in enumerate(artefacts):
             vals = self.parent.trouver_valeurs()
@@ -1608,8 +1831,8 @@ class Vue():
             row = idx // cols
             col = idx % cols
 
-            cell = Frame(self.cadreouvrier, bg="goldenrod3", bd=3, relief="solid")
-            cell.grid(row=row, column=col, padx=8, pady=8, sticky="nsew")
+            cell = Frame(self.frame_interieur_ouvrier, bg="goldenrod3", bd=2, relief="solid")
+            cell.grid(row=row, column=col, padx=4, pady=4, sticky="nsew")
 
             img_key = coul + i
             try:
@@ -1617,28 +1840,62 @@ class Vue():
                 pil_img = pil_img.resize((img_width, img_height), Image.Resampling.LANCZOS)
                 tk_img = ImageTk.PhotoImage(pil_img)
             except Exception:
-                tk_img = self.images[img_key]
+                tk_img = self.images.get(img_key)
 
-            img_label = Label(cell, image=tk_img, bg="goldenrod3", width=img_width, height=img_height)
-            img_label.image = tk_img
-            img_label.grid(row=0, column=0, columnspan=2, pady=(2, 4), sticky="ew")
+            if tk_img:
+                img_label = Label(cell, image=tk_img, bg="goldenrod3")
+                img_label.image = tk_img  # Garder une référence
+                img_label.grid(row=0, column=0, pady=(2, 2), sticky="ew")
 
-            btn = Button(cell, text=i, bg="goldenrod3", font=font, anchor="w")
-            btn.grid(row=1, column=0, columnspan=2, sticky="ew")
+            btn = Button(cell, text=i, bg="goldenrod3", font=font, anchor="center")
+            btn.grid(row=1, column=0, sticky="ew", padx=2, pady=2)
             btn.bind("<Button>", self.batir_artefact)
 
             def on_enter(e, artefact=i, prix_texte=prix_texte):
                 txt = f"{artefact}\n{prix_texte}" if prix_texte else artefact
                 self.update_action_text(txt)
+
             def on_leave(e):
                 self.update_action_text("")
 
             btn.bind("<Enter>", on_enter)
             btn.bind("<Leave>", on_leave)
 
+        # Configuration des colonnes pour qu'elles s'étendent uniformément
         for c in range(cols):
-            self.cadreouvrier.grid_columnconfigure(c, weight=1)
-            
+            self.frame_interieur_ouvrier.grid_columnconfigure(c, weight=1)
+
+        self.frame_interieur_ouvrier.update_idletasks()
+
+        # Configurer la région scrollable
+        def update_scrollregion(event=None):
+            self.canvas_ouvrier.configure(scrollregion=self.canvas_ouvrier.bbox("all"))
+
+        def on_canvas_configure(event):
+            # Ajuster la largeur du frame intérieur à celle du canvas
+            canvas_width = event.width
+            self.canvas_ouvrier.itemconfig(self.canvas_window_ouvrier, width=canvas_width)
+
+        self.frame_interieur_ouvrier.bind("<Configure>", update_scrollregion)
+        self.canvas_ouvrier.bind("<Configure>", on_canvas_configure)
+
+        # Appeler une première fois pour initialiser
+        self.cadreouvrier.after(100, update_scrollregion)
+
+        # Permettre le scroll avec la molette de la souris
+        def on_mousewheel(event):
+            self.canvas_ouvrier.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+        # Activer/désactiver le scroll selon la position de la souris
+        def bind_mousewheel(event):
+            self.canvas_ouvrier.bind_all("<MouseWheel>", on_mousewheel)
+
+        def unbind_mousewheel(event):
+            self.canvas_ouvrier.unbind_all("<MouseWheel>")
+
+        self.cadreouvrier.bind("<Enter>", bind_mousewheel)
+        self.cadreouvrier.bind("<Leave>", unbind_mousewheel)
+
     def handle_batiment_click(self, event):
         tags = self.canevas.gettags(CURRENT)
         if not tags:
@@ -1729,7 +1986,8 @@ class Vue():
             "maison": "ouvrier",
             "caserne": "soldat",
             "abri": "druide",
-            "usineballiste": "ballista"
+            "usineballiste": "ballista",
+            "moulin": "moulin"
         }
 
         def create_unit(unit_type):
@@ -1816,20 +2074,53 @@ class Vue():
 
     ##FONCTIONS D'AFFICHAGES##################################
     def afficher_depart(self, chargement=False):
-        self.canevas.delete("statique")  # Supprime arbres, roches, etc.
-        self.canevas.delete("mobile")  # Supprime daims, persos, etc.
-        self.canevas.delete("biotope")  # Supprime les biotopes
-        self.canevas.delete("batiment")  # Supprime les bâtiments
-        self.canevas.delete("fog") 
+        self.canevas.delete("statique")
+        self.canevas.delete("mobile")
+        self.canevas.delete("biotope")
+        self.canevas.delete("batiment")
+        self.canevas.delete("fog")
 
+        elements_eau_pure = ['eaugrand', 'eaugrand1', 'eaugrand2', 'eaugrand3']
+
+        if chargement:
+            # Afficher l'eau depuis self.modele.biotopes
+            if "eau" in self.modele.biotopes:
+                for id_bio, bio in self.modele.biotopes["eau"].items():
+                    if bio.img in elements_eau_pure:
+                        tag_layer = "eau_layer"  # Eau pure = tout en bas
+                    else:
+                        tag_layer = "decoration_eau_layer"  # Décorations = au-dessus de l'eau
+
+                    self.canevas.create_image(bio.x, bio.y, image=self.images[bio.img], anchor=S,
+                                              tags=("statique", "", bio.id, "biotope", bio.montype, tag_layer))
+        else:
+            # Afficher l'eau depuis listebiotopes (nouveau jeu)
+            for i in self.modele.listebiotopes:
+                if i.montype == "eau":
+                    if i.img in elements_eau_pure:
+                        tag_layer = "eau_layer"  # Eau pure = tout en bas
+                    else:
+                        tag_layer = "decoration_eau_layer"  # Décorations = au-dessus de l'eau
+
+                    self.canevas.create_image(i.x, i.y, image=self.images[i.img], anchor=S,
+                                              tags=("statique", "", i.id, "biotope", i.montype, tag_layer))
+
+        # Réorganiser les couches seulement si elles existent
+        if self.canevas.find_withtag("eau_layer"):
+            self.canevas.tag_lower("eau_layer")
+        if self.canevas.find_withtag("decoration_eau_layer") and self.canevas.find_withtag("eau_layer"):
+            self.canevas.tag_raise("decoration_eau_layer", "eau_layer")
 
         # Afficher les biotopes (arbres, roches, etc.)
         if chargement:
             # Lors d'un chargement, on récupère les biotopes depuis self.modele.biotopes
             for type_bio in self.modele.biotopes:
+                # Sauter l'eau car déjà affichée
+                if type_bio == "eau":
+                    continue
                 for id_bio, bio in self.modele.biotopes[type_bio].items():
                     # Les daims sont mobiles, les autres sont statiques
-                    if bio.montype == "daim":
+                    if bio.montype == "daim" or bio.montype == "ours":
                         self.canevas.create_image(bio.x, bio.y, image=self.images[bio.img], anchor=S,
                                                   tags=("mobile", "", bio.id, "biotope", bio.montype, ""))
                     else:
@@ -1840,7 +2131,10 @@ class Vue():
             self.modele.listebiotopes.sort(key=lambda c: c.y)
             self.modele.listebiotopes.sort(key=lambda c: c.y)
         for i in self.modele.listebiotopes:
-            if i.montype == "daim":
+            if i.montype == "eau":
+                continue
+
+            if i.montype == "daim" or i.montype == "ours":
                 self.canevas.create_image(i.x, i.y, image=self.images[i.img], anchor=S,
                                         tags=("mobile", "", i.id, "biotope", i.montype, ""))
             else:
@@ -1894,6 +2188,163 @@ class Vue():
                     # self.minicarte.create_rectangle(x1 - 2, y1 - 2, x1 + 2, y1 + 2, fill=coul_mini,
                     #                                 tags=(j, bat.id, "artefact", bat.montype))
 
+        self.fusionner_eau_adjacente()
+
+    def fusionner_eau_adjacente(self):
+        """
+        Fusionne toutes les cases d'eau adjacentes en groupes
+        et crée une seule grande image pour chaque groupe
+        """
+        if "eau" not in self.modele.biotopes:
+            print("Aucun biotope d'eau trouvé")
+            return
+
+        # TROUVER LA VRAIE TAILLE DE CASE
+        # Option 1 : Si votre modèle a une taille de case définie
+        if hasattr(self.modele, 'taillecase'):
+            taille_case = self.modele.taillecase
+        else:
+            # Option 2 : Calculer à partir de la grille
+            taille_case = self.modele.aireX // self.modele.taillecarte
+
+        print(f"📏 Taille de case détectée : {taille_case}px")
+
+        # Identifier les cases d'eau pure
+        elements_eau_pure = ['eaugrand', 'eaugrand1', 'eaugrand2', 'eaugrand3']
+        cases_eau = {}
+
+        # Collecter toutes les cases d'eau avec leur position en cases de grille
+        for id_bio, bio in self.modele.biotopes["eau"].items():
+            if bio.img in elements_eau_pure:
+                case_x = bio.x // taille_case
+                case_y = bio.y // taille_case
+                cases_eau[(case_x, case_y)] = bio
+
+        print(f"💧 {len(cases_eau)} cases d'eau pure trouvées")
+
+        if len(cases_eau) == 0:
+            print("⚠️ Aucune case d'eau pure à fusionner")
+            return
+
+        # Regrouper les cases adjacentes
+        visited = set()
+        groupes_eau = []
+
+        def trouver_groupe(start_x, start_y):
+            """Trouve toutes les cases adjacentes à partir d'une case de départ"""
+            groupe = []
+            stack = [(start_x, start_y)]
+
+            while stack:
+                x, y = stack.pop()
+                if (x, y) in visited or (x, y) not in cases_eau:
+                    continue
+
+                visited.add((x, y))
+                groupe.append((x, y))
+
+                # Vérifier les 4 directions (haut, bas, gauche, droite)
+                for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                    voisin = (x + dx, y + dy)
+                    if voisin in cases_eau and voisin not in visited:
+                        stack.append(voisin)
+
+            return groupe
+
+        # Créer les groupes
+        for case_pos in cases_eau.keys():
+            if case_pos not in visited:
+                groupe = trouver_groupe(case_pos[0], case_pos[1])
+                if groupe:
+                    groupes_eau.append(groupe)
+
+        print(f"{len(groupes_eau)} groupes d'eau trouvés")
+
+        # Créer une grande image pour chaque groupe
+        for idx, groupe in enumerate(groupes_eau):
+            print(f"\nGroupe {idx}: {len(groupe)} cases")
+
+            if len(groupe) == 1:
+                print(f"  ⏩ Groupe trop petit, ignoré")
+                continue
+
+            # Calculer les dimensions du groupe
+            min_x = min(pos[0] for pos in groupe)
+            max_x = max(pos[0] for pos in groupe)
+            min_y = min(pos[1] for pos in groupe)
+            max_y = max(pos[1] for pos in groupe)
+
+            largeur_groupe = (max_x - min_x + 1) * taille_case
+            hauteur_groupe = (max_y - min_y + 1) * taille_case
+
+            print(f" Dimensions: {largeur_groupe}x{hauteur_groupe}px")
+
+            # Créer une grande image transparente
+            grande_image = Image.new('RGBA', (largeur_groupe, hauteur_groupe), (0, 0, 0, 0))
+
+            # Copier chaque case d'eau dans la grande image
+            for case_x, case_y in groupe:
+                bio = cases_eau[(case_x, case_y)]
+
+                #TROUVER L'IMAGE - ADAPTER SELON VOTRE STRUCTURE
+                # Essayer plusieurs chemins possibles
+                chemins_possibles = [
+                    os.path.join(os.path.dirname(__file__), f"images/eau/{bio.img}.png"),
+                    os.path.join(os.path.dirname(__file__), f"images/{bio.img}.png"),
+                    os.path.join(os.path.dirname(__file__), "images", "eau", f"{bio.img}.png"),
+                ]
+
+                case_img = None
+                for chemin in chemins_possibles:
+                    if os.path.exists(chemin):
+                        try:
+                            case_img = Image.open(chemin).convert('RGBA')
+                            break
+                        except Exception as e:
+                            print(f" Erreur lors du chargement de {chemin}: {e}")
+
+                if case_img is None:
+                    print(f" Image introuvable pour {bio.img}")
+                    # Créer une image bleue de remplacement
+                    case_img = Image.new('RGBA', (taille_case, taille_case), (70, 130, 180, 255))
+                else:
+                    case_img = case_img.resize((taille_case, taille_case), Image.Resampling.LANCZOS)
+
+                # Calculer la position dans la grande image
+                pos_x = (case_x - min_x) * taille_case
+                pos_y = (case_y - min_y) * taille_case
+
+                # Coller l'image
+                grande_image.paste(case_img, (pos_x, pos_y), case_img)
+
+            # Convertir en PhotoImage pour Tkinter
+            photo_grande = ImageTk.PhotoImage(grande_image)
+
+            # Stocker l'image
+            self.images[f"eau_fusionnee_{idx}"] = photo_grande
+
+            # Supprimer les anciennes cases individuelles du canvas
+            for case_x, case_y in groupe:
+                bio = cases_eau[(case_x, case_y)]
+                self.canevas.delete(bio.id)
+
+            # Afficher la grande image fusionnée
+            pos_centre_x = (min_x * taille_case) + (largeur_groupe // 2)
+            pos_centre_y = (min_y * taille_case) + (hauteur_groupe // 2)
+
+            print(f" Placée à ({pos_centre_x}, {pos_centre_y})")
+
+            self.canevas.create_image(
+                pos_centre_x, pos_centre_y,
+                image=self.images[f"eau_fusionnee_{idx}"],
+                anchor=CENTER,
+                tags=("statique", "", f"eau_groupe_{idx}", "biotope", "eau", "eau_layer")
+            )
+
+        # Forcer l'eau à rester en dessous
+        self.canevas.tag_lower("eau_layer")
+        print("\nFusion de l'eau terminée")
+
     def afficher_bio(self, bio):
         bio = self.canevas.create_image(bio.x, bio.y, image=self.images[bio.img],
                                   tags=("statique", "", bio.id, "biotope", bio.montype, ""))
@@ -1921,18 +2372,18 @@ class Vue():
 
         x0, y0, x2, y2 = self.canevas.bbox(obj_id)
         return [x0, y0, x2, y2]
-    
+
 
     def dessiner_barre_vie(self, obj, tagged, offset_y = 10, largeur=20):
 
         life_ratio = obj.mana / obj.mana_max
-        current_width = largeur * life_ratio    
+        current_width = largeur * life_ratio
         color_liferange = "green" if life_ratio > 0.5 else "orange" if life_ratio > 0.2 else "red"
-        barre = self.canevas.create_rectangle(obj.x - largeur/2, obj.y - offset_y, obj.x + largeur/2 + current_width, obj.y - offset_y - 5, fill=color_liferange, tags=tagged, state = "disabled")                         
+        barre = self.canevas.create_rectangle(obj.x - largeur/2, obj.y - offset_y, obj.x + largeur/2 + current_width, obj.y - offset_y - 5, fill=color_liferange, tags=tagged, state = "disabled")
 
 
     def afficher_jeu(self):
-      
+
         # On efface tout ce qui est 'mobile' (un tag)
         self.canevas.delete("mobile")
         self.canevas.delete("batiment")
@@ -1940,6 +2391,25 @@ class Vue():
         # on se debarrasse des choses mortes (disparues), le id est dans le tag du dessin
         for i in self.modele.ressourcemorte:
             self.canevas.delete(i.id)
+
+        elements_eau_pure = ['eaugrand', 'eaugrand1', 'eaugrand2', 'eaugrand3']
+
+#        for j in self.modele.biotopes["eau"].keys():
+#            i = self.modele.biotopes["eau"][j]
+#            if i.sprite:
+#                tag_layer = "eau_layer"
+#                self.canevas.create_image(i.x, i.y, image=self.gifs[i.sprite][i.spriteno],
+#                                          tags=("mobile", "", i.id, "biotope", type(i).__name__, tag_layer))
+#        #self.canevas.tag_lower("eau_layer")
+#
+#        for j in self.modele.biotopes["daim"].keys():
+#            i = self.modele.biotopes["daim"][j]
+#            if i.etat == "mort":
+#                self.canevas.create_image(i.x, i.y, image=self.images["daimMORT"],
+#                                          tags=("mobile", "", i.id, "biotope", i.montype, ""))
+#            else:
+#                self.canevas.create_image(i.x, i.y, image=self.images[i.img],
+#                                          tags=("mobile", "", i.id, "biotope", i.montype, ""))
 
         # commencer par les choses des joueurs
         for j in self.modele.joueurs.keys():
@@ -2004,7 +2474,19 @@ class Vue():
                 self.canevas.create_image(i.x, i.y, image=self.images[i.img],
                                           tags=("mobile", "", i.id, "biotope", i.montype, ""))
                 # tags=("",i.id,"artefact","daim","mobile"))
+        for j in self.modele.biotopes["ours"].keys():
+            i = self.modele.biotopes["ours"][j]
+            if self.modele.case_fog(i.x, i.y) != FogState.VISIBLE:
+                continue
+            if i.etat == "mort":
+                self.canevas.create_image(i.x, i.y, image=self.images["oursMORT"],
+                                          tags=("mobile", "", i.id, "biotope", i.montype, ""))
+                # tags=("",i.id,"artefact","daim","mobile"))
 
+            else:
+                self.canevas.create_image(i.x, i.y, image=self.images[i.img],
+                                          tags=("mobile", "", i.id, "biotope", i.montype, ""))
+                # tags=("",i.id,"artefact","daim","mobile"))
         # ajuster les choses vivantes dependantes de la partie (mais pas des joueurs)
         for j in self.modele.biotopes["eau"].keys():
             i = self.modele.biotopes["eau"][j]
@@ -2022,15 +2504,15 @@ class Vue():
             if self.modele.joueurs[self.parent.nom_joueur_local].chatneuf and self.action.chaton == 0:
                 self.btnchat.config(bg="orange")
             self.modele.joueurs[self.parent.nom_joueur_local].chatneuf = 0
-        
+
         self.afficher_batiment_visible()
 
         # FOG
         self.fog_overlay.update()
         self.minimap_renderer.update()
         self.minicarte.itemconfigure(self.minicarte_img, image=self.minimap_renderer.tk)
-        
-    
+
+
 
 
     def centrer_maison(self):
@@ -2049,7 +2531,7 @@ class Vue():
         self.canevas.yview_moveto(pcty)
 
         self.update_minimap_viewport()
-    
+
     def afficher_batiment_visible(self):
         for j, jdata in self.modele.joueurs.items():
             for type_bat, dico_bats in jdata.batiments.items():
@@ -2089,8 +2571,26 @@ class Vue():
 
     def annuler_action(self, evt):
         mestags = self.canevas.gettags(CURRENT)
+
+        should_deselect = False
         if not mestags:
-            self.canevasaction.delete(self.action.widgetsactifs)
+            should_deselect = True
+
+        elif mestags:
+            if len(mestags) < 5 or mestags[4] == "":
+                should_deselect = True
+            #if self.action.btnactif:
+            #    self.action.btnactif.config(bg="SystemButtonFace")
+            #self.action = Action(self)
+
+        if should_deselect:
+            if self.action.widgetsactifs:
+                if isinstance(self.action.widgetsactifs, list):
+                    for widget_id in self.action.widgetsactifs:
+                        self.canevasaction.delete(widget_id)
+                else:
+                    self.canevasaction.delete(self.action.widgetsactifs)
+
             if self.action.btnactif:
                 self.action.btnactif.config(bg="SystemButtonFace")
             self.action = Action(self)
@@ -2113,6 +2613,21 @@ class Vue():
             self.action.ciblechoisi = mestags
             mestags
             self.action.attaquer()
+
+    def forcer_deselection(self, evt):
+        print("forcer_deselection appelé - Clic sur le fond")
+        if self.action.widgetsactifs:
+            if isinstance(self.action.widgetsactifs, list):
+                for widget_id in self.action.widgetsactifs:
+                    self.canevasaction.delete(widget_id)
+            else:
+                self.canevasaction.delete(self.action.widgetsactifs)
+
+        if self.action.btnactif:
+            self.action.btnactif.config(bg="SystemButtonFace")
+        self.action = Action(self)
+        print("Désélection forcée terminée")  # DEBUG
+
 
     # Methodes pour multiselect
     def debuter_selection(self, evt):
@@ -2154,24 +2669,22 @@ class Vue():
 
     def chasser_ressource(self, evt):
         tag = self.canevas.gettags(CURRENT)
-        if tag[1] == "" and self.action.persochoisi and tag[4] == "daim":
+        if tag[1] == "" and self.action.persochoisi and (tag[4] == "daim" or tag[4] == "ours"):
             self.action.chasser_ressource(tag)
         else:
             print(tag[3])
 
     def indiquer_position(self, evt):
         tag = self.canevas.gettags(CURRENT)
-        if not tag:
-            x, y = (self.canevas.canvasx(evt.x), self.canevas.canvasy(evt.y))
-            self.action.position = [x, y]
-            self.action.deplacer()
+        #if not tag:
+        x, y = (self.canevas.canvasx(evt.x), self.canevas.canvasy(evt.y))
+        self.action.position = [x, y]
+        self.action.deplacer()
 
     # Cette fonction permet se se deplacer via un click sur la minicarte
     def deplacer_carte(self, evt):
         x = evt.x
         y = evt.y
-
-
 
         pctx = x / self.tailleminicarte
         pcty = y / self.tailleminicarte
@@ -2185,7 +2698,6 @@ class Vue():
         yl = self.canevas.winfo_height()
 
         self.update_minimap_viewport()
-
 
     def batir_artefact(self, evt):
         obj = evt.widget
@@ -2211,9 +2723,9 @@ class Vue():
 
     def construire_batiment(self, evt):
         mestags = self.canevas.gettags(CURRENT)
-        if not mestags:
-            pos = (self.canevas.canvasx(evt.x), self.canevas.canvasy(evt.y))
-            self.action.construire_batiment(pos)
+        #if not mestags:
+        pos = (self.canevas.canvasx(evt.x), self.canevas.canvasy(evt.y))
+        self.action.construire_batiment(pos)
 
     def creer_entite(self, evt):
         x, y = evt.x, evt.y
@@ -2232,6 +2744,9 @@ class Vue():
                 elif "usineballiste" in mestags:
                     pos = (self.canevas.canvasx(evt.x), self.canevas.canvasy(evt.y))
                     action = [self.parent.nom_joueur_local, "creerperso", ["ballista", mestags[4], mestags[2], pos]]
+                if "moulin" in mestags:
+                    pos = (self.canevas.canvasx(evt.x), self.canevas.canvasy(evt.y))
+                    action = [self.parent.nom_joueur_local, "creerperso", ["moulin", mestags[4], mestags[2], pos]]
                 self.parent.actions_requises.append(action)
             else:
                 return
@@ -2277,38 +2792,52 @@ class Action():
             self.parent.parent.actions_requises.append(action)
 
     def construire_batiment(self, pos):
+        """
+        Construit un bâtiment à la position donnée.
+        VERSION CORRIGÉE : Vérifie que btnactif et prochaineaction existent
+        """
+        # Vérifier qu'un bâtiment a été sélectionné pour construction
+        if self.btnactif is None or self.prochaineaction is None:
+            print("Aucun bâtiment sélectionné pour la construction")
+            return
+
+        # Vérifier qu'un ouvrier est sélectionné
+        if not self.persochoisi:
+            print("Aucun ouvrier sélectionné pour construire")
+            return
+
+        # Réinitialiser le bouton
         self.btnactif.config(bg="SystemButtonFace")
         self.btnactif = None
+
+        # Créer l'action de construction
         action = [self.parent.nom_joueur_local, "construirebatiment", [self.persochoisi, self.prochaineaction, pos]]
         self.parent.parent.actions_requises.append(action)
 
+        # Réinitialiser la prochaine action
+        self.prochaineaction = None
+
     def afficher_commande_perso(self):
-        # Met à jour la géométrie pour obtenir les bonnes tailles
         self.parent.root.update_idletasks()
 
-        # On retire tout pack éventuel (normalement inutile car grid est utilisé)
-        for child in self.parent.cadreouvrier.winfo_children():
-            child.pack_forget()
-        # Ne pas utiliser pack ici, car grid est utilisé dans creer_cadre_ouvrier
+        # NE PAS FAIRE pack_forget sur les enfants !
 
-        # Mise à jour forcée de la géométrie
-        self.parent.cadreouvrier.update_idletasks()
         self.parent.canevasaction.update_idletasks()
 
-        # Supprime la fenêtre précédente si elle existe
         try:
             if self.widgetsactifs:
                 self.parent.canevasaction.delete(self.widgetsactifs)
         except Exception:
             pass
 
-        # On ajuste la taille du cadre ouvrier pour qu'il prenne toute la place
         largeur = self.parent.canevasaction.winfo_width()
         hauteur = self.parent.canevasaction.winfo_height()
-        self.parent.cadreouvrier.config(width=largeur, height=hauteur)
-        self.parent.cadreouvrier.update_idletasks()
 
-        # On crée la fenêtre centrée et qui occupe tout l'espace
+        if largeur < 10:
+            largeur = 250
+        if hauteur < 10:
+            hauteur = 200
+
         self.widgetsactifs = self.parent.canevasaction.create_window(
             0, 0,
             window=self.parent.cadreouvrier,
@@ -2317,7 +2846,9 @@ class Action():
             height=hauteur
         )
 
-        self.parent.canevasaction.update_idletasks()
+        self.parent.root.after(50, lambda: self.parent.canvas_ouvrier.configure(
+            scrollregion=self.parent.canvas_ouvrier.bbox("all")
+        ))
 
     def envoyer_chat(self, evt):
         txt = self.parent.entreechat.get()
