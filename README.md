@@ -43,3 +43,7 @@ Lien Excel : https://cvmqc-my.sharepoint.com/:x:/g/personal/e_fdesrosiers2_etu_c
 ### &nbsp;    - Nous n'avons pas eu le temps de le terminer.
 ### &nbsp;    - Si vous voulez voir le AI jouer, il se pourrait qu'un joueur AI paraîsse immobile, il faut aller en voir un autre. Il y a un problème avec les joueurs AI. Il vont faire toutes leurs actions un après l'autre, c'est-à-dire que ce n'est qu'une fois qu'un joueur AI termine tout son processus de décision que le prochain commencera le sien. Ils le font en ordre (AI 1, AI 2, etc.). Ainsi, si un AI parait immobile, c'est parce que ce n'est pas encore son "tour". *Le premier aparait en haut de la map*
 ### &nbsp;    - Le AI a un processus de décision court, il va construire quelques bâtiments et unités, puis lorsque c'est terminé il laisse les ouvriers ramasser les ressources automatiquement. C'est à ce moment que le prochain AI commence ses actions.
+
+
+## - La page notes (document excel)
+### &nbsp;    - Ce sont des notes prises par chaque équipe pour garder certaines traces de nos démarches
