@@ -6,7 +6,7 @@ from AoEw_modele import *
 import Users as us
 import pickle
 from pathlib import Path
-
+from AoEw_divers import reset_prochain_id
 
 class Controleur():
     def __init__(self):
@@ -22,6 +22,7 @@ class Controleur():
         self.nom_joueur_local = ""
         self.sauvegardes = []
         self.after_id = None
+        self.jeu_en_pause = False
         # liste des noms de joueurs
         self.joueurs = self.user_manager.list_all_users()
         #MORT self.prochain_splash = None # requis pour sortir du splash et passer au lobby
@@ -103,7 +104,10 @@ class Controleur():
         # random ALEATOIRE fourni par le serveur
         # random.seed(int(initaleatoire))
         # random FIXE pour test
-            
+        self.jeu_en_pause = False
+        reset_prochain_id()
+        self.iteration_boucle_jeu = 0
+
         random.seed(self.seed)
         # # on recoit la derniere liste des joueurs pour la partie
         # listejoueurs = []
@@ -132,7 +136,8 @@ class Controleur():
             return
         
         if self.mode_de_jeu == "commerce":
-            self.conditions_victoire = {"bois": 220 , "aureus": 200 , "nourriture": 200 , "roche": 200}
+            self.conditions_victoire = {"bois": 220 , "aureus": 200 , "nourriture": 200 , "roche": 210}
+            self.vue.update_conditions_victoire_display()
 
             try:
                 joueurs = getattr(self.partie, "joueurs", {})
@@ -266,13 +271,14 @@ class Controleur():
             self.partie.ajouter_actions_a_faire(self.iteration_boucle_jeu,[self.actions_requises])
             self.actions_requises = []
 
-        if self.on_joue:
-            # envoyer les messages au modele et a la vue de faire leur job
-            self.partie.jouer_prochain_coup(self.iteration_boucle_jeu)
-            self.vue.afficher_jeu()
-        else:
-            self.iteration_boucle_jeu -= 1
-            self.on_joue = 1
+        if not self.jeu_en_pause:
+            if self.on_joue:
+                # envoyer les messages au modele et a la vue de faire leur job
+                self.partie.jouer_prochain_coup(self.iteration_boucle_jeu)
+                self.vue.afficher_jeu()
+            else:
+                self.iteration_boucle_jeu -= 1
+                self.on_joue = 1
         # appel ulterieur de la meme fonction jusqu'a l'arret de la partie
         if self.vue and self.vue.root:
             self.after_id = self.vue.root.after(self.delai_de_boucle_de_jeu, self.boucler_sur_jeu)
@@ -280,6 +286,15 @@ class Controleur():
     def detruire_partie(self):
         self.partie = None
 
+    def mettre_en_pause(self):
+        """Met le jeu en pause sans arrêter la boucle"""
+        self.jeu_en_pause = True
+        print("Jeu mis en pause")
+
+    def reprendre_jeu(self):
+        """Reprend le jeu après une pause"""
+        self.jeu_en_pause = False
+        print("Jeu repris")
     def arreter_boucle_jeu(self):
         """Arrête la boucle de jeu en cours et nettoie les actions"""
         if self.after_id:
@@ -290,7 +305,7 @@ class Controleur():
                 print(f"Erreur lors de l'arrêt de la boucle: {e}")
             self.after_id = None
 
-        # 🔴 NETTOYER TOUTES LES ACTIONS EN ATTENTE
+        #NETTOYER TOUTES LES ACTIONS EN ATTENTE
         self.actions_requises = []
         print("Actions en attente vidées.")
     ###################################################################
@@ -403,13 +418,14 @@ class Controleur():
             # Sauvegarder tout le dictionnaire
             with open(fichier, 'wb') as f:
                 pickle.dump(sauvegardes_dict, f)
-
             self.partie.parent = self
 
             print(f"Sauvegarde réussie pour '{nom_sauvegarde}' (total: {len(sauvegardes_dict)} sauvegardes)")
+            messagebox.showinfo("Succes", "Partie sauvegardée.")
             return True
         except Exception as e:
             print(f"Erreur lors de la sauvegarde : {e}")
+
             import traceback
             traceback.print_exc()
             # Restaurer la référence parent même en cas d'erreur

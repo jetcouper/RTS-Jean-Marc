@@ -25,7 +25,12 @@ class Joueur():
                                  "arbre": 10,
                                  "roche": 5,
                                  "aureus": 1,
-                                 "delai": 80}
+                                 "delai": 80},
+               "moulin": {"nourriture": 10,
+                                 "arbre": 15,
+                                 "roche": 10,
+                                 "aureus": 2,
+                                 "delai": 60}
                }
     classespersos = {"ouvrier": Ouvrier,
                      "soldat": Soldat,
@@ -70,7 +75,8 @@ class Joueur():
                           "abri": {},
                           "caserne": {},
                           "usineballiste": {},
-                          "siteconstruction": {}}
+                          "siteconstruction": {},
+                          "moulin": {}}
 
         self.actions = {"creerperso": self.creer_perso,
                         "deplacer": self.deplacer,
@@ -165,18 +171,48 @@ class Joueur():
                     self.persos[j][i].deplacer(pos)
 
     def creer_point_origine(self, x, y):
+        # Vérifie que la position est valide pour une maison
+        if not self.parent.position_libre_pour_batiment_complet(x, y, rayon=60):
+            print(f"⚠️ Maison initiale : position ({x},{y}) invalide, recherche d'une zone libre...")
+
+            trouve = False
+            largeur_pixels = (self.parent.taillecarte - 1) * self.parent.taillecase
+            hauteur_pixels = (self.parent.taillecarte - 1) * self.parent.taillecase
+
+            # Essaie de trouver une position terrestre libre aléatoirement
+            for _ in range(1000):  # plus d'essais pour éviter l'eau
+                xa = random.randint(0, largeur_pixels)
+                ya = random.randint(0, hauteur_pixels)
+
+                if self.parent.position_libre_pour_batiment_complet(xa, ya, rayon=60):
+                    x, y = xa, ya
+                    trouve = True
+                    print(f"✅ Maison repositionnée sur terrain sûr à ({x},{y})")
+                    break
+
+            if not trouve:
+                print("❌ Impossible de trouver une position terrestre libre pour le joueur.")
+                return
+
+        # Création finale de la maison d’origine
         idmaison = get_prochain_id()
         self.batiments["maison"][idmaison] = Maison(self, idmaison, self.couleur, x, y, "maison")
 
     def construire_batiment(self, param):
         perso, sorte, pos = param
+        x, y = pos
+
+        # ✅ Vérifie que l’emplacement est libre
+        if not self.parent.position_libre_pour_batiment(x, y, rayon=60):
+            print("Construction refusée : trop proche d'une ressource ou sur un terrain invalide.")
+            return
+
         id = get_prochain_id()
-        # payer batiment
         vals = Joueur.valeurs
         for k, val in self.ressources.items():
             self.ressources[k] = val - vals[sorte][k]
 
-        siteconstruction = SiteConstruction(self, id, pos[0], pos[1], sorte,
+        siteconstruction = SiteConstruction(self, id, x, y, sorte,
                                             Joueur.valeurs[sorte]["delai"])
         self.batiments["siteconstruction"][id] = siteconstruction
         ouvriers_valides = 0
