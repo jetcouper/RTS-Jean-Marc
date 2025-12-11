@@ -77,7 +77,7 @@ class Vue():
                     self.changer_toplevel("gameescape")
                 elif nom_cadre_actif == ("gamemenu"):
                     self.changer_topblack("blackgame")
-                    self.changer_toplevel("option")
+                    self.changer_toplevel("option")               
 
 
         # bind sur tous les widgets (fonctionne même quand le toplevel a le focus)
@@ -207,6 +207,7 @@ class Vue():
         self.cadres["gamemenu"] = self.creer_cadre_gamemenu()
         self.cadres["login"] = self.creer_cadre_login()
         self.cadres["jeu"] = self.creer_cadre_jeu()
+        self.cadres["loading"] = self.creer_cadre_loading()
 
     def creer_toplevel(self,):
         self.toplevel["gameescape"] = self.creer_top_escape()
@@ -214,6 +215,7 @@ class Vue():
         self.toplevel["useroption"] = self.creer_top_user()
         self.topblack["blackgame"] = self.creer_topblack()
         self.toplevel["gagner"] = self.creer_top_gagner()
+
 
     def creer_cadre_mainlobby(self) -> Frame:
         # === Cadre principal ===
@@ -350,6 +352,84 @@ class Vue():
 
         return self.cadremain
 
+    def creer_cadre_loading(self) -> Frame:
+        """
+        Crée un écran de chargement avec animation
+        """
+        cadre_loading = Frame(self.cadreapp, bg="#1a1a1a", width=self.screen_width, height=self.screen_height)
+        cadre_loading.pack_propagate(False)
+
+        # Conteneur central
+        container = Frame(cadre_loading, bg="#1a1a1a")
+        container.place(relx=0.5, rely=0.5, anchor="center")
+
+        # Titre
+        Label(
+            container,
+            text="Chargement de la partie...",
+            font=("Times New Roman", 36, "bold"),
+            fg="#D4AF37",  # Or
+            bg="#1a1a1a"
+        ).pack(pady=20)
+
+        # Barre de progression (optionnelle)
+        self.loading_progress_var = StringVar()
+        self.loading_progress_var.set("Initialisation...")
+
+        Label(
+            container,
+            textvariable=self.loading_progress_var,
+            font=("Arial", 18),
+            fg="white",
+            bg="#1a1a1a"
+        ).pack(pady=10)
+
+        # Animation de points (optionnelle)
+        self.loading_label = Label(
+            container,
+            text="●",
+            font=("Arial", 48),
+            fg="#D4AF37",
+            bg="#1a1a1a"
+        )
+        self.loading_label.pack(pady=20)
+
+        # Variable pour l'animation
+        self.loading_animation_running = False
+
+        return cadre_loading
+
+    def animer_loading(self):
+        """
+        Anime l'écran de chargement avec des points qui bougent
+        """
+        if not self.loading_animation_running:
+            return
+
+        current_text = self.loading_label.cget("text")
+
+        # Cycle: ● → ●● → ●●● → ●
+        if current_text == "●":
+            self.loading_label.config(text="●●")
+        elif current_text == "●●":
+            self.loading_label.config(text="●●●")
+        else:
+            self.loading_label.config(text="●")
+
+        # Rappeler cette fonction après 500ms
+        self.root.after(500, self.animer_loading)
+
+    def demarrer_animation_loading(self):
+        """Démarre l'animation de chargement"""
+        self.loading_animation_running = True
+        self.animer_loading()
+
+    def arreter_animation_loading(self):
+        """Arrête l'animation de chargement"""
+        self.loading_animation_running = False
+
+
+
     def creer_cadre_gamemenu(self) -> Frame:
         # === Cadre principal ===
         self.cadre_lobby_partie = Frame(self.cadreapp, bg="black", width=self.screen_width, height=self.screen_height)
@@ -401,7 +481,9 @@ class Vue():
         top_bar = Frame(left_frame, bg="#3c2f2f")
         top_bar.pack(fill=X, pady=10)
         Label(top_bar, text="Créer partie", font=("Times New Roman", 22, "bold"), bg="#4a1d1d", fg="gold", width=15, height=2, bd=2, relief="raised").pack(side=LEFT, expand=True, padx=10)
-        make_button(top_bar, "Commencer", "#2d6a2d", hover="#3fa63f" , command=lambda: self.lancer_partie()).pack(side=LEFT, expand=True, padx=10)
+        make_button(top_bar, "Commencer", "#2d6a2d", hover="#3fa63f",
+                command=lambda: self.lancer_partie()
+               ).pack(side=LEFT, expand=True, padx=10)
 
         # === Liste IA avec Scroll
         ia_frame = Frame(left_frame, bg="#3c2f2f")
@@ -781,7 +863,7 @@ class Vue():
         self.root.attributes('-fullscreen', True)
 
         print("Connecté en tant qu'invité")
-
+        
     def creer_top_escape(self):
         # le cadre escape, qui apparait en toplevel lorsque le joueur presse echap
         size_x = 480
@@ -835,8 +917,17 @@ class Vue():
             return frame
 
         # === Boutons spécifiques au menu Pause ===
-        btnreprendre = make_button_pause("Reprendre", command=lambda: (self.cadreescape.withdraw(), self.changer_topblack(None), self.changer_toplevel(None)))
-        btnsave = make_button_pause("Sauvegarder", command=lambda : self.sauvegarder())
+        btnreprendre = make_button_pause("Reprendre", command=lambda: (self.reprendre_partie(),self.cadreescape.withdraw(), self.changer_topblack(None), self.changer_toplevel(None)))
+        btnsave = make_button_pause("Sauvegarder",
+                                    command=lambda: (
+                                        self.changer_topblack(None),
+                                        self.changer_toplevel(None),
+                                        self.sauvegarder(),
+                                        self.root.after(100, lambda: (
+                                            self.changer_topblack("blackgame"),
+                                            self.changer_toplevel("gameescape")
+                                        ))
+                                    ))
         btnquitter = make_button_pause("Quitter la partie", command=lambda: (self.changer_cadre("mainlobby"), self.arreter_boucle(), self.cadreescape.withdraw(), self.changer_topblack(None), self.changer_toplevel(None)))
 
         # === Affichage des boutons ===
@@ -1588,7 +1679,8 @@ class Vue():
 
     def connecter_event(self):
         # on attache (bind) desF événements soit aux objets eux même
-        self.canevas.bind("<Button-1>", self.annuler_action)
+        # clic gauche : déplacement si sélection, sinon reset action
+        self.canevas.bind("<Button-1>", self.clic_jeu)
         self.canevas.bind("<Button-3>", self.construire_batiment)
         # faire une multiselection
         self.canevas.bind("<Shift-Button-1>", self.debuter_selection)
@@ -2007,8 +2099,7 @@ class Vue():
             "maison": "ouvrier",
             "caserne": "soldat",
             "abri": "druide",
-            "usineballiste": "ballista",
-            "moulin": "moulin"
+            "usineballiste": "ballista"
         }
 
         def create_unit(unit_type):
@@ -2039,9 +2130,16 @@ class Vue():
         if unit_type:
             btn_text = f"Créer {unit_type.capitalize()}"
             state_create = NORMAL if owner == self.parent.nom_joueur_local else DISABLED
+            try:
+                couts_persos = self.parent.trouver_couts_persos()
+            except Exception:
+                couts_persos = {}
+            prix_unite = couts_persos.get(unit_type, {})
+            prix_unite_texte = "\n".join(f"{k.capitalize()}: {v}" for k, v in prix_unite.items()) if prix_unite else ""
         else:
             btn_text = "Aucune unité disponible"
             state_create = DISABLED
+            prix_unite_texte = ""
 
         # Use grid for equal spacing and expansion
         btn_frame.columnconfigure(0, weight=1)
@@ -2059,6 +2157,18 @@ class Vue():
             height=4
         )
         create_btn.grid(row=0, column=0, padx=(0, 8), sticky="ew")
+
+        def on_enter_create(e, texte=prix_unite_texte, nom=unit_type):
+            if not nom:
+                return
+            txt = f"{nom}\n{texte}" if texte else nom
+            self.update_action_text(txt)
+
+        def on_leave_create(e):
+            self.update_action_text("")
+
+        create_btn.bind("<Enter>", on_enter_create)
+        create_btn.bind("<Leave>", on_leave_create)
 
         # Upgrade button (only for owner and if an ID exists)
         state_upgrade = NORMAL if owner == self.parent.nom_joueur_local and bat_id else DISABLED
@@ -2395,12 +2505,24 @@ class Vue():
         return [x0, y0, x2, y2]
 
 
-    def dessiner_barre_vie(self, obj, tagged, offset_y = 10, largeur=20):
-
-        life_ratio = obj.mana / obj.mana_max
+    def dessiner_barre_vie(self, obj, tagged, offset_x=0, offset_y=-10, largeur=40):
+        # offset_x added to shift the health bar horizontally
+        life_ratio = getattr(obj, "mana", 0) / max(1, getattr(obj, "mana_max", 1))
+        life_ratio = max(0.0, min(1.0, life_ratio))
         current_width = largeur * life_ratio
         color_liferange = "green" if life_ratio > 0.5 else "orange" if life_ratio > 0.2 else "red"
-        barre = self.canevas.create_rectangle(obj.x - largeur/2, obj.y - offset_y, obj.x + largeur/2 + current_width, obj.y - offset_y - 5, fill=color_liferange, tags=tagged, state = "disabled")
+
+        x_center = obj.x + offset_x
+        x_left = x_center - largeur / 2
+        x_right = x_center + largeur / 2
+        x_fill = x_left + current_width
+
+        y_bottom = obj.y - offset_y
+        y_top = y_bottom - 5
+
+        # background bar (gray) then filled portion (colored)
+        self.canevas.create_rectangle(x_left, y_top, x_right, y_bottom, fill="gray", tags=tagged, state="disabled")
+        self.canevas.create_rectangle(x_left, y_top, x_fill, y_bottom, fill=color_liferange, tags=tagged, state="disabled")
 
 
     def afficher_jeu(self):
@@ -2408,6 +2530,7 @@ class Vue():
         # On efface tout ce qui est 'mobile' (un tag)
         self.canevas.delete("mobile")
         self.canevas.delete("batiment")
+        self.canevas.delete("path")
 
         # on se debarrasse des choses mortes (disparues), le id est dans le tag du dessin
         for i in self.modele.ressourcemorte:
@@ -2532,6 +2655,10 @@ class Vue():
         self.fog_overlay.update()
         self.minimap_renderer.update()
         self.minicarte.itemconfigure(self.minicarte_img, image=self.minimap_renderer.tk)
+        
+    
+
+
 
 
 
@@ -2615,6 +2742,16 @@ class Vue():
             if self.action.btnactif:
                 self.action.btnactif.config(bg="SystemButtonFace")
             self.action = Action(self)
+
+    def clic_jeu(self, evt):
+        # Déplacement: toujours prendre les coordonnées du clic, même sur une tuile eau/bois/etc.
+        x, y = (self.canevas.canvasx(evt.x), self.canevas.canvasy(evt.y))
+        if self.action.persochoisi:
+            self.action.position = [x, y]
+            self.action.deplacer()
+        else:
+            # si aucune sélection, on nettoie l'action courante
+            self.annuler_action(evt)
 
     def fermer_chat(self):
         self.textchat = None
@@ -2753,6 +2890,7 @@ class Vue():
         mestags = self.canevas.gettags(CURRENT)
         if self.parent.nom_joueur_local in mestags and mestags[1] == self.nom_joueur_local:
             if "batiment" in mestags:
+                action = None
                 if "maison" in mestags:
                     pos = (self.canevas.canvasx(evt.x), self.canevas.canvasy(evt.y))
                     action = [self.parent.nom_joueur_local, "creerperso", ["ouvrier", mestags[4], mestags[2], pos]]
@@ -2765,10 +2903,8 @@ class Vue():
                 elif "usineballiste" in mestags:
                     pos = (self.canevas.canvasx(evt.x), self.canevas.canvasy(evt.y))
                     action = [self.parent.nom_joueur_local, "creerperso", ["ballista", mestags[4], mestags[2], pos]]
-                if "moulin" in mestags:
-                    pos = (self.canevas.canvasx(evt.x), self.canevas.canvasy(evt.y))
-                    action = [self.parent.nom_joueur_local, "creerperso", ["moulin", mestags[4], mestags[2], pos]]
-                self.parent.actions_requises.append(action)
+                if action:
+                    self.parent.actions_requises.append(action)
             else:
                 return
         elif self.action.persochoisi != []:

@@ -116,6 +116,12 @@ class Controleur():
         # random ALEATOIRE fourni par le serveur
         # random.seed(int(initaleatoire))
         # random FIXE pour test
+        self.vue.changer_cadre("loading")
+        if hasattr(self.vue, 'demarrer_animation_loading'):
+            self.vue.demarrer_animation_loading()
+        if hasattr(self.vue, 'loading_progress_var'):
+            self.vue.loading_progress_var.set("Initialisation de la partie...")
+        self.vue.root.update()
         self.jeu_en_pause = False
         reset_prochain_id()
         self.iteration_boucle_jeu = 0
@@ -276,6 +282,7 @@ class Controleur():
             self.actions_requises = []
 
         if not self.jeu_en_pause:
+            self.iteration_boucle_jeu += 1
             if self.on_joue:
                 # envoyer les messages au modele et a la vue de faire leur job
                 self.partie.jouer_prochain_coup(self.iteration_boucle_jeu)
@@ -359,6 +366,9 @@ class Controleur():
     def trouver_valeurs(self):
         vals = self.partie.trouver_valeurs()
         return vals
+
+    def trouver_couts_persos(self):
+        return self.partie.trouver_couts_persos()
 
     def enregistrerUser(self, username, password):
         message = self.user_manager.add_user(username, password)
@@ -452,9 +462,6 @@ class Controleur():
     def charger(self, nom_sauvegarde=None):
         """
         Charge une sauvegarde selon le nom du joueur
-
-        Args:
-            nom_sauvegarde: nom de la sauvegarde à charger (utilise self.nom_joueur_local par défaut)
         """
         if nom_sauvegarde is None:
             nom_sauvegarde = self.nom_joueur_local
@@ -466,13 +473,23 @@ class Controleur():
         fichier = self.fichier_sauvegarde
 
         try:
+            # ÉTAPE 1: Afficher l'écran de chargement
+            self.vue.changer_cadre("loading")
+            if hasattr(self.vue, 'demarrer_animation_loading'):
+                self.vue.demarrer_animation_loading()
+            self.vue.root.update()  # Force la mise à jour de l'interface
+
+            # ÉTAPE 2: Mettre à jour le message de progression (optionnel)
+            if hasattr(self.vue, 'loading_progress_var'):
+                self.vue.loading_progress_var.set("Lecture du fichier de sauvegarde...")
+                self.vue.root.update()
 
             self.arreter_boucle_jeu()
             self.iteration_boucle_jeu = 0
-            # 🔴 S'il existe une ancienne partie, la vider proprement
+
+            # S'il existe une ancienne partie, la vider proprement
             if self.partie:
                 try:
-                    # Vider les actions du modèle aussi
                     if hasattr(self.partie, 'actions_a_faire'):
                         self.partie.actions_a_faire = {}
                     if hasattr(self.partie, 'actions_futures'):
@@ -485,29 +502,30 @@ class Controleur():
                 print(f"Le fichier {fichier} n'existe pas")
                 return False
 
+            # ÉTAPE 3: Charger les données
+            if hasattr(self.vue, 'loading_progress_var'):
+                self.vue.loading_progress_var.set("Chargement des données...")
+                self.vue.root.update()
+
             with open(fichier, 'rb') as file:
                 sauvegardes_dict = pickle.load(file)
 
-                # Vérifier que c'est bien un dictionnaire
                 if not isinstance(sauvegardes_dict, dict):
                     raise ValueError("Le fichier ne contient pas un dictionnaire de sauvegardes")
 
-                # Vérifier que la sauvegarde existe
                 if nom_sauvegarde not in sauvegardes_dict:
                     print(f"Aucune sauvegarde trouvée pour '{nom_sauvegarde}'")
-                    print(f"Sauvegardes disponibles: {', '.join(sauvegardes_dict.keys())}")
                     return False
 
-                # Charger la sauvegarde
                 sauvegarde_data = sauvegardes_dict[nom_sauvegarde]
                 self.arreter_boucle_jeu()
+
                 # Support pour ancien format (liste) et nouveau format (dict)
                 if isinstance(sauvegarde_data, dict):
                     self.partie = sauvegarde_data['partie']
                     self.iteration_boucle_jeu = sauvegarde_data['iteration']
                     date_sauvegarde = sauvegarde_data.get('date', 'inconnue')
                 elif isinstance(sauvegarde_data, list) and len(sauvegarde_data) >= 2:
-                    # Support pour ancien format
                     self.partie = sauvegarde_data[0]
                     self.iteration_boucle_jeu = sauvegarde_data[1]
                     date_sauvegarde = 'inconnue'
@@ -515,25 +533,62 @@ class Controleur():
                     raise ValueError("Format de sauvegarde invalide")
 
                 self.partie.parent = self
+
+            # ÉTAPE 4: Préparer l'affichage
+            if hasattr(self.vue, 'loading_progress_var'):
+                self.vue.loading_progress_var.set("Préparation de la carte...")
+                self.vue.root.update()
+
             if hasattr(self.vue, 'canevas'):
                 self.vue.canevas.delete("ALL")
             if hasattr(self.vue, 'minicarte'):
                 self.vue.minicarte.delete("ALL")
 
-            # Reconnecter la vue au modèle existant
+            # ÉTAPE 5: Initialiser le modèle (la partie la plus longue)
+            if hasattr(self.vue, 'loading_progress_var'):
+                self.vue.loading_progress_var.set("Génération du terrain...")
+                self.vue.root.update()
+
             self.chargement = True
             self.vue.modele = self.partie
-            self.vue.changer_cadre("jeu")
-            self.vue.initialiser_avec_modele(self.chargement)
-            self.vue.centrer_maison()
-            self.boucler_sur_jeu()
-            print(f"Sauvegarde de '{nom_sauvegarde}' chargée avec succès (date: {date_sauvegarde})")
+
+            # Utiliser after() pour laisser l'interface respirer
+            def continuer_chargement():
+                if hasattr(self.vue, 'loading_progress_var'):
+                    self.vue.loading_progress_var.set("Chargement des ressources...")
+                    self.vue.root.update()
+
+                self.vue.initialiser_avec_modele(self.chargement)
+
+                if hasattr(self.vue, 'loading_progress_var'):
+                    self.vue.loading_progress_var.set("Finalisation...")
+                    self.vue.root.update()
+
+                self.vue.centrer_maison()
+                self.jeu_en_pause = False
+
+                # ÉTAPE 6: Arrêter l'animation et changer de cadre
+                if hasattr(self.vue, 'arreter_animation_loading'):
+                    self.vue.arreter_animation_loading()
+
+                self.vue.changer_cadre("jeu")
+                self.boucler_sur_jeu()
+
+                print(f"Sauvegarde de '{nom_sauvegarde}' chargée avec succès (date: {date_sauvegarde})")
+
+            # Utiliser after() pour laisser l'écran de chargement s'afficher
+            self.vue.root.after(100, continuer_chargement)
             return True
 
         except Exception as e:
             print(f"Une erreur est arrivée: {e}")
             import traceback
             traceback.print_exc()
+
+            # Arrêter l'animation en cas d'erreur
+            if hasattr(self.vue, 'arreter_animation_loading'):
+                self.vue.arreter_animation_loading()
+
             return False
 
     def lister_sauvegardes(self):

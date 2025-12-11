@@ -12,6 +12,7 @@ from AoEw_joueurs import *
 from RTS_IA import *
 from vue.fog import FogState, FogModel
 from fog_memory import FogMemory
+from path_finder import PathFinder
 
 
 
@@ -38,31 +39,31 @@ class Caseregion():
 
 #######################  LE MODELE est la partie #######################
 class Partie():
-    valeurs = {"maison": {"nourriture": 10,
-                          "arbre": 20,
-                          "roche": 20,
-                          "aureus": 2,
+    valeurs = {"maison": {"nourriture": 0,
+                          "arbre": 50,
+                          "roche": 0,
+                          "aureus": 0,
                           "delai": 50},
-               "abri": {"nourriture": 10,
-                        "arbre": 10,
-                        "roche": 5,
-                        "aureus": 1,
-                        "delai": 30},
-               "caserne": {"nourriture": 10,
-                           "arbre": 10,
-                           "roche": 5,
-                           "aureus": 1,
+               "abri": {"nourriture": 100,
+                        "arbre": 100,
+                        "roche": 0,
+                        "aureus": 0,
+                        "delai": 75},
+               "caserne": {"nourriture": 0,
+                           "arbre": 200,
+                           "roche": 0,
+                           "aureus": 100,
                            "delai": 60},
-               "usineballiste": {"nourriture": 10,
-                                 "arbre": 10,
-                                 "roche": 5,
-                                 "aureus": 1,
+               "usineballiste": {"nourriture": 0,
+                                 "arbre": 250,
+                                 "roche": 120,
+                                 "aureus": 50,
                                  "delai": 80},
-               "moulin": {"nourriture": 10,
-                                 "arbre": 15,
-                                 "roche": 10,
-                                 "aureus": 2,
-                                 "delai": 60}
+               "moulin": {"nourriture": 0,
+                                 "arbre": 100,
+                                 "roche": 50,
+                                 "aureus": 0,
+                                 "delai": 100}
                }
 
     def __init__(self, parent, nom_joueur_local, ia_info , mode_de_jeu):
@@ -81,8 +82,11 @@ class Partie():
         self.make_carte_case()
         self.fog = FogModel(self.taillecarte, self.taillecarte)
         self.fog_memory = FogMemory(self)
+        self.pathfinder = PathFinder(self)
 
         self.delaiprochaineaction = 20
+        # Aligne les coûts de construction utilisés par les joueurs avec ceux affichés par le modèle
+        Joueur.valeurs = type(self).valeurs
 
         self.joueurs = {}
         self.classesbatiments = {"maison": Maison,
@@ -117,12 +121,16 @@ class Partie():
                              ["aureus", 12, 3, 4, "gold2"], ]
         self.creer_regions()
         self.creer_biotopes()
+        self.nettoyer_cases_arbre_vides()
         self.creer_population(ia_info)
         #self.ia_info = ia_info
 
     def trouver_valeurs(self):
         vals = Partie.valeurs
         return vals
+
+    def trouver_couts_persos(self):
+        return Joueur.couts_persos
 
     def montrer_msg_general(self, txt):
         self.msggeneral = txt
@@ -209,6 +217,7 @@ class Partie():
         self.creer_biotope("marais", "marais", Marais)
         self.creer_biotope("aureus", "aureus", Aureus)
         self.creer_baies_initiales(50)
+        self._fog_tick = 0
 
     def creer_biotope(self, region, ressource, typeclasse):  # creation des forets
         typeressource = typeclasse.typeressource
@@ -356,6 +365,15 @@ class Partie():
                 self.biotopes["baie"][id] = baie
                 self.listebiotopes.append(baie)
                 n -= 1
+
+
+    def nettoyer_cases_arbre_vides(self):
+        """Rebascule en plaine les cases marquées 'arbre' sans ressource arbre."""
+        for ligne in self.cartecase:
+            for case in ligne:
+                if case.montype == "arbre" and not case.ressources:
+                    case.montype = "plaine"
+
 
 
     def creer_regions(self):
@@ -639,10 +657,12 @@ class Partie():
         # demander aux objets de s'activer
         for i in self.joueurs.keys():
             self.joueurs[i].jouer_prochain_coup()
-
-        # Gestion du fog of war
-        self.maj_fog_pour_joueur(self.nom_joueur)
-        self.fog_memory.memoriser_visible(self.nom_joueur)
+        
+        # Gestion du fog of war (échantillonné pour réduire la charge)
+        self._fog_tick = (self._fog_tick + 1) % 3
+        if self._fog_tick == 0:
+            self.maj_fog_pour_joueur(self.nom_joueur)
+            self.fog_memory.memoriser_visible(self.nom_joueur)
 
 
         if self.msggeneral:
@@ -861,6 +881,9 @@ class Partie():
             cr = self.regions[ress.montype][ress.idregion].dicocases[ress.idcaseregion]
             if ress.id in cr.ressources.keys():
                 cr.ressources.pop(ress.id)
+                # si plus d'arbre dans la case, on redevient plaine
+                if type == "arbre" and not cr.ressources:
+                    cr.montype = "plaine"
 
         if ress.id in self.biotopes[type]:
             self.biotopes[type].pop(ress.id)

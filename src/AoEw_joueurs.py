@@ -6,32 +6,43 @@ from AoEw_batiments import *
 from AoEw_persos import *
 
 class Joueur():
-    valeurs = {"maison": {"nourriture": 10,
-                          "arbre": 20,
-                          "roche": 20,
-                          "aureus": 2,
+    # Coûts initiaux (synchronisés avec Partie.valeurs dans le modèle)
+    valeurs = {"maison": {"nourriture": 0,
+                          "arbre": 50,
+                          "roche": 0,
+                          "aureus": 0,
                           "delai": 50},
-               "abri": {"nourriture": 10,
-                        "arbre": 10,
-                        "roche": 5,
-                        "aureus": 1,
-                        "delai": 30},
-               "caserne": {"nourriture": 10,
-                           "arbre": 10,
-                           "roche": 5,
-                           "aureus": 1,
+               "abri": {"nourriture": 100,
+                        "arbre": 100,
+                        "roche": 0,
+                        "aureus": 0,
+                        "delai": 75},
+               "caserne": {"nourriture": 0,
+                           "arbre": 200,
+                           "roche": 0,
+                           "aureus": 100,
                            "delai": 60},
-               "usineballiste": {"nourriture": 10,
-                                 "arbre": 10,
-                                 "roche": 5,
-                                 "aureus": 1,
+               "usineballiste": {"nourriture": 0,
+                                 "arbre": 250,
+                                 "roche": 120,
+                                 "aureus": 50,
                                  "delai": 80},
-               "moulin": {"nourriture": 10,
-                                 "arbre": 15,
-                                 "roche": 10,
-                                 "aureus": 2,
-                                 "delai": 60}
+               "moulin": {"nourriture": 0,
+                         "arbre": 100,
+                         "roche": 50,
+                         "aureus": 0,
+                         "delai": 100}
                }
+    # Coûts pour l'entraînement des unités
+    couts_persos = {
+        "ouvrier": {"nourriture": 50, "arbre": 0, "roche": 0, "aureus": 0},
+        "soldat": {"nourriture": 80, "arbre": 0, "roche": 0, "aureus": 5},
+        "archer": {"nourriture": 40, "arbre": 40, "roche": 0, "aureus": 0},
+        "chevalier": {"nourriture": 120, "arbre": 0, "roche": 20, "aureus": 30},
+        "druide": {"nourriture": 90, "arbre": 0, "roche": 0, "aureus": 40},
+        "ballista": {"nourriture": 20, "arbre": 120, "roche": 25, "aureus": 30},
+        "ingenieur": {"nourriture": 70, "arbre": 50, "roche": 30, "aureus": 20},
+    }
     classespersos = {"ouvrier": Ouvrier,
                      "soldat": Soldat,
                      "archer": Archer,
@@ -39,15 +50,6 @@ class Joueur():
                      "druide": Druide,
                      "ballista": Ballista,
                      "ingenieur": Ingenieur}
-    ressources = {"Azteque": {"nourriture": 999,
-                              "arbre": 200,
-                              "roche": 200,
-                              "aureus": 200},
-                  "Congolaise": {"nourriture": 10,
-                                 "arbre": 200,
-                                 "roche": 200,
-                                 "aureus": 888888888},
-                  }
 
     def __init__(self, parent, id, nom, couleur, x, y):
         self.parent = parent
@@ -151,8 +153,23 @@ class Joueur():
             self.persos["ouvrier"][i].abandonner_ressource(ress)  # ajouer libereressource
         self.parent.eliminer_ressource(type, ress)
 
+    def _peut_payer_unite(self, sorte):
+        couts = type(self).couts_persos.get(sorte, {})
+        for ress, cout in couts.items():
+            if self.ressources.get(ress, 0) < cout:
+                return False
+        return True
+
+    def _debiter_unite(self, sorte):
+        couts = type(self).couts_persos.get(sorte, {})
+        for ress, cout in couts.items():
+            self.ressources[ress] = self.ressources.get(ress, 0) - cout
+
     def chasser_ressource(self, param):
         typeress, idress, troupe = param
+        # ressource peut avoir disparu, on sécurise
+        if idress not in self.parent.biotopes.get(typeress, {}):
+            return
         for i in troupe:
             for j in self.persos.keys():
                 if j == "ouvrier":
@@ -162,6 +179,9 @@ class Joueur():
 
     def ramasser_ressource(self, param):
         typeress, idress, troupe = param
+        # ressource peut avoir disparu, on sécurise
+        if idress not in self.parent.biotopes.get(typeress, {}):
+            return
         for i in troupe:
             for j in self.persos.keys():
                 if j == "ouvrier":
@@ -239,9 +259,16 @@ class Joueur():
         for j in self.persos.keys():
             for i in list(self.persos[j].keys()):
                 self.persos[j][i].jouer_prochain_coup()
+        for i in list(self.batiments["moulin"].keys()):
+            self.batiments["moulin"][i].jouer_prochain_coup()
 
     def creer_perso(self, param):
         sorteperso, batimentsource, idbatiment, pos = param
+        if not self._peut_payer_unite(sorteperso):
+            print(f"Creation de {sorteperso} refusee : ressources insuffisantes")
+            return
+        self._debiter_unite(sorteperso)
+
         id = get_prochain_id()
         batiment = self.batiments[batimentsource][idbatiment]
 
