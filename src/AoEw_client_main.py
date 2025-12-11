@@ -344,6 +344,9 @@ class Controleur():
         vals = self.partie.trouver_valeurs()
         return vals
 
+    def trouver_couts_persos(self):
+        return self.partie.trouver_couts_persos()
+
     def enregistrerUser(self, username, password):
         message = self.user_manager.add_user(username, password)
         if message == "Réussi":

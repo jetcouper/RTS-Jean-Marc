@@ -39,31 +39,31 @@ class Caseregion():
 
 #######################  LE MODELE est la partie #######################
 class Partie():
-    valeurs = {"maison": {"nourriture": 10,
-                          "arbre": 20,
-                          "roche": 20,
-                          "aureus": 2,
+    valeurs = {"maison": {"nourriture": 0,
+                          "arbre": 50,
+                          "roche": 0,
+                          "aureus": 0,
                           "delai": 50},
-               "abri": {"nourriture": 10,
-                        "arbre": 10,
-                        "roche": 5,
-                        "aureus": 1,
-                        "delai": 30},
-               "caserne": {"nourriture": 10,
-                           "arbre": 10,
-                           "roche": 5,
-                           "aureus": 1,
+               "abri": {"nourriture": 100,
+                        "arbre": 100,
+                        "roche": 0,
+                        "aureus": 0,
+                        "delai": 75},
+               "caserne": {"nourriture": 0,
+                           "arbre": 200,
+                           "roche": 0,
+                           "aureus": 100,
                            "delai": 60},
-               "usineballiste": {"nourriture": 10,
-                                 "arbre": 10,
-                                 "roche": 5,
-                                 "aureus": 1,
+               "usineballiste": {"nourriture": 0,
+                                 "arbre": 250,
+                                 "roche": 120,
+                                 "aureus": 50,
                                  "delai": 80},
-               "moulin": {"nourriture": 10,
-                                 "arbre": 15,
-                                 "roche": 10,
-                                 "aureus": 2,
-                                 "delai": 60}
+               "moulin": {"nourriture": 0,
+                                 "arbre": 100,
+                                 "roche": 50,
+                                 "aureus": 0,
+                                 "delai": 100}
                }
 
     def __init__(self, parent, nom_joueur_local, ia_info , mode_de_jeu):
@@ -83,6 +83,8 @@ class Partie():
         self.pathfinder = PathFinder(self)
 
         self.delaiprochaineaction = 20
+        # Aligne les coûts de construction utilisés par les joueurs avec ceux affichés par le modèle
+        Joueur.valeurs = type(self).valeurs
 
         self.joueurs = {}
         self.classesbatiments = {"maison": Maison,
@@ -124,6 +126,9 @@ class Partie():
     def trouver_valeurs(self):
         vals = Partie.valeurs
         return vals
+
+    def trouver_couts_persos(self):
+        return Joueur.couts_persos
 
     def montrer_msg_general(self, txt):
         self.msggeneral = txt
@@ -869,5 +874,3 @@ class Partie():
                     for j in action:
                         self.actions_a_faire[iteration_cle].append(j)
     ##############################################################################
-
-

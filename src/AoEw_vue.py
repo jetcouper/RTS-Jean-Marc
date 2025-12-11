@@ -2022,9 +2022,16 @@ class Vue():
         if unit_type:
             btn_text = f"Créer {unit_type.capitalize()}"
             state_create = NORMAL if owner == self.parent.nom_joueur_local else DISABLED
+            try:
+                couts_persos = self.parent.trouver_couts_persos()
+            except Exception:
+                couts_persos = {}
+            prix_unite = couts_persos.get(unit_type, {})
+            prix_unite_texte = "\n".join(f"{k.capitalize()}: {v}" for k, v in prix_unite.items()) if prix_unite else ""
         else:
             btn_text = "Aucune unité disponible"
             state_create = DISABLED
+            prix_unite_texte = ""
 
         # Use grid for equal spacing and expansion
         btn_frame.columnconfigure(0, weight=1)
@@ -2042,6 +2049,18 @@ class Vue():
             height=4
         )
         create_btn.grid(row=0, column=0, padx=(0, 8), sticky="ew")
+
+        def on_enter_create(e, texte=prix_unite_texte, nom=unit_type):
+            if not nom:
+                return
+            txt = f"{nom}\n{texte}" if texte else nom
+            self.update_action_text(txt)
+
+        def on_leave_create(e):
+            self.update_action_text("")
+
+        create_btn.bind("<Enter>", on_enter_create)
+        create_btn.bind("<Leave>", on_leave_create)
 
         # Upgrade button (only for owner and if an ID exists)
         state_upgrade = NORMAL if owner == self.parent.nom_joueur_local and bat_id else DISABLED
