@@ -32,7 +32,8 @@ Lien Excel : https://cvmqc-my.sharepoint.com/:x:/g/personal/e_fdesrosiers2_etu_c
 ### &nbsp;    - Vous pouvez accéder au menu de la partie en appuyant sur <escape>.
 ### &nbsp;    - Vous pouvez sauvegarder une partie depuis le menu de la partie.
 ### &nbsp;    - Vous pouvez quitter une partie depuis le menu de la partie.
-### &nbsp;    - (Pour l'instant) Vous ne pouvez pas attaquer les IA (Fonction attaquer non-terminé).
+### &nbsp;    - Il est possible de déselectionner une unité lorsqu'un clic est fait sur une plaine vide.
+### &nbsp;    - Attaquer les unités et les bâtiments adverses avec ses propres unités (la barre de vie des bâtiments est affiché et se met à jour lors des dégats)
 
 ## - Victoire
 ### &nbsp;    - Le choix de type de partie se trouve sous le bouton "Ajouter AI" une fois qu'on est dans le lobby dans la section "Mode de jeu".

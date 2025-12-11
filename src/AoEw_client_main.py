@@ -30,7 +30,7 @@ class Controleur():
         self.delai_de_boucle_de_jeu = 40
         self.info_ia = [] 
         self.mode_de_jeu = "commerce"  # solo ou multi
-        self.default_seed = 14777
+        self.default_seed = 152022
         self.seed = 12473  # valeur de random pour la partie
         self.victoire_msg = "Partie finie."
         self.conditions_victoire = {}
