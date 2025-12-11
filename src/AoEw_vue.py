@@ -367,7 +367,7 @@ class Vue():
         Label(
             container,
             text="Chargement de la partie...",
-            font=("Times New Roman", 36, "bold"),
+            font=("Times New Roman", 72, "bold"),
             fg="#D4AF37",  # Or
             bg="#1a1a1a"
         ).pack(pady=20)
@@ -379,7 +379,7 @@ class Vue():
         Label(
             container,
             textvariable=self.loading_progress_var,
-            font=("Arial", 18),
+            font=("Arial", 32),
             fg="white",
             bg="#1a1a1a"
         ).pack(pady=10)
@@ -388,7 +388,7 @@ class Vue():
         self.loading_label = Label(
             container,
             text="●",
-            font=("Arial", 48),
+            font=("Arial", 96 , "bold"),
             fg="#D4AF37",
             bg="#1a1a1a"
         )
@@ -410,14 +410,14 @@ class Vue():
 
         # Cycle: ● → ●● → ●●● → ●
         if current_text == "●":
-            self.loading_label.config(text="●●")
+            self.loading_label.config(text="●●●")
         elif current_text == "●●":
             self.loading_label.config(text="●●●")
         else:
-            self.loading_label.config(text="●")
+            self.loading_label.config(text="●●●")
 
         # Rappeler cette fonction après 500ms
-        self.root.after(500, self.animer_loading)
+        self.root.after(100, self.animer_loading)
 
     def demarrer_animation_loading(self):
         """Démarre l'animation de chargement"""
@@ -2150,7 +2150,7 @@ class Vue():
         create_btn.bind("<Leave>", on_leave_create)
 
         # Upgrade button (only for owner and if an ID exists)
-        state_upgrade = NORMAL if owner == self.parent.nom_joueur_local and bat_id else DISABLED
+        state_upgrade = DISABLED #NORMAL if owner == self.parent.nom_joueur_local and bat_id else
         upgrade_btn = Button(
             btn_frame,
             text="Améliorer",
@@ -2164,7 +2164,7 @@ class Vue():
         upgrade_btn.grid(row=0, column=1, padx=8, sticky="ew")
 
         # Delete button (only for owner and if an ID exists)
-        state_delete = NORMAL if owner == self.parent.nom_joueur_local and bat_id else DISABLED
+        state_delete = DISABLED #NORMAL if owner == self.parent.nom_joueur_local and bat_id else
         delete_btn = Button(
             btn_frame,
             text="Supprimer",
