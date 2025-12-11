@@ -401,7 +401,9 @@ class Vue():
         top_bar = Frame(left_frame, bg="#3c2f2f")
         top_bar.pack(fill=X, pady=10)
         Label(top_bar, text="Créer partie", font=("Times New Roman", 22, "bold"), bg="#4a1d1d", fg="gold", width=15, height=2, bd=2, relief="raised").pack(side=LEFT, expand=True, padx=10)
-        make_button(top_bar, "Commencer", "#2d6a2d", hover="#3fa63f" , command=lambda: self.lancer_partie()).pack(side=LEFT, expand=True, padx=10)
+        make_button(top_bar, "Commencer", "#2d6a2d", hover="#3fa63f",
+                command=lambda: (messagebox.showinfo("Chargement", "Le génaration du terrain peut être long"), self.lancer_partie())
+               ).pack(side=LEFT, expand=True, padx=10)
 
         # === Liste IA avec Scroll
         ia_frame = Frame(left_frame, bg="#3c2f2f")
