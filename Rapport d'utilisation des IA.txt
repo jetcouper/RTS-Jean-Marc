@@ -1,0 +1,11 @@
+RAPPORT D'UTILISATION DES IA
+
+L'utilisation des IA dans le cadre du projet à permis d'accélérer le processus de développement du Age of Empires WannaBe.
+
+Nous considérons que notre aptitude à utiliser les LLM a augmenter depuis le début du cours en septembre.
+
+Nos premières utilisations ressemblaient à de petits prompts naïfs sur les chat du navigateur pour obtenir des idées et des correctifs de codes. Cependant, une utilisation naïf n'a pas été sans problème. Le manque de contexte et des prompts peu détaillés faisaient en sorte que nous avions un code décousu et difficile à mettre ensemble.
+
+Nous avons décidé d'opter d'intégrer les agents dans nos IDE (Copilot, Codex) et nous avons pris le temps de bien décrire le contexte et de détaillés les éléments importants de l'implémentations. Puisque le contexte était plus riche, l'IA a été un ajout très performant pour nous soutenir dans le développement logiciel.
+
+Nous concluons que l'utilisation des agents est à maîtriser puisque leur utilisation est imminente dans l'industrie.
