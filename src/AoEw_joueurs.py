@@ -227,6 +227,8 @@ class Joueur():
         for j in self.persos.keys():
             for i in list(self.persos[j].keys()):
                 self.persos[j][i].jouer_prochain_coup()
+        for i in list(self.batiments["moulin"].keys()):
+            self.batiments["moulin"][i].jouer_prochain_coup()
 
     def creer_perso(self, param):
         sorteperso, batimentsource, idbatiment, pos = param

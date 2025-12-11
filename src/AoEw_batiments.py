@@ -78,3 +78,14 @@ class Moulin(Batiment):
         self.montype = montype
         self.maxperso = 10
         self.perso = 0
+        self.delai_production = 30
+        self.compteur_production = 0
+        self.quantite_production = 3
+
+    def jouer_prochain_coup(self):
+        self.compteur_production += 1
+        if self.compteur_production >= self.delai_production:
+            self.parent.ressources["nourriture"] += self.quantite_production
+            self.compteur_production = 0
+
+

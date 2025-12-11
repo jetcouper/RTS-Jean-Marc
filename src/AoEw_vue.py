@@ -207,6 +207,7 @@ class Vue():
         self.cadres["gamemenu"] = self.creer_cadre_gamemenu()
         self.cadres["login"] = self.creer_cadre_login()
         self.cadres["jeu"] = self.creer_cadre_jeu()
+        self.cadres["loading"] = self.creer_cadre_loading()
 
     def creer_toplevel(self,):
         self.toplevel["gameescape"] = self.creer_top_escape()
@@ -349,6 +350,84 @@ class Vue():
             .pack(side=BOTTOM, pady=5)
 
         return self.cadremain
+
+    def creer_cadre_loading(self) -> Frame:
+        """
+        Crée un écran de chargement avec animation
+        """
+        cadre_loading = Frame(self.cadreapp, bg="#1a1a1a", width=self.screen_width, height=self.screen_height)
+        cadre_loading.pack_propagate(False)
+
+        # Conteneur central
+        container = Frame(cadre_loading, bg="#1a1a1a")
+        container.place(relx=0.5, rely=0.5, anchor="center")
+
+        # Titre
+        Label(
+            container,
+            text="Chargement de la partie...",
+            font=("Times New Roman", 36, "bold"),
+            fg="#D4AF37",  # Or
+            bg="#1a1a1a"
+        ).pack(pady=20)
+
+        # Barre de progression (optionnelle)
+        self.loading_progress_var = StringVar()
+        self.loading_progress_var.set("Initialisation...")
+
+        Label(
+            container,
+            textvariable=self.loading_progress_var,
+            font=("Arial", 18),
+            fg="white",
+            bg="#1a1a1a"
+        ).pack(pady=10)
+
+        # Animation de points (optionnelle)
+        self.loading_label = Label(
+            container,
+            text="●",
+            font=("Arial", 48),
+            fg="#D4AF37",
+            bg="#1a1a1a"
+        )
+        self.loading_label.pack(pady=20)
+
+        # Variable pour l'animation
+        self.loading_animation_running = False
+
+        return cadre_loading
+
+    def animer_loading(self):
+        """
+        Anime l'écran de chargement avec des points qui bougent
+        """
+        if not self.loading_animation_running:
+            return
+
+        current_text = self.loading_label.cget("text")
+
+        # Cycle: ● → ●● → ●●● → ●
+        if current_text == "●":
+            self.loading_label.config(text="●●")
+        elif current_text == "●●":
+            self.loading_label.config(text="●●●")
+        else:
+            self.loading_label.config(text="●")
+
+        # Rappeler cette fonction après 500ms
+        self.root.after(500, self.animer_loading)
+
+    def demarrer_animation_loading(self):
+        """Démarre l'animation de chargement"""
+        self.loading_animation_running = True
+        self.animer_loading()
+
+    def arreter_animation_loading(self):
+        """Arrête l'animation de chargement"""
+        self.loading_animation_running = False
+
+
 
     def creer_cadre_gamemenu(self) -> Frame:
         # === Cadre principal ===
@@ -838,8 +917,17 @@ class Vue():
             return frame
 
         # === Boutons spécifiques au menu Pause ===
-        btnreprendre = make_button_pause("Reprendre", command=lambda: (self.cadreescape.withdraw(), self.changer_topblack(None), self.changer_toplevel(None)))
-        btnsave = make_button_pause("Sauvegarder", command=lambda : self.sauvegarder())
+        btnreprendre = make_button_pause("Reprendre", command=lambda: (self.reprendre_partie(),self.cadreescape.withdraw(), self.changer_topblack(None), self.changer_toplevel(None)))
+        btnsave = make_button_pause("Sauvegarder",
+                                    command=lambda: (
+                                        self.changer_topblack(None),
+                                        self.changer_toplevel(None),
+                                        self.sauvegarder(),
+                                        self.root.after(100, lambda: (
+                                            self.changer_topblack("blackgame"),
+                                            self.changer_toplevel("gameescape")
+                                        ))
+                                    ))
         btnquitter = make_button_pause("Quitter la partie", command=lambda: (self.changer_cadre("mainlobby"), self.arreter_boucle(), self.cadreescape.withdraw(), self.changer_topblack(None), self.changer_toplevel(None)))
 
         # === Affichage des boutons ===
@@ -1986,8 +2074,7 @@ class Vue():
             "maison": "ouvrier",
             "caserne": "soldat",
             "abri": "druide",
-            "usineballiste": "ballista",
-            "moulin": "moulin"
+            "usineballiste": "ballista"
         }
 
         def create_unit(unit_type):
@@ -2732,6 +2819,7 @@ class Vue():
         mestags = self.canevas.gettags(CURRENT)
         if self.parent.nom_joueur_local in mestags and mestags[1] == self.nom_joueur_local:
             if "batiment" in mestags:
+                action = None
                 if "maison" in mestags:
                     pos = (self.canevas.canvasx(evt.x), self.canevas.canvasy(evt.y))
                     action = [self.parent.nom_joueur_local, "creerperso", ["ouvrier", mestags[4], mestags[2], pos]]
@@ -2744,10 +2832,8 @@ class Vue():
                 elif "usineballiste" in mestags:
                     pos = (self.canevas.canvasx(evt.x), self.canevas.canvasy(evt.y))
                     action = [self.parent.nom_joueur_local, "creerperso", ["ballista", mestags[4], mestags[2], pos]]
-                if "moulin" in mestags:
-                    pos = (self.canevas.canvasx(evt.x), self.canevas.canvasy(evt.y))
-                    action = [self.parent.nom_joueur_local, "creerperso", ["moulin", mestags[4], mestags[2], pos]]
-                self.parent.actions_requises.append(action)
+                if action:
+                    self.parent.actions_requises.append(action)
             else:
                 return
         elif self.action.persochoisi != []:
