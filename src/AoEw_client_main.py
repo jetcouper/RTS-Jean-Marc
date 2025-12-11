@@ -29,7 +29,7 @@ class Controleur():
         self.on_joue = 1 # si 0, indique qu'on saute un tour dans la boucle de jeu
         self.delai_de_boucle_de_jeu = 40
         self.info_ia = [] 
-        self.mode_de_jeu = "paix"  # solo ou multi
+        self.mode_de_jeu = "commerce"  # solo ou multi
         self.default_seed = 14777
         self.seed = 12473  # valeur de random pour la partie
         self.victoire_msg = "Partie finie."
