@@ -597,17 +597,21 @@ class Ouvrier(Perso):
         reponse = self.bouger()
         if reponse == "rendu":
             if self.cible:
-                if self.typeressource == "baie" or self.typeressource == "daim" or self.typeressource == "eau":
+                if self.typeressource == "baie" or self.typeressource == "daim" or self.typeressource == "eau" or self.typeressource == "ours":
                     self.parent.ressources["nourriture"] += self.ramassage
                 else:
                     self.parent.ressources[self.typeressource] += self.ramassage
                 self.ramassage = 0
                 if self.cible.valeur < 1:
-                    rep = self.chercher_nouvelle_ressource(self.cible.montype, self.cible.idregion)
-                    self.cibler(rep)
+                    # pour les proies (daim/ours), ne pas auto-rechercher une nouvelle cible
+                    if self.typeressource not in ("daim", "ours"):
+                        rep = self.chercher_nouvelle_ressource(self.cible.montype, self.cible.idregion)
+                        self.cibler(rep)
                 if self.cible:
                     self.cibler(self.cible)
                     if self.cible.montype == "daim":
+                        self.actioncourante = "ciblerproie"
+                    elif self.cible.montype == "ours":
                         self.actioncourante = "ciblerproie"
                     else:
                         self.actioncourante = "ciblerressource"
@@ -636,25 +640,60 @@ class Ouvrier(Perso):
             self.planifier_chemin(self.position_visee, preserve_action=True)
         reponse = self.bouger()
         if reponse == "rendu":
-            if self.typeressource == "daim" or self.typeressource == "eau":
+            if self.typeressource == "daim" or self.typeressource == "eau" or self.typeressource == "ours":
                 self.actioncourante = "ramasserressource"
-        elif isinstance(reponse, (int, float)) and reponse <= self.champchasse and getattr(self.cible, "etat", None) == "vivant":
-            self.actioncourante = "validerjavelot"
+        elif isinstance(reponse, (int, float)) and getattr(self.cible, "etat", None) == "vivant":
+            # ne tente un tir que si la cible est reellememt a portee
+            if reponse <= self.projectile_portee:
+                self.actioncourante = "validerjavelot"
 
     def valider_javelot(self):
         if not self.cible or getattr(self.cible, "etat", "vivant") == "mort":
-            if getattr(self.cible, "montype", None) in ("daim", "eau"):
-                self.actioncourante = "ramasserressource"
+            if getattr(self.cible, "montype", None) in ("daim", "eau", "ours"):
+                # se diriger vers la carcasse avant de collecter
+                if self.cible:
+                    self.position_visee = [self.cible.x, self.cible.y]
+                    self.planifier_chemin(self.position_visee, preserve_action=True)
+                self.actioncourante = "ciblerressource"
             else:
                 self.actioncourante = None
+            return
+        dist = Helper.calcDistance(self.x, self.y, self.cible.x, self.cible.y)
+        if dist > self.projectile_portee:
+            # trop loin : continuer a approcher plutot que de tirer hors-portee
+            self.actioncourante = "ciblerproie"
             return
         if not self.javelots:
             self.lancer_javelot(self.cible)
         self.mettre_a_jour_projectiles()
 
     def ramasser(self):
+        # Si la ressource n'existe plus (carcasse retiree / biotope nettoye), on arrete.
+        if not self.cible:
+            self.actioncourante = None
+            return
+        biotopes = self.parent.parent.biotopes.get(self.typeressource, {})
+        if getattr(self.cible, "id", None) not in biotopes or getattr(self.cible, "valeur", 0) <= 0:
+            # si on transporte deja quelque chose, on retourne deposer, sinon on arrete
+            if self.ramassage > 0:
+                self.actioncourante = "retourbatimentmere"
+                self.position_visee = [self.batimentmere.x, self.batimentmere.y]
+            else:
+                self.actioncourante = None
+            self.cible = None
+            return
+
+        # il faut se trouver a proximite de la ressource pour collecter
+        dist_cible = Helper.calcDistance(self.x, self.y, self.cible.x, self.cible.y)
+        if dist_cible > self.parent.parent.taillecase:
+            # replannifie et repart vers la carcasse
+            self.position_visee = [self.cible.x, self.cible.y]
+            self.planifier_chemin(self.position_visee, preserve_action=True)
+            self.actioncourante = "ciblerressource"
+            return
+
         self.ramassage += 1
-        self.cible.valeur -= 1
+        self.cible.valeur = max(0, getattr(self.cible, "valeur", 0) - 1)
         if self.cible.valeur == 0 or self.ramassage == self.quota:
             self.actioncourante = "retourbatimentmere"
             self.position_visee = [self.batimentmere.x, self.batimentmere.y]
@@ -830,18 +869,19 @@ class Ouvrier(Perso):
                 self.destination_finale = tuple(self.position_visee)
             else:
                 # sinon on tente une nouvelle ressource proche, sans passer par la maison
-                rep = self.chercher_nouvelle_ressource(ressource.montype, getattr(ressource, "idregion", None))
-                if rep:
-                    self.cible = rep
-                    self.position_visee = [self.cible.x, self.cible.y]
-                    if getattr(self.cible, "montype", "") == "daim":
-                        self.actioncourante = "ciblerproie"
-                    else:
-                        self.actioncourante = "ciblerressource"
-                    self.planifier_chemin(self.position_visee, preserve_action=True)
-                else:
-                    self.cible = None
-                    self.actioncourante = None
+                if getattr(ressource, "montype", None) not in ("daim", "ours"):
+                    rep = self.chercher_nouvelle_ressource(ressource.montype, getattr(ressource, "idregion", None))
+                    if rep:
+                        self.cible = rep
+                        self.position_visee = [self.cible.x, self.cible.y]
+                        if getattr(self.cible, "montype", "") == "daim":
+                            self.actioncourante = "ciblerproie"
+                        else:
+                            self.actioncourante = "ciblerressource"
+                        self.planifier_chemin(self.position_visee, preserve_action=True)
+                        return
+                self.cible = None
+                self.actioncourante = None
 
     ## PAS UTILISER POUR LE MOMENT
     def scanner_alentour(self):
@@ -865,4 +905,3 @@ class Ouvrier(Perso):
     #         else:
     #             c = None
     #     self.angle = Helper.calcAngle(self.x, self.y, self.cible.x, self.cible.y)
-
