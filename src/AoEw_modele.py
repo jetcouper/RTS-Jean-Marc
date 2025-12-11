@@ -574,7 +574,6 @@ class Partie():
     #############################################################################
 
     def fin_de_la_partie(self, joueurs_restants):
-        
         if not self.en_cours:
             return
         if not joueurs_restants:
@@ -591,10 +590,10 @@ class Partie():
         self.en_cours = False
         # nettoyage / chronologie éventuelle
         self.ressourcemorte = []
-
         try:
             if hasattr(self.parent, "partie_terminee"):
                 # envoie une copie simple (éviter d'exposer tout l'objet gagnant si inutile)
+                resultat = "Un joueur a gagnner"
                 self.parent.fin_de_partie(resultat)
         except Exception as e:
             # ne pas planter le modèle si la vue a un bug
@@ -613,10 +612,11 @@ class Partie():
         # vérifier la fin :
         joueurs_vivants = [j for j in self.joueurs.values() if j.est_vivant()]
 
-        if len(joueurs_vivants) <= 1:
-            self.fin_de_la_partie(joueurs_vivants)
+        if self.parent.mode_de_jeu == "conquete":
+            if len(joueurs_vivants) <= 1:
+                self.fin_de_la_partie(joueurs_vivants)
 
-            self.ressourcemorte = []
+                self.ressourcemorte = []
         ##################################################################
         # faire nouvelle action recu du serveur si on est au bon cadrecourant
         # ATTENTION : NE PAS TOUCHER 

@@ -504,9 +504,6 @@ class Vue():
             }
             ia_lignes.append(ia_entry)
 
-        for i in range(1):
-            creer_ligne_ia(type_init=types_ia[i % len(types_ia)], difficulte_init=difficultes[i % len(difficultes)])
-
         def ajouter_ia():
             if (len(self.parent.info_ia) < 4):
                 creer_ligne_ia()
@@ -518,8 +515,8 @@ class Vue():
         # Mode de jeu
         Label(left_frame, text="Mode de jeu", font=("Times New Roman", 20, "bold"), fg="white", bg="#2e1f1f").pack(pady=5)
         # Mode de jeu - radio buttons on one line
-        self.mode_jeu = StringVar(value="paix")
-        modes = [("Paix mondial", "paix"), ("Commerce", "commerce"), ("Achèvement", "achevement")]
+        self.mode_jeu = StringVar(value="commerce")
+        modes = [ ("Chasse aux ressources", "commerce"), ("Conquete", "conquete")]
         rb_frame = Frame(left_frame, bg="#2e1f2f")
         rb_frame.pack(pady=5, fill=X)
         for text, val in modes:
