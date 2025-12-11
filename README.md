@@ -39,6 +39,9 @@ Lien Excel : https://cvmqc-my.sharepoint.com/:x:/g/personal/e_fdesrosiers2_etu_c
 ### &nbsp;    - Conquête : Pour gagner il faut détruire toutes les unités de chaque équipe.
 ### &nbsp;    - Commerce : Pour gagner il faut arriver à ramasser un certain nombre de ressources.
 
+## - Nouveaux bâtiments
+### &nbsp;    - Le moulin : Génère de la nourriture chaque intervalle de temps (environ 3 secondes)
+
 ## - Le AI
 ### &nbsp;    - Nous n'avons pas eu le temps de le terminer.
 ### &nbsp;    - Si vous voulez voir le AI jouer, il se pourrait qu'un joueur AI paraîsse immobile, il faut aller en voir un autre. Il y a un problème avec les joueurs AI. Il vont faire toutes leurs actions un après l'autre, c'est-à-dire que ce n'est qu'une fois qu'un joueur AI termine tout son processus de décision que le prochain commencera le sien. Ils le font en ordre (AI 1, AI 2, etc.). Ainsi, si un AI parait immobile, c'est parce que ce n'est pas encore son "tour". *Le premier aparait en haut de la map*
