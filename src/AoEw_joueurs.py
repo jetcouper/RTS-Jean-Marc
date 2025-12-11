@@ -141,6 +141,9 @@ class Joueur():
 
     def chasser_ressource(self, param):
         typeress, idress, troupe = param
+        # ressource peut avoir disparu, on sécurise
+        if idress not in self.parent.biotopes.get(typeress, {}):
+            return
         for i in troupe:
             for j in self.persos.keys():
                 if j == "ouvrier":
@@ -150,6 +153,9 @@ class Joueur():
 
     def ramasser_ressource(self, param):
         typeress, idress, troupe = param
+        # ressource peut avoir disparu, on sécurise
+        if idress not in self.parent.biotopes.get(typeress, {}):
+            return
         for i in troupe:
             for j in self.persos.keys():
                 if j == "ouvrier":
