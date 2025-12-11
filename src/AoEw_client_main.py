@@ -249,15 +249,7 @@ class Controleur():
                         )
 
                         print(self.victoire_msg)
-                        self.vue.maj_message_victoire(self.victoire_msg)
-
-                        # Arrêt propre
-                        self.arreter_boucle_jeu()
-                        self.detruire_partie()
-
-                        # Mise à jour interface
-                        self.vue.changer_topblack("blackgame")
-                        self.vue.changer_toplevel("gagner")
+                        self.declencher_victoire(self.victoire_msg)
                         return
 
             except Exception as e:
@@ -308,6 +300,18 @@ class Controleur():
         #NETTOYER TOUTES LES ACTIONS EN ATTENTE
         self.actions_requises = []
         print("Actions en attente vidées.")
+
+    def declencher_victoire(self, message: str):
+        """Centralise l'envoi du message de victoire vers la vue puis arrête la partie proprement."""
+        self.victoire_msg = message
+        try:
+            self.vue.maj_message_victoire(message)
+        except Exception as e:
+            print(f"Erreur maj message victoire : {e}")
+        self.arreter_boucle_jeu()
+        self.detruire_partie()
+        self.vue.changer_topblack("blackgame")
+        self.vue.changer_toplevel("gagner")
     ###################################################################
     # MORT
     # # fonction qui fait les appels au serveur

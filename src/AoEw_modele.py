@@ -68,6 +68,7 @@ class Partie():
     def __init__(self, parent, nom_joueur_local, ia_info , mode_de_jeu):
         self.en_cours = True
         self.parent = parent
+        self.mode_de_jeu = mode_de_jeu
         self.nom_joueur = nom_joueur_local
         self.actions_a_faire = {}
         self.debut = int(time.time())
@@ -573,11 +574,20 @@ class Partie():
     #############################################################################
 
     def fin_de_la_partie(self, joueurs_restants):
+        
+        if not self.en_cours:
+            return
         if not joueurs_restants:
-            print("Match nul – tous les joueurs sont morts.")
+            message = 'Match nul : tous les joueurs sont morts.'
         else:
             gagnant = joueurs_restants[0]
-            print(f"Le joueur {gagnant.nom} a gagné !")
+            message = f'Le joueur {gagnant.nom} a gagn? !'
+        print(message)
+        if getattr(self.parent, 'declencher_victoire', None):
+            try:
+                self.parent.declencher_victoire(message)
+            except Exception as e:
+                print(f'Erreur en d?clarant la victoire : {e}')
         self.en_cours = False
 
     def deplacer(self):
@@ -870,5 +880,4 @@ class Partie():
                     for j in action:
                         self.actions_a_faire[iteration_cle].append(j)
     ##############################################################################
-
 

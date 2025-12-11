@@ -121,9 +121,14 @@ class Joueur():
                     # j.attaquer(ennemi
     
     def est_vivant(self):
+        # Un joueur est vivant s'il possède au moins une unité ou un bâtiment en vie.
         for categorie in self.persos.values():
             for perso in categorie.values():
-                if perso.etat == "vivant":
+                if getattr(perso, "etat", "vivant") == "vivant":
+                    return True
+        for categorie in self.batiments.values():
+            for bat in categorie.values():
+                if getattr(bat, "etat", "vivant") == "vivant":
                     return True
         return False
 
