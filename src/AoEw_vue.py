@@ -77,7 +77,7 @@ class Vue():
                     self.changer_toplevel("gameescape")
                 elif nom_cadre_actif == ("gamemenu"):
                     self.changer_topblack("blackgame")
-                    self.changer_toplevel("option")
+                    self.changer_toplevel("option")               
 
 
         # bind sur tous les widgets (fonctionne même quand le toplevel a le focus)
@@ -214,6 +214,7 @@ class Vue():
         self.toplevel["useroption"] = self.creer_top_user()
         self.topblack["blackgame"] = self.creer_topblack()
         self.toplevel["gagner"] = self.creer_top_gagner()
+
 
     def creer_cadre_mainlobby(self) -> Frame:
         # === Cadre principal ===
@@ -786,7 +787,7 @@ class Vue():
         self.root.attributes('-fullscreen', True)
 
         print("Connecté en tant qu'invité")
-
+        
     def creer_top_escape(self):
         # le cadre escape, qui apparait en toplevel lorsque le joueur presse echap
         size_x = 480
@@ -1569,7 +1570,8 @@ class Vue():
 
     def connecter_event(self):
         # on attache (bind) desF événements soit aux objets eux même
-        self.canevas.bind("<Button-1>", self.annuler_action)
+        # clic gauche : déplacement si sélection, sinon reset action
+        self.canevas.bind("<Button-1>", self.clic_jeu)
         self.canevas.bind("<Button-3>", self.construire_batiment)
         # faire une multiselection
         self.canevas.bind("<Shift-Button-1>", self.debuter_selection)
@@ -2401,6 +2403,7 @@ class Vue():
         # On efface tout ce qui est 'mobile' (un tag)
         self.canevas.delete("mobile")
         self.canevas.delete("batiment")
+        self.canevas.delete("path")
 
         # on se debarrasse des choses mortes (disparues), le id est dans le tag du dessin
         for i in self.modele.ressourcemorte:
@@ -2525,6 +2528,10 @@ class Vue():
         self.fog_overlay.update()
         self.minimap_renderer.update()
         self.minicarte.itemconfigure(self.minicarte_img, image=self.minimap_renderer.tk)
+        
+    
+
+
 
 
 
@@ -2608,6 +2615,16 @@ class Vue():
             if self.action.btnactif:
                 self.action.btnactif.config(bg="SystemButtonFace")
             self.action = Action(self)
+
+    def clic_jeu(self, evt):
+        # Déplacement: toujours prendre les coordonnées du clic, même sur une tuile eau/bois/etc.
+        x, y = (self.canevas.canvasx(evt.x), self.canevas.canvasy(evt.y))
+        if self.action.persochoisi:
+            self.action.position = [x, y]
+            self.action.deplacer()
+        else:
+            # si aucune sélection, on nettoie l'action courante
+            self.annuler_action(evt)
 
     def fermer_chat(self):
         self.textchat = None
